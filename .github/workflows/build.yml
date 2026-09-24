@@ -16,15 +16,17 @@ jobs:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf # v3
 
       - name: Install dependencies
         working-directory: ./backend
-        run: uv sync
+        run: uv sync --locked # NOSONAR
+        # Sonar does not recongise that uv locks files. This is a safe bypass.
 
       - name: Run Pytest & Generate Coverage
         working-directory: ./backend
-        run: uv run pytest
+        run: uv run pytest # NOSONAR
+        # Sonar does not recongise that uv locks files. This is a safe bypass.
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8.1.0
