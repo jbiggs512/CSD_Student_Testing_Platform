@@ -7,28 +7,56 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 jobs:
-  build:
+  sonarqube:
     name: SonarQube
+    needs: build # Added so it waits for the build job to finish testing
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf # v3
-
-      - name: Install dependencies
-        working-directory: ./backend
-        run: uv sync --locked # NOSONAR
-        # Sonar does not recongise that uv locks files. This is a safe bypass.
-
-      - name: Run Pytest & Generate Coverage
-        working-directory: ./backend
-        run: uv run pytest # NOSONAR
-        # Sonar does not recongise that uv locks files. This is a safe bypass.
+      - name: Download Coverage Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: backend/
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v7
+
+      # Install uv to manage Python dependencies
+      - name: Install uv
+        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf # v3
+
+      # Runs a set of commands using the runners shell
+      - name: Install dependencies
+        working-directory: ./backend
+        run: uv sync --locked # NOSONAR
+        # Sonar does not recongise that uv locks files. This is a safe bypass.
+
+      # Runs a set of commands using the runners shell
+      - name: Run Pytest & Generate Coverage
+        working-directory: ./backend
+        run: uv run pytest # NOSONAR
+        # Sonar does not recongise that uv locks files. This is a safe bypass.
+
+      # Upload the coverage XML so the SonarQube job can read it
+      - name: Upload Coverage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: backend/coverage.xml
+          include-hidden-files: true
