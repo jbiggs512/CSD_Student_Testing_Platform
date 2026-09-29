@@ -34,14 +34,17 @@ body:
     validations:
       required: true
 
-  - type: textarea
-    id: acceptance-criteria
+  - type: checkboxes
+    id: definition-of-done
     attributes:
-      label: Acceptance Criteria
-      description: Define how we will determine that the work is complete.
-      placeholder: |
-        - Given..., when..., then...
-        - Given..., when..., then...
+      label: Definition of Done
+      description: Complete these checks before closing the issue.
+      options:
+        - label: Requirements have been implemented.
+        - label: Relevant tests have passed, unit tests and/or black box tests.
+        - label: Documentation has been updated where required.
+        - label: Code has been reviewed.
+        - label: Merge request has been approved and merged.
     validations:
       required: true
 
