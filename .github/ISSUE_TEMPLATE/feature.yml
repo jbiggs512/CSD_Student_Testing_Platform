@@ -1,0 +1,57 @@
+name: Feature / Work Item
+description: Request new functionality or a piece of work
+title: "[FEATURE] "
+labels:
+  - feature
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Briefly describe the functionality or work to be completed.
+      placeholder: Describe what needs to be implemented...
+    validations:
+      required: true
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: Explain the purpose or desired outcome of this work.
+      placeholder: This work is intended to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requirements
+      description: List the requirements that this work should satisfy.
+      placeholder: |
+        - Requirement 1
+        - Requirement 2
+        - Requirement 3
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: definition-of-done
+    attributes:
+      label: Definition of Done
+      description: Complete these checks before closing the issue.
+      options:
+        - label: Requirements have been implemented.
+        - label: Relevant tests have passed, unit tests and/or black box tests.
+        - label: Documentation has been updated where required.
+        - label: Code has been reviewed.
+        - label: Merge request has been approved and merged.
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add screenshots, designs, links, or other relevant information.
+    validations:
+      required: false

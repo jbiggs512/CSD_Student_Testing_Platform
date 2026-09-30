@@ -1,0 +1,65 @@
+name: Change Request
+description: Request a change to an existing requirement, design, or implementation
+title: "[CHANGE] "
+labels:
+  - change-request
+body:
+  - type: textarea
+    id: proposed-change
+    attributes:
+      label: Proposed Change
+      description: Describe the change being requested.
+      placeholder: The proposed change is...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason for Change
+      description: Explain why the change is required.
+      placeholder: This change is required because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current Behaviour / Requirement
+      description: Describe the existing behaviour or requirement.
+      placeholder: Currently, the system...
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Identify affected components, users, dependencies, or risks.
+      placeholder: |
+        Affected components:
+        Users affected:
+        Dependencies:
+        Risks / considerations:
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Define how the change will be considered complete.
+      placeholder: |
+        - The change...
+        - Existing functionality...
+        - Tests/documentation...
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add supporting evidence, links, designs, or related issues.
+    validations:
+      required: false
