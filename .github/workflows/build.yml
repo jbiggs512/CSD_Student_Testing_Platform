@@ -77,7 +77,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Lint frontend
         working-directory: ./frontend
