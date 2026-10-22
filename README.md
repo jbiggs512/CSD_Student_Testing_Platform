@@ -4,6 +4,6 @@ UFCFCR-30-3 Collaborative Software Development project.
 
 ## Project Structure
 
-- `frontend/app` - React frontend for the student testing platform
+- `frontend` - React frontend for the student testing platform
 
-See the [frontend README](frontend/app/README.md) for setup instructions and the frontend architecture.
+See the [frontend README](frontend/README.md) for setup instructions and the frontend architecture.
