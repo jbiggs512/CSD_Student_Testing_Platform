@@ -5,11 +5,11 @@ export async function apiClient<T>(
   options?: RequestInit,
 ): Promise<T> {
   const response = await fetch(`${ENV.API_URL}${endpoint}`, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
     },
-    ...options,
   })
 
   if (!response.ok) {
@@ -18,4 +18,3 @@ export async function apiClient<T>(
 
   return response.json() as Promise<T>
 }
-
