@@ -1,2 +1,2 @@
-export { apiClient } from './client'
-
+// Shared API client and requests
+export {}

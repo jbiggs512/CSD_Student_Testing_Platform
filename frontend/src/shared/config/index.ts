@@ -1,2 +1,2 @@
-export { ENV } from './env'
-
+// Shared environment variables and configuration
+export {}
