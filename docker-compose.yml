@@ -8,6 +8,10 @@ services:
       - BACKEND_CORS_ORIGINS=http://localhost:5173
     volumes:
       - ./backend/src:/app/src
+    develop:
+      watch:
+        - action: rebuild
+          path: ./backend/uv.lock
 
   frontend:
     build:
@@ -20,4 +24,7 @@ services:
       - ./frontend/src:/app/src
     depends_on:
       - backend
-
+    develop:
+      watch:
+        - action: rebuild
+          path: ./frontend/package-lock.json
