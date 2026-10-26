@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     PROJECT_NAME: str = "CSD Student Testing Platform"
     API_V1_STR: str = "/api/v1"
+    DATABASE_URL: str = "sqlite:///./dev.db"
     
     # CORS Configuration
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []

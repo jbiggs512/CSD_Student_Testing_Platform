@@ -1,8 +1,19 @@
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from typing import Annotated
+
+from fastapi import Depends
+from sqlalchemy import text, select
+from sqlalchemy.orm import Session
+
 from app.api.v1.router import api_router
 from app.core.config import settings
+
+# Database imports
+from app.api.deps import get_db
+from app.db.models import ExampleRecord
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -25,3 +36,40 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.get("/health", tags=["Health"])
 def health_check():
     return {"status": "ok"}
+
+@app.get("/health/database")
+def database_health(
+    db: Annotated[Session, Depends(get_db)],
+):
+    db.execute(text("SELECT 1"))
+    return {"database": "connected"}
+
+# Example endpoints for testing database access
+@app.post("/examples")
+def create_example(
+    name: str,
+    db: Annotated[Session, Depends(get_db)],
+):
+    record = ExampleRecord(name=name)
+
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+
+    return {
+        "id": record.id,
+        "name": record.name,
+    }
+
+@app.get("/examples")
+def list_examples(
+    db: Annotated[Session, Depends(get_db)],
+):
+    records = db.scalars(
+        select(ExampleRecord)
+    ).all()
+
+    return [
+        {"id": record.id, "name": record.name}
+        for record in records
+    ]
