@@ -26,3 +26,8 @@ class Question(Base):
     test: Mapped["Test"] = relationship(
         back_populates="questions",
     )
+
+    options: Mapped[list["QuestionOption"]] = relationship(
+        back_populates="question",
+        passive_deletes="all",
+    )
