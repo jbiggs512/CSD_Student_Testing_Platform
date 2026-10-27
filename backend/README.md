@@ -171,8 +171,8 @@ Swagger UI allows you to inspect endpoints and send test requests directly from 
 Database-related code lives in `src/app/db/`:
 
 - `base.py` — shared SQLAlchemy declarative base.
-- `models.py` — SQLAlchemy database models.
 - `session.py` — database engine and session configuration.
+- `models/` — SQLAlchemy database models.
 
 Alembic configuration and migration files live in the `backend/` directory, separate from the application source code.
 
