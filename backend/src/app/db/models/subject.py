@@ -58,3 +58,8 @@ class Subject(Base):
     course: Mapped["Course"] = relationship(
         back_populates="subjects",
     )
+
+    tests: Mapped[list["Test"]] = relationship(
+        back_populates="subject",
+        passive_deletes="all",
+)
