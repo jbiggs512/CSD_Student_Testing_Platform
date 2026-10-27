@@ -62,3 +62,8 @@ class Test(Base):
         back_populates="test",
         passive_deletes="all",
     )
+
+    attempts: Mapped[list["TestAttempt"]] = relationship(
+        back_populates="test",
+        passive_deletes="all",
+    )

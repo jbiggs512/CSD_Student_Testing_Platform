@@ -94,3 +94,9 @@ class User(Base):
 
     # Each user has one role.
     role: Mapped["Role"] = relationship(back_populates="users")
+
+    # Each user can have many test attempts.
+    test_attempts: Mapped[list["TestAttempt"]] = relationship(
+        back_populates="user",
+        passive_deletes="all",
+    )
