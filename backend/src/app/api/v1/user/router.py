@@ -16,12 +16,11 @@ from fastapi import Depends
 
 router = APIRouter()
 
-@router.post("/create/lecturer")
+@router.post("/create/lecturer", response_model=schemas.UserResponse, status_code=201)
 def request_create_lecturer(lecturer: schemas.LecturerCreateRequest,
                             db: Annotated[Session, Depends(get_db)]):
     try:
-        user = service.create_user(db, lecturer)
-        return user
+        return service.create_user(db, lecturer)
     # TODO: Is this necessary idk?
     except ValueError as e:
         return {"error": str(e)}
