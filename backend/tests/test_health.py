@@ -5,3 +5,12 @@ def test_health_check(client):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+def test_database_health_check(client):
+    """
+    Test that the database health endpoint can query the database.
+    """
+    response = client.get("/health/database")
+
+    assert response.status_code == 200
+    assert response.json() == {"database": "connected"}
