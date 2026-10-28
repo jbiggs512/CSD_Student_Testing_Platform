@@ -25,7 +25,7 @@ def upgrade() -> None:
     sa.Column('option_id', sa.Integer(), nullable=False),
     sa.Column('question_id', sa.Integer(), nullable=False),
     sa.Column('option_text', sa.Text(), nullable=False),
-    sa.Column('is_correct', sa.Boolean(), server_default=sa.text('0'), nullable=False),
+    sa.Column('is_correct', sa.Boolean(), server_default=sa.text('FALSE'), nullable=False),
     sa.ForeignKeyConstraint(['question_id'], ['questions.question_id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('option_id')
     )
