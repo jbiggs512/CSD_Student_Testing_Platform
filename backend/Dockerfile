@@ -14,6 +14,11 @@ RUN uv sync --locked --no-dev --no-install-project --no-build
 
 COPY --chown=appuser:appuser src ./src
 
+# Tests are copied to allow running them in the container, but they are not required for the application to run.
+# Temporary: Not necessary for live deployment, but useful for testing in the container. 
+# Remove this line when tests are no longer needed in the container.
+COPY --chown=appuser:appuser tests ./tests
+
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app/src"
 
