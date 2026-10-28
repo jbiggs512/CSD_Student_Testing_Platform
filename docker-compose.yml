@@ -6,8 +6,12 @@ services:
       - "8000:8000"
     environment:
       - BACKEND_CORS_ORIGINS=["http://localhost:5173"]
+      - DATABASE_URL=postgresql+psycopg://student_app:${POSTGRES_PASSWORD}@db:5432/student_testing
     volumes:
       - ./backend/src:/app/src
+    depends_on:
+      db:
+        condition: service_healthy
     develop:
       watch:
         - action: rebuild
@@ -28,3 +32,24 @@ services:
       watch:
         - action: rebuild
           path: ./frontend/package-lock.json
+
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: student_testing
+      POSTGRES_USER: student_app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in root .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U student_app -d student_testing"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  postgres_data:

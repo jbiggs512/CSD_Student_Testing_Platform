@@ -7,6 +7,9 @@ RUN chown appuser:appuser /app
 USER appuser
 
 COPY --chown=appuser:appuser pyproject.toml uv.lock README.md ./
+COPY --chown=appuser:appuser alembic.ini ./
+COPY --chown=appuser:appuser alembic ./alembic
+
 RUN uv sync --locked --no-dev --no-install-project --no-build
 
 COPY --chown=appuser:appuser src ./src
@@ -16,5 +19,5 @@ ENV PYTHONPATH="/app/src"
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-
+# Run database migrations and start the application
+CMD ["sh", "-c", "uv run alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
