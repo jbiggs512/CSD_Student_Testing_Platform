@@ -9,7 +9,4 @@ from app.db.models.test_attempt import TestAttempt
 # Assocation table for the many-to-many relationship between users and courses.
 from app.db.models.user_course import user_courses
 
-# Temporary: retain while the example endpoints are still in use.
-from app.db.models.example import ExampleRecord
-
-__all__ = ["Role", "User", "Course", "Subject", "Test", "Question", "QuestionOption", "TestAttempt", "user_courses", "ExampleRecord"]
+__all__ = ["Role", "User", "Course", "Subject", "Test", "Question", "QuestionOption", "TestAttempt", "user_courses"]
