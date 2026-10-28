@@ -1,3 +1,9 @@
+import { LandingPage } from '@/pages/landing'
+
 export function App() {
-  return <div id="app-shell" />
+  return (
+    <div id="app-shell">
+      <LandingPage />
+    </div>
+  )
 }
