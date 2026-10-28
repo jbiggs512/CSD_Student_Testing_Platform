@@ -3,7 +3,12 @@ import triviumLogo from '@shared/assets/logos/trivium-transparent.png'
 import background from '@shared/assets/altius-bg.jpg'
 import rocket from '@shared/assets/coloured-rocket.png'
 import { Button, Card, CardDescription, CardHeader, CardTitle } from '@shared/components'
-import { CONTACT_EMAIL, LANDING_FEATURES } from '../model'
+import {
+  CONTACT_EMAIL,
+  LANDING_AUDIENCES,
+  LANDING_FEATURES,
+  PLATFORM_DESCRIPTION,
+} from '../model'
 
 /**
  * The logo PNGs sit on a large square transparent canvas, so they are cropped to
@@ -67,11 +72,24 @@ export function LandingPage() {
             The competitive reinforcement testing platform built to launch learners to that
             next grade boundary.
           </p>
+          <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/80 sm:text-base">
+            {PLATFORM_DESCRIPTION}
+          </p>
+          <dl className="mt-6 grid max-w-xl gap-4 sm:grid-cols-2">
+            {LANDING_AUDIENCES.map((audience) => (
+              <div key={audience.label} className="border-l-2 border-yellow pl-3">
+                <dt className="text-sm font-semibold tracking-wide text-yellow uppercase">
+                  {audience.label}
+                </dt>
+                <dd className="mt-1 text-sm text-white/80">{audience.description}</dd>
+              </div>
+            ))}
+          </dl>
           <img
             src={rocket}
             alt=""
             aria-hidden="true"
-            className="mt-8 hidden w-full max-w-sm animate-[float_6s_ease-in-out_infinite] drop-shadow-2xl motion-reduce:animate-none lg:block"
+            className="mt-6 hidden w-full max-w-xs animate-[float_6s_ease-in-out_infinite] drop-shadow-2xl motion-reduce:animate-none lg:block"
           />
         </div>
 

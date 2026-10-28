@@ -1,7 +1,12 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { LandingPage } from '@/pages/landing'
-import { CONTACT_EMAIL, LANDING_FEATURES } from '@/pages/landing/model'
+import {
+  CONTACT_EMAIL,
+  LANDING_AUDIENCES,
+  LANDING_FEATURES,
+  PLATFORM_DESCRIPTION,
+} from '@/pages/landing/model'
 
 describe('LandingPage', () => {
   afterEach(cleanup)
@@ -9,6 +14,15 @@ describe('LandingPage', () => {
     const { getByRole, getByText } = render(<LandingPage />)
     expect(getByRole('heading', { level: 1 }).textContent).toContain('Elevate Your Learning')
     expect(getByText(/competitive reinforcement testing platform/i)).toBeDefined()
+  })
+
+  it('describes the platform and who it is for', () => {
+    const { getByText } = render(<LandingPage />)
+    expect(getByText(PLATFORM_DESCRIPTION)).toBeDefined()
+    for (const audience of LANDING_AUDIENCES) {
+      expect(getByText(audience.label)).toBeDefined()
+      expect(getByText(audience.description)).toBeDefined()
+    }
   })
 
   it('links to the register and login pages', () => {
