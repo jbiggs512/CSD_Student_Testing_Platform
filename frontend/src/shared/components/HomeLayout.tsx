@@ -9,7 +9,7 @@ import { buttonVariants } from "@/shared/components/shadcn/button"
 
 export function HomeLayout() {
   return (
-    <div className="flex w-full items-center justify-end p-4">
+    <div id="home-layout" className="flex w-full items-center justify-end p-4">
       <NavigationMenu>
         <NavigationMenuList className="gap-2">
 

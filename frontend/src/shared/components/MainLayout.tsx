@@ -57,7 +57,7 @@ export function MainLayout() {
   const items = userType ? navItems[userType] : [];
 
   return (
-    <div className="flex w-full items-center justify-end px-2">
+    <div id="main-layout" className="flex w-full items-center justify-end px-2">
       <img src="/altius-transparent.png" alt="Logo" className="h-16 w-auto mr-auto" />
 
       {userType && (
@@ -80,7 +80,7 @@ export function MainLayout() {
 
           {/* Mobile: hamburger menu that opens a side panel, hidden from md up */}
           <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger render={<Button variant="outline" size="icon" className="md:hidden" aria-label="Open menu"/>}>
+            <SheetTrigger id="mobile-menu" render={<Button variant="outline" size="icon" className="md:hidden" aria-label="Open menu" />}>
               <MenuIcon />
             </SheetTrigger>
             <SheetContent side="right" className="w-72">
@@ -93,7 +93,9 @@ export function MainLayout() {
                     {item.label}
                   </Link>
                 ))}
-                <Link to="/login" onClick={() => setOpen(false)} className={`${buttonVariants({ variant: "secondary" })} mt-4`}>
+                <Link to="/login"
+                  onClick={() => setOpen(false)}
+                  className={`${buttonVariants({ variant: "secondary" })} mt-4`}>
                   Logout
                 </Link>
               </nav>
