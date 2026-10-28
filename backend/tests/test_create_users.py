@@ -1,6 +1,5 @@
 from app.enums import UserRole, AccountStatus
-
-# TODO: Define a different test db or figure out this issue
+        
 def test_create_lecturer_account(client):
     """
     Test that a new lecturer account can be created successfully.
