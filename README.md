@@ -54,6 +54,14 @@ docker compose down
 
 PostgreSQL data is stored in a Docker named volume and persists when containers are stopped or recreated. To deliberately remove the database volume, use `docker compose down -v`; **this deletes the persisted database data**.
 
+### Running tests
+
+To run backend tests, execute:
+
+```bash
+docker compose exec backend uv run pytest
+```
+
 ## Project Structure
 
 - [`backend/`](backend/README.md) — FastAPI Python backend managed with `uv`, SQLAlchemy and Alembic.
