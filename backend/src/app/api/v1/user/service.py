@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 
 from typing import TypeAlias
-from http.client import HTTPException
 
 from app.db.models import User, Role
 from app.enums import UserRole
