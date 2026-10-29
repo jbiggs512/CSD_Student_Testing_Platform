@@ -32,6 +32,7 @@ The project uses a lightweight version of Feature-Sliced Design. Layers are adde
 frontend/
 ├── src/
 │   ├── pages/            # Route-level pages
+│   │   └── dashboard/
 │   │   ├── landing/
 │   │   ├── login/
 │   │   └── register/
@@ -41,6 +42,7 @@ frontend/
 │   │   └── config/       # Environment variables and configuration
 │   ├── App.tsx           # Root application component
 │   └── main.tsx          # Application entry point
+│   └── style.css         # CSS styles for application
 └── tests/                # Unit tests mirroring src/ structure
 ```
 

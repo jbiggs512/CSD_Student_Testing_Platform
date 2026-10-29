@@ -85,6 +85,8 @@ class User(Base):
     last_login: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
+        default=None,
+        server_default=None,
     )
 
     courses: Mapped[list["Course"]] = relationship(

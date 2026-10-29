@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,7 +12,6 @@ from app.core.config import settings
 
 # Database imports
 from app.api.deps import get_db
-from app.db.models import ExampleRecord
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -43,33 +41,3 @@ def database_health(
 ):
     db.execute(text("SELECT 1"))
     return {"database": "connected"}
-
-# Example endpoints for testing database access
-@app.post("/examples")
-def create_example(
-    name: str,
-    db: Annotated[Session, Depends(get_db)],
-):
-    record = ExampleRecord(name=name)
-
-    db.add(record)
-    db.commit()
-    db.refresh(record)
-
-    return {
-        "id": record.id,
-        "name": record.name,
-    }
-
-@app.get("/examples")
-def list_examples(
-    db: Annotated[Session, Depends(get_db)],
-):
-    records = db.scalars(
-        select(ExampleRecord)
-    ).all()
-
-    return [
-        {"id": record.id, "name": record.name}
-        for record in records
-    ]
