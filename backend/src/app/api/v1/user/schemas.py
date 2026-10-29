@@ -1,8 +1,3 @@
-# Pydantic request/response models for auth.
-# Example:
-# class LoginRequest(BaseModel):
-#     email: str
-#     password: str
 from abc import abstractmethod, ABC
 from pydantic import BaseModel, EmailStr, Field, AliasPath
 from datetime import date, datetime
