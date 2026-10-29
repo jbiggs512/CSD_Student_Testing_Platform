@@ -2,20 +2,20 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { MenuIcon } from "lucide-react";
 import {
+  Button, 
+  buttonVariants,
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
   navigationMenuTriggerStyle,
-} from "@/shared/components/shadcn/navigation-menu";
-import { Button, buttonVariants } from "@/shared/components/shadcn/button";
-import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/shared/components/shadcn/sheet";
+} from "@/shared/components";
+import logo from '@shared/assets/altius-transparent.png'
 
 type UserType = "student" | "lecturer" | "administrator";
 
@@ -46,11 +46,11 @@ const navItems: Record<UserType, NavItem[]> = {
   ],
 };
 
-export function MainLayout() {
+export function NavBar() {
   // State to control whether the mobile menu is open/closed
   const [open, setOpen] = useState(false);
 
-  // TO DO: Implement authentication logic to determine user type (student, lecturer, administrator)
+  // TODO: Implement authentication logic to determine user type (student, lecturer, administrator)
   const userType = ((): UserType | null => "student")();
 
   // Get the navigation items for the current user type, or an empty array if no user is logged in
@@ -58,7 +58,7 @@ export function MainLayout() {
 
   return (
     <div id="main-layout" className="flex w-full items-center justify-end px-2">
-      <img src="/altius-transparent.png" alt="Logo" className="h-16 w-auto mr-auto" />
+      <img src={logo} alt="Logo" className="h-16 w-auto mr-auto" />
 
       {userType && (
         <>
@@ -72,7 +72,7 @@ export function MainLayout() {
               ))}
               <NavigationMenuItem>
                 <NavigationMenuLink className={navigationMenuTriggerStyle()}
-                  render={<Link to="/login" className={buttonVariants({ variant: "secondary" })}>Logout</Link>}
+                  render={<Link to="/login" className={buttonVariants({ variant: "default" })}>Logout</Link>}
                 />
               </NavigationMenuItem>
             </NavigationMenuList>
@@ -95,7 +95,7 @@ export function MainLayout() {
                 ))}
                 <Link to="/login"
                   onClick={() => setOpen(false)}
-                  className={`${buttonVariants({ variant: "secondary" })} mt-4`}>
+                  className={`${buttonVariants({ variant: "default" })} mt-4`}>
                   Logout
                 </Link>
               </nav>

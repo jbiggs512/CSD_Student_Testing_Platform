@@ -1,0 +1,95 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@fontsource-variable/fraunces';
+@import '@fontsource-variable/inter';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Altius brand palette */
+:root {
+  --brand-navy: #0a2262; /* Body text */
+  --brand-plum: #6e3273; /* Heading text */
+  --brand-pink: #b44d70; /* Buttons */
+  --brand-orange: #e37c67; /* Accents */
+  --brand-yellow: #f4b767; /* Accents */
+
+  --radius: 0.625rem;
+  --background: #ffffff;
+  --foreground: var(--brand-navy);
+  --card: #ffffff;
+  --card-foreground: var(--brand-navy);
+  --popover: #ffffff;
+  --popover-foreground: var(--brand-navy);
+  --primary: var(--brand-pink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--brand-plum);
+  --secondary-foreground: #ffffff;
+  --muted: #f3f4f8;
+  --muted-foreground: #4a5578;
+  --accent: var(--brand-yellow);
+  --accent-foreground: var(--brand-navy);
+  --destructive: #c0392b;
+  --border: #e2e4ec;
+  --input: #e2e4ec;
+  --ring: var(--brand-orange);
+}
+
+@theme inline {
+  --font-heading: 'Fraunces Variable', Georgia, serif;
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+
+  --color-navy: var(--brand-navy);
+  --color-plum: var(--brand-plum);
+  --color-pink: var(--brand-pink);
+  --color-orange: var(--brand-orange);
+  --color-yellow: var(--brand-yellow);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-14px) rotate(-1.5deg);
+    }
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading text-plum;
+  }
+}
