@@ -27,7 +27,13 @@ interface CroppedLogoProps {
   crop: { x: number; y: number; width: number; height: number }
 }
 
-function CroppedLogo({ src, alt, className, source, crop }: CroppedLogoProps) {
+function CroppedLogo({
+  src,
+  alt,
+  className,
+  source,
+  crop,
+}: Readonly<CroppedLogoProps>) {
   return (
     <div
       className={`relative overflow-hidden ${className ?? ''}`}
