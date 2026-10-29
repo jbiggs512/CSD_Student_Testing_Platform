@@ -14,8 +14,8 @@ def request_create_lecturer(lecturer: schemas.LecturerCreateRequest,
     return service.create_user(db, lecturer)
 
 # TODO: Confirm method of authenticating/retrieving 'current_user'.
-@router.delete("/lecturer/{username}", status_code=204)
-def delete_lecturer(
+@router.delete("/{username}", status_code=204)
+def delete_user(
     username: str,
     db: Annotated[Session, Depends(get_db)],
     # current_user: Annotated[User, Depends(get_current_user)],

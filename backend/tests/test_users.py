@@ -52,10 +52,10 @@ def test_delete_lecturer_account(client):
     assert response.status_code == 201
 
     # Test deleting the lecturer account
-    response = client.delete(f"/api/v1/user/lecturer/{lecturer_data['username']}")
+    response = client.delete(f"/api/v1/user/{lecturer_data['username']}")
     assert response.status_code == 204
 
     # Test deleting a non-existent lecturer account
     invalid_username = "nonexistent_user"
-    response = client.delete(f"/api/v1/user/lecturer/{invalid_username}")
+    response = client.delete(f"/api/v1/user/{invalid_username}")
     assert response.status_code == 404
