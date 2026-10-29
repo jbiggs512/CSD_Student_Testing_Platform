@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import altiusLogo from '@shared/assets/logos/altius-sticker.png'
 import triviumLogo from '@shared/assets/logos/trivium-transparent.png'
 import background from '@shared/assets/altius-bg.jpg'
@@ -43,11 +44,16 @@ function CroppedLogo({ src, alt, className, source, crop }: CroppedLogoProps) {
 }
 
 export function LandingPage() {
+  const backgroundStyle = { '--landing-bg': `url(${background})` } as CSSProperties
+
   return (
     <main
       id="landing-page"
-      className="relative flex min-h-screen flex-col overflow-hidden bg-navy bg-cover bg-bottom bg-no-repeat"
-      style={{ backgroundImage: `url(${background})` }}
+      // Below lg the content stacks and the page gets tall, so a full-page
+      // background would push the light clouds behind the cards. Instead the sky
+      // is a gradient and the clouds are confined to the footer band.
+      className="relative flex min-h-screen flex-col overflow-hidden bg-navy bg-linear-to-b from-navy from-35% to-[#55255c] lg:bg-(image:--landing-bg) lg:bg-cover lg:bg-bottom lg:bg-no-repeat"
+      style={backgroundStyle}
     >
       <header className="flex items-start justify-between px-6 pt-6 sm:px-10">
         <img src={altiusLogo} alt="Altius" className="w-28 drop-shadow-lg sm:w-36" />
@@ -111,7 +117,15 @@ export function LandingPage() {
         </ul>
       </section>
 
-      <footer className="relative z-10 flex flex-col items-center gap-1 pt-16 pb-6">
+      <footer className="relative isolate z-10 flex flex-col items-center gap-1 pt-44 pb-6 sm:pt-56 lg:pt-16">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 bg-(image:--landing-bg) bg-[length:auto_170%] bg-bottom bg-no-repeat lg:hidden"
+          style={{
+            maskImage: 'linear-gradient(to bottom, transparent, black 30%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 30%)',
+          }}
+        />
         <CroppedLogo
           src={triviumLogo}
           alt="Trivium"
