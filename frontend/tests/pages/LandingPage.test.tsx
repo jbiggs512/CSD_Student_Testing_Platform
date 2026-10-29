@@ -1,7 +1,8 @@
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, render, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { LandingPage } from '@/pages/landing'
 import {
+  COMPANY_NAME,
   CONTACT_EMAIL,
   LANDING_AUDIENCES,
   LANDING_FEATURES,
@@ -43,5 +44,20 @@ describe('LandingPage', () => {
     expect(getByRole('link', { name: CONTACT_EMAIL }).getAttribute('href')).toBe(
       `mailto:${CONTACT_EMAIL}`,
     )
+  })
+
+  it('shows a primary sign-up call to action with a login alternative', () => {
+    const { getByRole } = render(<LandingPage />)
+    expect(getByRole('link', { name: 'Get started' }).getAttribute('href')).toBe('/register')
+    expect(getByRole('link', { name: 'Log in' }).getAttribute('href')).toBe('/login')
+  })
+
+  it('renders the copyright notice', () => {
+    const { getByRole, getByText } = render(<LandingPage />)
+    const footerNav = getByRole('navigation', { name: 'Footer' })
+    expect(within(footerNav).getByRole('link', { name: CONTACT_EMAIL }).getAttribute('href')).toBe(
+      `mailto:${CONTACT_EMAIL}`,
+    )
+    expect(getByText(new RegExp(`© \\d{4} ${COMPANY_NAME}`))).toBeDefined()
   })
 })
