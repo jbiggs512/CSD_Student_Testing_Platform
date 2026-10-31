@@ -80,6 +80,27 @@
     }
   }
 
+  @keyframes hero-dock-left {
+    0% {
+      width: calc(200% + 1.25rem);
+      border-radius: 0;
+    }
+    100% {
+      width: 100%;
+    }
+  }
+
+  @keyframes slide-in-from-right {
+    0% {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
   * {
     @apply border-border outline-ring/50;
   }

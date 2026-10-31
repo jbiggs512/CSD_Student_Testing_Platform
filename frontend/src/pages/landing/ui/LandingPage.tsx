@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { Link } from 'react-router'
 import altiusLogo from '@shared/assets/logos/altius-sticker.png'
 import triviumLogo from '@shared/assets/logos/trivium-transparent.png'
 import background from '@shared/assets/altius-bg.jpg'
@@ -69,10 +70,10 @@ export function LandingPage() {
         <img src={altiusLogo} alt="Altius" className="w-28 drop-shadow-lg sm:w-36" />
         <nav aria-label="Account" className="flex gap-3">
           <Button asChild className="shadow-md">
-            <a href="/register">Register</a>
+            <Link to="/register">Register</Link>
           </Button>
           <Button asChild className="shadow-md">
-            <a href="/login">Login</a>
+            <Link to="/login">Login</Link>
           </Button>
         </nav>
       </header>
@@ -108,19 +109,19 @@ export function LandingPage() {
               size="lg"
               className="h-12 rounded-full bg-yellow px-8 text-base font-semibold text-navy shadow-lg shadow-yellow/25 transition-transform hover:-translate-y-0.5 hover:bg-yellow/90"
             >
-              <a href="/register">
+              <Link to="/register">
                 Get started
                 <ArrowRight aria-hidden="true" />
-              </a>
+              </Link>
             </Button>
             <p className="text-sm text-white/80">
               Already have an account?{' '}
-              <a
-                href="/login"
+              <Link
+                to="/login"
                 className="font-semibold text-yellow underline-offset-4 hover:underline"
               >
                 Log in
-              </a>
+              </Link>
             </p>
           </div>
           <img
