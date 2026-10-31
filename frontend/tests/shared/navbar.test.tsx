@@ -10,6 +10,6 @@ describe('NavBar', () => {
         <NavBar />
       </MemoryRouter>
     );
-    expect(container.querySelector('#main-layout')).not.toBeNull()
+    expect(container.querySelector('#nav-bar')).not.toBeNull()
   })
 })

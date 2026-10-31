@@ -7,15 +7,11 @@ from typing import TypeAlias
 from app.db.models import User, Role
 from app.enums import UserRole
 from app.api.v1.user.schemas import LecturerCreateRequest
-# from app.security import hash_password - could be a better approach in the future.
+from app.core.security import hash_password
 
 UserCreateRequest: TypeAlias = (
     LecturerCreateRequest
 )
-
-def hash_password(password: str) -> str:
-    # Implement password hashing logic here or security app logic
-    pass
 
 def create_user(
     db: Session,
@@ -33,9 +29,7 @@ def create_user(
         raise HTTPException(status_code=422, detail=f"Role '{user_data.role}' does not exist.")
 
     # Hash the password before storing it in the database.
-    # TODO: Implement actual password hashing logic. For now, we are just using the plain password.
-    # WARNING: Storing plain passwords is insecure. Implement proper hashing before production.
-    hashed_password = user_data.password
+    hashed_password = hash_password(user_data.password)
 
     # Create the SQLAlchemy user object.
     user = User(
