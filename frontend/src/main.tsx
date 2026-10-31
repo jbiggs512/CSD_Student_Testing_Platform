@@ -22,6 +22,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/dashboard" element={<DashboardPage />} />
             </Route>
           </Route>
+          <Route path="*" element={<ProtectedRoute allowedRoles={[]} />} />
         </Route>
       </Routes>
       <App />

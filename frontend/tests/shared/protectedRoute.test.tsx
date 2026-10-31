@@ -51,6 +51,7 @@ function renderProtectedRoutes(initialEntry: string) {
             </Route>
             <Route path="/profile" element={<div>Shared Profile Page</div>} />
           </Route>
+          <Route path="*" element={<ProtectedRoute allowedRoles={[]} />} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -130,19 +131,27 @@ describe('ProtectedRoute & restoreAuthSession', () => {
     expect(getCurrentUser()).toEqual(lecturerUser)
   })
 
-  it('redirects unauthenticated users to /login when refresh fails', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+  it('redirects unauthenticated users to /login for both existing and non-existent URLs', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
       status: 401,
       json: async () => ({ detail: 'Missing refresh token.' }),
     } as Response)
 
-    renderProtectedRoutes('/dashboard')
+    renderProtectedRoutes('/unknown-route-that-does-not-exist')
 
     await waitFor(() => {
       expect(screen.getByText('Login Screen')).toBeDefined()
     })
-    expect(screen.queryByText('Student Dashboard')).toBeNull()
+  })
+
+  it('redirects authenticated users visiting a non-existent URL to their role dashboard', () => {
+    setAccessToken('jwt-student-token')
+    setCurrentUser(buildUser('student'))
+
+    renderProtectedRoutes('/unknown-route-that-does-not-exist')
+
+    expect(screen.getByText('Student Dashboard')).toBeDefined()
   })
 
   it('clears session and returns null when refresh payload is malformed, /auth/me fails, or network throws', async () => {
@@ -173,4 +182,3 @@ describe('ProtectedRoute & restoreAuthSession', () => {
     expect(getAccessToken()).toBeNull()
   })
 })
-
