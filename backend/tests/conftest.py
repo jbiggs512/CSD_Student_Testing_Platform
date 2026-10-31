@@ -12,8 +12,9 @@ from app.db.base import Base
 import app.db.models  # Register all SQLAlchemy models
 from app.db.scripts.seed_roles import seed_roles
 
+
 @pytest.fixture
-def client():
+def session_factory():
     test_engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -31,10 +32,24 @@ def client():
     with TestingSessionLocal.begin() as db:
         seed_roles(db)
 
-    def override_get_db():
-        with TestingSessionLocal() as db:
-            yield db
+    try:
+        yield TestingSessionLocal
+    finally:
+        Base.metadata.drop_all(bind=test_engine)
+        test_engine.dispose()
 
+
+@pytest.fixture
+def db_session(session_factory):
+    with session_factory() as db:
+        yield db
+
+
+@pytest.fixture
+def client(session_factory):
+    def override_get_db():
+        with session_factory() as db:
+            yield db
 
     previous_overrides = fastapi_app.dependency_overrides.copy()
     fastapi_app.dependency_overrides[get_db] = override_get_db
@@ -45,5 +60,3 @@ def client():
     finally:
         fastapi_app.dependency_overrides.clear()
         fastapi_app.dependency_overrides.update(previous_overrides)
-        Base.metadata.drop_all(bind=test_engine)
-        test_engine.dispose()

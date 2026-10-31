@@ -1,4 +1,6 @@
-from pydantic import AnyHttpUrl, field_validator
+import secrets
+
+from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -6,6 +8,11 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "CSD Student Testing Platform"
     API_V1_STR: str = "/api/v1"
     DATABASE_URL: str = "sqlite:///./dev.db"
+
+    # Authentication / JWT Configuration
+    SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # CORS Configuration
     BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
