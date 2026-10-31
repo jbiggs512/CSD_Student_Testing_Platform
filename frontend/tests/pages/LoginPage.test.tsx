@@ -99,6 +99,24 @@ describe('LoginPage', () => {
     )
   })
 
+  it('warns the user when an email address is entered as the username', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    renderLoginWithRoutes()
+
+    fireEvent.change(screen.getByLabelText('Username'), {
+      target: { value: 'student@weston.ac.uk' },
+    })
+    fireEvent.change(screen.getByLabelText('Password'), {
+      target: { value: 'SecretPass123!' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }))
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Please sign in with your username, not your email address.',
+    )
+  })
+
   it.each([
     ['student', 'Student Dashboard'],
     ['lecturer', 'Lecturer Dashboard'],

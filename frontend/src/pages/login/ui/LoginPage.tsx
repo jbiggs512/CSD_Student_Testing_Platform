@@ -32,6 +32,13 @@ export function LoginPage() {
       return
     }
 
+    if (trimmedUsername.includes('@')) {
+      setErrorMessage(
+        'Please sign in with your username, not your email address.',
+      )
+      return
+    }
+
     setIsSubmitting(true)
     setErrorMessage(null)
 
