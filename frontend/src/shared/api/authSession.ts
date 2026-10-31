@@ -117,11 +117,9 @@ export async function restoreAuthSession(): Promise<AuthUser | null> {
     return currentUser
   }
 
-  if (!pendingRestore) {
-    pendingRestore = performSessionRestore().finally(() => {
-      pendingRestore = null
-    })
-  }
+  pendingRestore ??= performSessionRestore().finally(() => {
+    pendingRestore = null
+  })
 
   return pendingRestore
 }

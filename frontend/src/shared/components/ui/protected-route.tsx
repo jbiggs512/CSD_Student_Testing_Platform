@@ -10,14 +10,16 @@ import {
 } from '@shared/api'
 
 interface ProtectedRouteProps {
-  allowedRoles?: readonly UserRole[]
+  readonly allowedRoles?: readonly UserRole[]
 }
 
 /**
  * Layout route wrapper that restricts child routes to authenticated users
  * and optionally enforces role-based access control.
  */
-export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  allowedRoles,
+}: Readonly<ProtectedRouteProps>) {
   const location = useLocation()
   const activeUser = getAccessToken() ? getCurrentUser() : null
 
@@ -30,7 +32,7 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     }
 
     let active = true
-    restoreAuthSession().then((user) => {
+    void restoreAuthSession().then((user) => {
       if (active) {
         setRestoredUser(user)
         setCheckedPathname(location.pathname)
@@ -65,4 +67,3 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
 
   return <Outlet />
 }
-
