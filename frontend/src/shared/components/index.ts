@@ -30,3 +30,4 @@ export {
 } from './ui/sheet'
 
 export { NavBar } from './ui/navbar'
+export { ProtectedRoute } from './ui/protected-route'

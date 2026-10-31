@@ -1,4 +1,4 @@
-import { setAccessToken } from '@shared/api'
+import { setAccessToken, setCurrentUser } from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type { LoginCredentials, LoginResponse } from '../model'
 
@@ -65,5 +65,6 @@ export async function loginWithCredentials(
 
   const data = (await response.json()) as LoginResponse
   setAccessToken(data.access_token)
+  setCurrentUser(data.user)
   return data
 }
