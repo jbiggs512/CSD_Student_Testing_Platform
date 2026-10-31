@@ -3,9 +3,13 @@ from datetime import timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import (
+    TOKEN_TYPE_ACCESS,
+    TOKEN_TYPE_REFRESH,
     create_access_token,
-    decode_access_token,
+    create_refresh_token,
+    decode_token,
     hash_password,
     verify_password,
 )
@@ -53,14 +57,25 @@ def test_password_hashing_and_verification():
 
 
 def test_jwt_create_and_decode_round_trip():
-    token = create_access_token(
+    access_token = create_access_token(
         subject="WS123456",
         expires_delta=timedelta(minutes=15),
     )
-    payload = decode_access_token(token)
-    assert payload["sub"] == "WS123456"
-    assert "exp" in payload
-    assert "iat" in payload
+    access_payload = decode_token(access_token)
+    assert access_payload["sub"] == "WS123456"
+    assert access_payload["type"] == TOKEN_TYPE_ACCESS
+    assert "jti" in access_payload
+    assert "exp" in access_payload
+    assert "iat" in access_payload
+
+    refresh_token = create_refresh_token(
+        subject="WS123456",
+        expires_delta=timedelta(days=1),
+    )
+    refresh_payload = decode_token(refresh_token)
+    assert refresh_payload["sub"] == "WS123456"
+    assert refresh_payload["type"] == TOKEN_TYPE_REFRESH
+    assert "jti" in refresh_payload
 
 
 def test_created_lecturer_hashes_password_and_can_login(client, db_session):
@@ -93,11 +108,17 @@ def test_created_lecturer_hashes_password_and_can_login(client, db_session):
     body = login_resp.json()
     assert body["token_type"] == "bearer"
     assert isinstance(body["access_token"], str) and len(body["access_token"]) > 0
+    assert "refresh_token" not in body
     assert body["user"]["username"] == lecturer_payload["username"]
     assert body["user"]["role"] == UserRole.LECTURER.value
     assert body["user"]["last_login"] is not None
     assert "password" not in body["user"]
     assert "password_hash" not in body["user"]
+
+    set_cookie_header = login_resp.headers.get("set-cookie", "")
+    assert f"{settings.REFRESH_TOKEN_COOKIE_NAME}=" in set_cookie_header
+    assert "HttpOnly" in set_cookie_header
+    assert "Path=/api/v1/auth" in set_cookie_header
 
 
 def test_login_active_student_updates_last_login(client, db_session):
@@ -218,6 +239,152 @@ def test_oauth2_form_token_login(client, db_session):
     assert data["token_type"] == "bearer"
     assert data["user"]["username"] == "AD000001"
     assert data["user"]["role"] == UserRole.ADMIN.value
+    assert settings.REFRESH_TOKEN_COOKIE_NAME in response.cookies
+
+
+def test_refresh_cookie_rotates_tokens_and_logout_clears_cookie(client, db_session):
+    _seed_user(
+        db_session,
+        username="WS888888",
+        password="RefreshPassword1!",
+        email="refresh@weston.ac.uk",
+    )
+
+    login_resp = client.post(
+        "/api/v1/auth/login",
+        json={"username": "WS888888", "password": "RefreshPassword1!"},
+    )
+    assert login_resp.status_code == 200
+    initial_access_token = login_resp.json()["access_token"]
+    initial_refresh_cookie = login_resp.cookies.get(settings.REFRESH_TOKEN_COOKIE_NAME)
+    assert initial_refresh_cookie is not None
+
+    # Refresh uses the HttpOnly cookie automatically from the client cookie jar
+    refresh_resp = client.post("/api/v1/auth/refresh")
+    assert refresh_resp.status_code == 200
+    refresh_body = refresh_resp.json()
+    new_access_token = refresh_body["access_token"]
+    rotated_refresh_cookie = refresh_resp.cookies.get(settings.REFRESH_TOKEN_COOKIE_NAME)
+
+    assert new_access_token != initial_access_token
+    assert rotated_refresh_cookie is not None
+    assert rotated_refresh_cookie != initial_refresh_cookie
+    assert refresh_body["user"]["username"] == "WS888888"
+
+    # Verify the new access token authenticates /me
+    me_resp = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {new_access_token}"},
+    )
+    assert me_resp.status_code == 200
+    assert me_resp.json()["username"] == "WS888888"
+
+    # Logout clears the refresh cookie
+    logout_resp = client.post("/api/v1/auth/logout")
+    assert logout_resp.status_code == 204
+    assert "Max-Age=0" in logout_resp.headers.get("set-cookie", "")
+
+    # Subsequent refresh fails because the cookie was cleared
+    after_logout_resp = client.post("/api/v1/auth/refresh")
+    assert after_logout_resp.status_code == 401
+    assert after_logout_resp.json()["detail"] == "Refresh token missing."
+
+
+def test_refresh_rejects_missing_or_invalid_cookies(client, db_session):
+    _seed_user(
+        db_session,
+        username="WS999999",
+        password="ValidPassword123!",
+        email="refreshinvalid@weston.ac.uk",
+    )
+
+    # Missing cookie
+    missing_resp = client.post("/api/v1/auth/refresh")
+    assert missing_resp.status_code == 401
+    assert missing_resp.json()["detail"] == "Refresh token missing."
+
+    # Malformed token in cookie
+    client.cookies.set(
+        settings.REFRESH_TOKEN_COOKIE_NAME,
+        "malformed.jwt.value",
+        path="/api/v1/auth",
+    )
+    malformed_resp = client.post("/api/v1/auth/refresh")
+    assert malformed_resp.status_code == 401
+    assert malformed_resp.json()["detail"] == "Invalid or expired refresh token."
+
+    # Expired refresh token in cookie
+    expired_refresh = create_refresh_token(
+        subject="WS999999",
+        expires_delta=timedelta(seconds=-10),
+    )
+    client.cookies.set(
+        settings.REFRESH_TOKEN_COOKIE_NAME,
+        expired_refresh,
+        path="/api/v1/auth",
+    )
+    expired_resp = client.post("/api/v1/auth/refresh")
+    assert expired_resp.status_code == 401
+
+    # Access token misused as a refresh cookie (token type confusion check)
+    access_token = create_access_token(subject="WS999999")
+    client.cookies.set(
+        settings.REFRESH_TOKEN_COOKIE_NAME,
+        access_token,
+        path="/api/v1/auth",
+    )
+    wrong_type_resp = client.post("/api/v1/auth/refresh")
+    assert wrong_type_resp.status_code == 401
+
+    # Refresh token with empty subject
+    empty_sub_refresh = create_refresh_token(subject="")
+    client.cookies.set(
+        settings.REFRESH_TOKEN_COOKIE_NAME,
+        empty_sub_refresh,
+        path="/api/v1/auth",
+    )
+    empty_sub_resp = client.post("/api/v1/auth/refresh")
+    assert empty_sub_resp.status_code == 401
+
+    # Refresh token for deleted / non-existent user
+    ghost_refresh = create_refresh_token(subject="GHOST999")
+    client.cookies.set(
+        settings.REFRESH_TOKEN_COOKIE_NAME,
+        ghost_refresh,
+        path="/api/v1/auth",
+    )
+    ghost_resp = client.post("/api/v1/auth/refresh")
+    assert ghost_resp.status_code == 401
+
+
+def test_refresh_rejects_disabled_or_pending_accounts(client, db_session):
+    user = _seed_user(
+        db_session,
+        username="WS765432",
+        password="ValidPassword123!",
+        account_status=AccountStatus.ACTIVE,
+        email="refreshstatus@weston.ac.uk",
+    )
+    refresh_token = create_refresh_token(subject=user.username)
+    client.cookies.set(
+        settings.REFRESH_TOKEN_COOKIE_NAME,
+        refresh_token,
+        path="/api/v1/auth",
+    )
+
+    user.account_status = AccountStatus.DISABLED
+    db_session.commit()
+
+    disabled_resp = client.post("/api/v1/auth/refresh")
+    assert disabled_resp.status_code == 403
+    assert disabled_resp.json()["detail"] == "Account has been disabled."
+
+    user.account_status = AccountStatus.PENDING
+    db_session.commit()
+
+    pending_resp = client.post("/api/v1/auth/refresh")
+    assert pending_resp.status_code == 403
+    assert pending_resp.json()["detail"] == "Account is pending approval."
 
 
 def test_me_endpoint_returns_authenticated_user(client, db_session):
@@ -264,6 +431,14 @@ def test_me_endpoint_rejects_missing_or_invalid_tokens(client, db_session):
     )
     assert bad_token_resp.status_code == 401
     assert bad_token_resp.json()["detail"] == "Could not validate credentials."
+
+    # Refresh token misused as Bearer access token
+    refresh_token = create_refresh_token(subject="WS555555")
+    refresh_as_access_resp = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {refresh_token}"},
+    )
+    assert refresh_as_access_resp.status_code == 401
 
     # Expired token
     expired_token = create_access_token(
@@ -324,4 +499,3 @@ def test_me_endpoint_rejects_disabled_or_pending_user_tokens(client, db_session)
     )
     assert pending_resp.status_code == 403
     assert pending_resp.json()["detail"] == "Account is pending approval."
-

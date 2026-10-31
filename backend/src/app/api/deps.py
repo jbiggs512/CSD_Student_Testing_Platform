@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
-from app.core.security import decode_access_token
+from app.core.security import TOKEN_TYPE_ACCESS, decode_token
 from app.db.models import User
 from app.db.session import SessionLocal
 from app.enums import AccountStatus
@@ -40,9 +40,12 @@ def get_current_user(
     )
 
     try:
-        payload = decode_access_token(token)
+        payload = decode_token(token)
     except jwt.InvalidTokenError as exc:
         raise credentials_exception from exc
+
+    if payload.get("type") != TOKEN_TYPE_ACCESS:
+        raise credentials_exception
 
     username = payload.get("sub")
     if not isinstance(username, str) or not username:
