@@ -12,7 +12,10 @@ class Settings(BaseSettings):
     # Authentication / JWT Configuration
     SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    REFRESH_TOKEN_COOKIE_NAME: str = "refresh_token"
+    COOKIE_SECURE: bool = False
 
     # CORS Configuration
     BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
