@@ -1,2 +1,6 @@
 // Shared API client and requests
-export {}
+export {
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+} from './authSession'
