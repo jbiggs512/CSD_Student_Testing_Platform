@@ -1,8 +1,11 @@
-import type { AccountStatus, AuthUser, UserRole } from '@shared/api'
-import { getDashboardPathForRole } from '@shared/api'
+import type { AuthUser } from '@shared/api'
 
-export type { AccountStatus, AuthUser, UserRole }
-export { getDashboardPathForRole }
+export {
+  getDashboardPathForRole,
+  type AccountStatus,
+  type AuthUser,
+  type UserRole,
+} from '@shared/api'
 
 export interface LoginCredentials {
   username: string
