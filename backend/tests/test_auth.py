@@ -107,7 +107,8 @@ def test_created_lecturer_hashes_password_and_can_login(client, db_session):
     assert login_resp.status_code == 200
     body = login_resp.json()
     assert body["token_type"] == "bearer"
-    assert isinstance(body["access_token"], str) and len(body["access_token"]) > 0
+    assert isinstance(body["access_token"], str)
+    assert len(body["access_token"]) > 0
     assert "refresh_token" not in body
     assert body["user"]["username"] == lecturer_payload["username"]
     assert body["user"]["role"] == UserRole.LECTURER.value
