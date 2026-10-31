@@ -5,7 +5,10 @@ const DEFAULT_API_BASE_URL = 'http://localhost:8000/api/v1'
  * and `http://.../api/v1` (from docker-compose.yml) resolve to the v1 API prefix.
  */
 export function resolveApiBaseUrl(rawUrl?: string): string {
-  const trimmed = rawUrl?.trim().replace(/\/+$/, '')
+  let trimmed = rawUrl?.trim() ?? ''
+  while (trimmed.endsWith('/')) {
+    trimmed = trimmed.slice(0, -1)
+  }
   if (!trimmed) {
     return DEFAULT_API_BASE_URL
   }
