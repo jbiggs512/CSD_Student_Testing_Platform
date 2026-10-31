@@ -7,7 +7,7 @@ from app.api.v1.user.schemas import UserResponse
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=1, description="Unique account username")
-    password: str = Field(..., min_length=8, description="Account password")
+    password: str = Field(..., min_length=1, description="Account password")
 
 
 class TokenResponse(BaseModel):
