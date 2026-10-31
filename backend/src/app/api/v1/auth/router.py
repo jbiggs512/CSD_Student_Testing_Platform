@@ -39,7 +39,7 @@ def _clear_refresh_cookie(response: Response) -> None:
     )
 
 
-@router.post("/login", response_model=schemas.TokenResponse)
+@router.post("/login")
 def login(
     credentials: schemas.LoginRequest,
     response: Response,
@@ -51,7 +51,7 @@ def login(
     return result.token_response
 
 
-@router.post("/token", response_model=schemas.TokenResponse)
+@router.post("/token")
 def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     response: Response,
@@ -63,7 +63,7 @@ def login_for_access_token(
     return result.token_response
 
 
-@router.post("/refresh", response_model=schemas.TokenResponse)
+@router.post("/refresh")
 def refresh_access_token(
     request: Request,
     response: Response,
