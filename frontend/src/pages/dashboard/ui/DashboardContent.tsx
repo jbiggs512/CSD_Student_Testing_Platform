@@ -13,7 +13,6 @@ import {
   Progress,
 } from "@/shared/components";
 import { SORT_OPTIONS, FILTER_OPTIONS, COURSE_TITLE, type DashboardContentProps } from "../model";
-import { Link } from 'react-router'
 
 export function DashboardContent({ completedTests = [], outstandingTests = [], cohortRank = { rank: 0, size: 0 } }: DashboardContentProps) {
 
