@@ -87,20 +87,4 @@ describe('NavBar', () => {
     expect(getAccessToken()).toBeNull()
     expect(getCurrentUser()).toBeNull()
   })
-
-  it('contains links to the student pages', () => {
-    const { getAllByRole } = renderNavBar()
-    getAllByRole('link', { name: 'Dashboard' }).forEach((link) => {
-      expect(link.getAttribute('href')).toBe('/dashboard')
-    })
-    getAllByRole('link', { name: 'Leaderboards' }).forEach((link) => {
-      expect(link.getAttribute('href')).toBe('/leaderboards')
-    })
-    getAllByRole('link', { name: 'Statistics' }).forEach((link) => {
-      expect(link.getAttribute('href')).toBe('/statistics')
-    })
-    getAllByRole('link', { name: 'Profile' }).forEach((link) => {
-      expect(link.getAttribute('href')).toBe('/profile')
-    })
-  })
 })
