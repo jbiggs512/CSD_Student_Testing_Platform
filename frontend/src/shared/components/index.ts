@@ -23,3 +23,22 @@ export { Sheet,
   SheetTrigger, } from './ui/sheet'
   
 export { NavBar } from './ui/navbar'
+
+export {  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue, } from './ui/select'
+
+  export {
+  Progress,
+  ProgressTrack,
+  ProgressIndicator,
+  ProgressLabel,
+  ProgressValue,
+} from './ui/progress'
