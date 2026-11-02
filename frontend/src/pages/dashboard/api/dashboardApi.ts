@@ -1,6 +1,6 @@
 import type { OutstandingTest, CompletedTest, CohortRank } from "../model"
 
-export function getOutstandingTests(): OutstandingTest[] {
+export async function getOutstandingTests(): Promise<OutstandingTest[]> {
     // Mock data for outstanding tests
     return [
         // {
@@ -27,7 +27,7 @@ export function getOutstandingTests(): OutstandingTest[] {
     ]
 }
 
-export function getCompletedTests(): CompletedTest[] {
+export async function getCompletedTests(): Promise<CompletedTest[]> {
     // Mock data for completed tests
     return [
         {
@@ -51,7 +51,7 @@ export function getCompletedTests(): CompletedTest[] {
     ]
 }
 
-export function getCohortRank(): CohortRank {
+export async function getCohortRank(): Promise<CohortRank> {
     return {
         rank: 12,
         size: 48

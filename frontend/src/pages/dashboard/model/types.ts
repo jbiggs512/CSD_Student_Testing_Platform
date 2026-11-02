@@ -22,7 +22,7 @@ export interface CohortRank {
 }
 
 export interface DashboardContentProps {
-  outstandingTests?: OutstandingTest[]; 
-  completedTests?: CompletedTest[];
-  cohortRank?: CohortRank;
+  readonly outstandingTests?: OutstandingTest[]; 
+  readonly completedTests?: CompletedTest[];
+  readonly cohortRank?: CohortRank;
 }

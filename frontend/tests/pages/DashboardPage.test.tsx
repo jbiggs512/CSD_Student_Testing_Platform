@@ -57,7 +57,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText("0")).toBeDefined() // 0 tests completed
 
     // Both the cohort rank and average score are displayed as '-' when no tests are available
-    expect(screen.getAllByText('-').length).toBe(2)
+    expect(screen.getAllByText('-')).toHaveLength(2)
 
     // Empty state messages for both outstanding and completed tests
     expect(screen.getByText("No Outstanding Tests")).toBeDefined()
@@ -79,8 +79,8 @@ describe('DashboardPage', () => {
     const sortLabels = screen.queryAllByText("Sort by")
     const filterLabels = screen.queryAllByText("Filter by")
 
-    expect(sortLabels.length).toBe(0)
-    expect(filterLabels.length).toBe(0)
+    expect(sortLabels).toHaveLength(0)
+    expect(filterLabels).toHaveLength(0)
   })
 
   it('shows the sort and filter dropdowns when test arrays are not empty', () => {
@@ -89,8 +89,8 @@ describe('DashboardPage', () => {
     const sortLabels = screen.queryAllByText("Sort by")
     const filterLabels = screen.queryAllByText("Filter by")
 
-    expect(sortLabels.length).toBe(2)
-    expect(filterLabels.length).toBe(2)
+    expect(sortLabels).toHaveLength(2)
+    expect(filterLabels).toHaveLength(2)
   })
 
   it('opens the sort dropdown and selects an option', async () => {
@@ -118,7 +118,7 @@ it('renders the correct number of test cards', () => {
 
   // Outstanding cards - check by counting the number of "Start Test" buttons rendered
   const startButtons = screen.getAllByRole('button', { name: 'Start Test' })
-  expect(startButtons.length).toBe(2)
+  expect(startButtons).toHaveLength(2)
 })
 
 

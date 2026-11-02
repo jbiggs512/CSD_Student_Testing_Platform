@@ -12,18 +12,24 @@ export function DashboardPage() {
 
   useEffect(() => {
     async function loadData() {
-      // Fetch all data needed for the dashboard in parallel
-      const [completed, outstanding, rank] = await Promise.all([
-        getCompletedTests(),
-        getOutstandingTests(),
-        getCohortRank()
-      ]);
+      try {
+        // Fetch all data needed for the dashboard in parallel
+        const [completed, outstanding, rank] = await Promise.all([
+          getCompletedTests(),
+          getOutstandingTests(),
+          getCohortRank()
+        ]);
 
-      setCompletedTests(completed);
-      setOutstandingTests(outstanding);
-      setCohortRank(rank);
-
-      setIsLoading(false);
+        setCompletedTests(completed);
+        setOutstandingTests(outstanding);
+        setCohortRank(rank);
+      }
+      catch (error) {
+        console.error("Error loading dashboard data:", error);
+      }
+      finally {
+        setIsLoading(false);
+      }
     }
 
     loadData();

@@ -13,12 +13,9 @@ import {
   Progress,
 } from "@/shared/components";
 import { SORT_OPTIONS, FILTER_OPTIONS, COURSE_TITLE, type DashboardContentProps } from "../model";
+import { Link } from 'react-router'
 
-export function DashboardContent({
-  completedTests = [],
-  outstandingTests = [],
-  cohortRank = { rank: 0, size: 0 }
-}: DashboardContentProps) {
+export function DashboardContent({ completedTests = [], outstandingTests = [], cohortRank = { rank: 0, size: 0 } }: DashboardContentProps) {
 
   // Calculate the average score percentage, rounding to the nearest whole number
   const averageScore = completedTests.length > 0
@@ -35,7 +32,7 @@ export function DashboardContent({
           <h2 className="mb-6 font-heading text-2xl font-bold text-white">{COURSE_TITLE}</h2>
           <p className="text-sm text-white/80">
             {outstandingTests.length === 0
-              ? "You have no outstanding tests!" 
+              ? "You have no outstanding tests!"
               : `You have ${outstandingTests.length} outstanding tests to complete.`}
           </p>
         </div>
@@ -78,8 +75,8 @@ export function DashboardContent({
             {outstandingTests.length > 0 && (
               <div className="flex gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Sort by</label>
-                  <Select items={SORT_OPTIONS}>
+                  <label htmlFor="outstandingSort" className="text-xs font-medium text-muted-foreground">Sort by</label>
+                  <Select id="outstandingSort" items={SORT_OPTIONS}>
                     <SelectTrigger className="h-8 w-[120px] bg-background"><SelectValue placeholder="Sort Option" /></SelectTrigger>
                     <SelectContent>
                       {SORT_OPTIONS.map((option) => (
@@ -91,8 +88,8 @@ export function DashboardContent({
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Filter by</label>
-                  <Select items={FILTER_OPTIONS}>
+                  <label htmlFor="outstandingFilter" className="text-xs font-medium text-muted-foreground">Filter by</label>
+                  <Select id="outstandingFilter" items={FILTER_OPTIONS}>
                     <SelectTrigger className="h-8 w-[120px] bg-background"><SelectValue placeholder="Filter option" /></SelectTrigger>
                     <SelectContent>
                       {FILTER_OPTIONS.map((option) => (
@@ -139,8 +136,8 @@ export function DashboardContent({
             {completedTests.length > 0 && (
               <div className="flex gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Sort by</label>
-                  <Select items={SORT_OPTIONS}>
+                  <label htmlFor="completedSort" className="text-xs font-medium text-muted-foreground">Sort by</label>
+                  <Select id="completedSort" items={SORT_OPTIONS}>
                     <SelectTrigger className="h-8 w-[120px] bg-background"><SelectValue placeholder="Sort Option" /></SelectTrigger>
                     <SelectContent>
                       {SORT_OPTIONS.map((option) => (
@@ -152,8 +149,8 @@ export function DashboardContent({
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Filter by</label>
-                  <Select items={FILTER_OPTIONS}>
+                  <label htmlFor="completedFilter" className="text-xs font-medium text-muted-foreground">Filter by</label>
+                  <Select id="completedFilter" items={FILTER_OPTIONS}>
                     <SelectTrigger className="h-8 w-[120px] bg-background"><SelectValue placeholder="Filter option" /></SelectTrigger>
                     <SelectContent>
                       {FILTER_OPTIONS.map((option) => (
@@ -197,9 +194,7 @@ export function DashboardContent({
               {/* Only show view all tests link if there are completed tests */}
               {completedTests.length > 0 && (
                 <div className="mt-6 flex justify-end">
-                  <a href="#" className="text-sm font-bold text-navy underline decoration-2 underline-offset-4 transition-colors hover:text-primary">
-                    View All Completed Tests...
-                  </a>
+                  <Button variant="link" className="text-sm font-bold text-navy underline decoration-2 underline-offset-4 transition-colors hover:text-primary"> View All Completed Tests...</Button>
                 </div>
               )}
             </>)}
