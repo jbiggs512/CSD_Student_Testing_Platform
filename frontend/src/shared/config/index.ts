@@ -1,2 +1,2 @@
 // Shared environment variables and configuration
-export {}
+export { API_BASE_URL, resolveApiBaseUrl } from './env'
