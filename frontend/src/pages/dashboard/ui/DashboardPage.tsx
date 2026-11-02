@@ -11,7 +11,7 @@ export function DashboardPage() {
 
 
   useEffect(() => {
-    async function loadData() {
+    function loadData() {
       try {
         // Fetch all data needed for the dashboard 
         setCompletedTests(getCompletedTests());
