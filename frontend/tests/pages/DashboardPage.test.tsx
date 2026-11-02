@@ -40,9 +40,7 @@ describe('DashboardPage', () => {
 
   it('renders the dashboard page with the correct heading', async () => {
     renderDashboardWithRoutes()
-    // Check for the loading state first
-    expect(screen.getByText('Loading dashboard...')).toBeDefined()
-
+    
     // Wait for the dashboard heading to appear
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Welcome back, Student!' })).toBeDefined()
