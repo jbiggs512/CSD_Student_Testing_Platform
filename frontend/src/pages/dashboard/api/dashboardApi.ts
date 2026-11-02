@@ -1,33 +1,33 @@
 import type { OutstandingTest, CompletedTest, CohortRank } from "../model"
 
-export async function getOutstandingTests(): Promise<OutstandingTest[]> {
+export function getOutstandingTests(): OutstandingTest[] {
     // Mock data for outstanding tests
     return [
-        // {
-        //     id: 1,
-        //     testName: 'Test 1',
-        //     subjectName: 'Subject 1',
-        //     description: 'This is a description for Test 1.',
-        //     questionsPerAttempt: 10,
-        // },
-        // {
-        //     id: 2,
-        //     testName: 'Test 2',
-        //     subjectName: 'Subject 2',
-        //     description: 'This is a description for Test 2.',
-        //     questionsPerAttempt: 15,
-        // },
-        // {
-        //     id: 3,
-        //     testName: 'Test 3',
-        //     subjectName: 'Subject 3',
-        //     description: 'This is a description for Test 3.',
-        //     questionsPerAttempt: 20,
-        // },
+        {
+            id: 1,
+            testName: 'Test 1',
+            subjectName: 'Subject 1',
+            description: 'This is a description for Test 1.',
+            questionsPerAttempt: 10,
+        },
+        {
+            id: 2,
+            testName: 'Test 2',
+            subjectName: 'Subject 2',
+            description: 'This is a description for Test 2.',
+            questionsPerAttempt: 15,
+        },
+        {
+            id: 3,
+            testName: 'Test 3',
+            subjectName: 'Subject 3',
+            description: 'This is a description for Test 3.',
+            questionsPerAttempt: 20,
+        },
     ]
 }
 
-export async function getCompletedTests(): Promise<CompletedTest[]> {
+export function getCompletedTests(): CompletedTest[] {
     // Mock data for completed tests
     return [
         {
@@ -51,7 +51,7 @@ export async function getCompletedTests(): Promise<CompletedTest[]> {
     ]
 }
 
-export async function getCohortRank(): Promise<CohortRank> {
+export function getCohortRank(): CohortRank {
     return {
         rank: 12,
         size: 48
