@@ -20,3 +20,9 @@ export interface CohortRank {
     rank: number
     size: number
 }
+
+export interface DashboardContentProps {
+  outstandingTests?: OutstandingTest[]; 
+  completedTests?: CompletedTest[];
+  cohortRank?: CohortRank;
+}

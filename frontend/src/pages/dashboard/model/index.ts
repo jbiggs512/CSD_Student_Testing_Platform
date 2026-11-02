@@ -19,7 +19,8 @@ export const FILTER_OPTIONS = [
 export {
     type OutstandingTest,
     type CompletedTest,
-    type CohortRank
+    type CohortRank,
+    type DashboardContentProps
 } from "./types"
 
 
