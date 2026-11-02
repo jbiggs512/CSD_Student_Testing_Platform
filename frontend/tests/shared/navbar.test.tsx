@@ -44,11 +44,7 @@ describe('NavBar', () => {
   })
 
   it('renders only the logo when no user is authenticated', () => {
-    const { container } = render(
-      <MemoryRouter>
-        <NavBar />
-      </MemoryRouter>,
-    )
+    const { container } = renderNavBar()
     expect(container.querySelector('#nav-bar')).not.toBeNull()
     expect(screen.queryByText('Logout')).toBeNull()
   })
@@ -62,11 +58,7 @@ describe('NavBar', () => {
     (role, expectedHeadings) => {
       seedRole(role)
 
-      render(
-        <MemoryRouter>
-          <NavBar />
-        </MemoryRouter>,
-      )
+      renderNavBar()
 
       for (const heading of expectedHeadings) {
         expect(screen.getByText(heading)).toBeDefined()
@@ -77,11 +69,7 @@ describe('NavBar', () => {
   it('clears the auth session when Logout is clicked', () => {
     seedRole('student')
 
-    render(
-      <MemoryRouter>
-        <NavBar />
-      </MemoryRouter>,
-    )
+    renderNavBar()
 
     fireEvent.click(screen.getByText('Logout'))
     expect(getAccessToken()).toBeNull()
