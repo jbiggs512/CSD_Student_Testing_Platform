@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { TestPageContent } from "./TestPageContent";
-// import { useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { type TestDetails } from '../model';
 import { getTestDetails } from '../api';
 
 export function TestPage() {
   // Extract the test ID from the URL parameters using useParams
-  // const { id } = useParams(); TODO: Uncomment this line when using dynamic routing to fetch test details based on the test ID
+  const { id } = useParams(); 
   const [testDetails, setTestDetails] = useState<TestDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -27,7 +27,7 @@ export function TestPage() {
   // Handle navigation to a specific question by its number
   const handleNavigateQuestion = (questionNumber: number) => {
     if (!testDetails) return;
-    if (questionNumber >= 1 && questionNumber <= testDetails.totalQuestions) {
+    if (questionNumber >= 1 && questionNumber <= testDetails.questionsPerAttempt) {
       setTestDetails({ ...testDetails, currentQuestion: questionNumber }); // Re-render with the updated current question
     }
   };
@@ -40,11 +40,11 @@ export function TestPage() {
   }
 
   useEffect(() => {
-    function loadData() {
+    async function loadData() {
       try {
         // Fetch all data needed for the test
-        // setTestDetails(getTestDetails(id?.toString() || "")); TODO: Uncomment this line when using dynamic routing to fetch test details based on the test ID
-        setTestDetails(getTestDetails());
+        const testDetails = await getTestDetails(id ? parseInt(id) : 0);
+        setTestDetails(testDetails);
       }
       catch (error) {
         console.error("Error loading test data:", error);

@@ -32,7 +32,8 @@ export function TestPageContent(props: TestPageContentProps) {
       <section className="mb-8 flex flex-col justify-between rounded-2xl bg-navy p-10 text-white shadow-md lg:flex-row lg:items-center">
         <div className="mb-6 lg:mb-0">
           <p className="mb-2 text-sm font-semibold uppercase text-white/80">{props.testDetails.course} - {props.testDetails.subject}</p>
-          <h1 className="font-heading text-5xl font-bold text-white">{props.testDetails.testName}</h1>
+          <h1 className="mb-2 font-heading text-5xl font-bold text-white">{props.testDetails.testName}</h1>
+           <p className="text-sm text-white/80">{props.testDetails.course} - {props.testDetails.description}</p>
         </div>
 
         {/* Timer Card */}
@@ -42,7 +43,7 @@ export function TestPageContent(props: TestPageContentProps) {
               <p className="mb-1 text-sm font-semibold uppercase text-navy/80">Time Remaining</p>
               <div className="flex items-center gap-3 font-heading text-4xl font-bold">
                 <Clock className="h-8 w-8" strokeWidth={2.5} />
-                {toMMSS(props.testDetails.timeLimit * 60)}
+                {toMMSS(props.testDetails.timeLimitMinutes * 60)}
               </div>
             </div>
           </Card>
@@ -57,9 +58,9 @@ export function TestPageContent(props: TestPageContentProps) {
           <Card className="p-8 shadow-sm">
             <div className="mb-6">
               <p className="mb-4 text-sm font-medium text-muted-foreground">
-                Question {props.testDetails.currentQuestion} of {props.testDetails.totalQuestions}
+                Question {props.testDetails.currentQuestion} of {props.testDetails.questionsPerAttempt}
               </p>
-              <Progress value={(props.testDetails.currentQuestion) / (props.testDetails.totalQuestions) * 100} />
+              <Progress value={(props.testDetails.currentQuestion) / (props.testDetails.questionsPerAttempt) * 100} />
             </div>
 
             <h3 className="mb-8 font-heading text-3xl font-bold text-navy">{props.testDetails.questions[props.testDetails.currentQuestion - 1]?.questionText}</h3>
@@ -80,9 +81,9 @@ export function TestPageContent(props: TestPageContentProps) {
                     {option.selected && <div className="h-2.5 w-2.5 rounded-full bg-navy" />}
                   </div>
 
-                  {/* Letter Indicator */}
+                  {/* Letter Indicator (A, B, C, D */}
                   <div className="flex h-8 w-8 items-center justify-center rounded bg-muted text-sm font-bold text-navy">
-                    {option.optionId}
+                    {String.fromCharCode(65 + props.testDetails.questions[props.testDetails.currentQuestion - 1].options.indexOf(option))} 
                   </div>
 
                   {/* Answer Text */}
@@ -97,7 +98,7 @@ export function TestPageContent(props: TestPageContentProps) {
                 onClick={() => props.onNavigateQuestion(props.testDetails.currentQuestion - 1)} disabled={props.testDetails.currentQuestion === 1}>
                 Previous Question
               </Button>
-              <Button onClick={() => props.onNavigateQuestion(props.testDetails.currentQuestion + 1)} disabled={props.testDetails.currentQuestion === props.testDetails.totalQuestions}>
+              <Button onClick={() => props.onNavigateQuestion(props.testDetails.currentQuestion + 1)} disabled={props.testDetails.currentQuestion === props.testDetails.questionsPerAttempt}>
                 Next Question
               </Button>
             </div>
@@ -111,7 +112,7 @@ export function TestPageContent(props: TestPageContentProps) {
 
             {/* Grid of buttons for question navigation */}
             <div className="mb-8 grid grid-cols-5 gap-3">
-              {Array.from({ length: props.testDetails.totalQuestions }, (_, i) => i + 1).map((num) => {
+              {Array.from({ length: props.testDetails.questionsPerAttempt }, (_, i) => i + 1).map((num) => {
                 const isAnswered = props.isAnswered(num);
                 const isCurrent = num === (props.testDetails.currentQuestion);
 

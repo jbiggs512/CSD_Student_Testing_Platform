@@ -17,9 +17,9 @@ export interface TestDetails {
   readonly testName: string;
   readonly description: string;
   readonly timed: boolean;
-  readonly timeLimit: number; 
+  readonly timeLimitMinutes: number; 
   readonly currentQuestion: number;
-  readonly totalQuestions: number;
+  readonly questionsPerAttempt: number;
   readonly questions: Question[]; 
 }
 

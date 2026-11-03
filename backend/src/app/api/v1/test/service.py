@@ -25,8 +25,10 @@ def get_test_data(
         subject=test.subject.subject_name,
         testName=test.test_name,
         description=test.description,
-        questionsPerAttempt=test.questions_per_attempt,
+        timed=test.time_limit_minutes is not None and test.time_limit_minutes > 0,
         timeLimitMinutes=test.time_limit_minutes,
+        currentQuestion=1,
+        questionsPerAttempt=test.questions_per_attempt,
         questions=[
             QuestionResponse(
                 questionId=question.question_id,

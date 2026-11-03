@@ -16,6 +16,9 @@ class TestResponse(BaseModel):
     subject: str
     testName: str
     description: str
-    questionsPerAttempt: int
+    timed: bool
     timeLimitMinutes: int | None 
+    currentQuestion: int
+    questionsPerAttempt: int
+    questions: list[QuestionResponse]
 
