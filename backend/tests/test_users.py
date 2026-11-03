@@ -243,10 +243,17 @@ def test_approve_student_account_validates_target_user_state(client, db_session)
     assert disabled_resp.status_code == 409
 
 
-def test_delete_lecturer_account(client):
+def test_delete_lecturer_account(client, db_session):
     """
-    Test that a lecturer account can be deleted successfully.
+    Test that an admin can delete a lecturer account and receives 404 for unknown users.
     """
+    admin = _seed_user(
+        db_session,
+        username="AD300001",
+        role_name=UserRole.ADMIN,
+        account_status=AccountStatus.ACTIVE,
+    )
+    admin_headers = {"Authorization": f"Bearer {create_access_token(subject=admin.username)}"}
 
     lecturer_data = {
         "username": "delete.lecturer",
@@ -262,11 +269,113 @@ def test_delete_lecturer_account(client):
     )
     assert response.status_code == 201
 
-    # Test deleting the lecturer account
-    response = client.delete(f"/api/v1/user/{lecturer_data['username']}")
+    # Test deleting the lecturer account as an admin
+    response = client.delete(
+        f"/api/v1/user/{lecturer_data['username']}",
+        headers=admin_headers,
+    )
     assert response.status_code == 204
 
     # Test deleting a non-existent lecturer account
     invalid_username = "nonexistent_user"
-    response = client.delete(f"/api/v1/user/{invalid_username}")
+    response = client.delete(
+        f"/api/v1/user/{invalid_username}",
+        headers=admin_headers,
+    )
     assert response.status_code == 404
+
+
+def test_delete_user_permissions(client, db_session):
+    """
+    Test role hierarchy and self-deletion restrictions on DELETE /api/v1/user/{username}.
+    """
+    admin1 = _seed_user(
+        db_session,
+        username="AD300002",
+        role_name=UserRole.ADMIN,
+        account_status=AccountStatus.ACTIVE,
+    )
+    admin2 = _seed_user(
+        db_session,
+        username="AD300003",
+        role_name=UserRole.ADMIN,
+        account_status=AccountStatus.ACTIVE,
+    )
+    lecturer1 = _seed_user(
+        db_session,
+        username="LC300001",
+        role_name=UserRole.LECTURER,
+        account_status=AccountStatus.ACTIVE,
+    )
+    lecturer2 = _seed_user(
+        db_session,
+        username="LC300002",
+        role_name=UserRole.LECTURER,
+        account_status=AccountStatus.ACTIVE,
+    )
+    student1 = _seed_user(
+        db_session,
+        username="WS300001",
+        role_name=UserRole.STUDENT,
+        account_status=AccountStatus.ACTIVE,
+    )
+    student2 = _seed_user(
+        db_session,
+        username="WS300002",
+        role_name=UserRole.STUDENT,
+        account_status=AccountStatus.ACTIVE,
+    )
+
+    admin1_headers = {"Authorization": f"Bearer {create_access_token(subject=admin1.username)}"}
+    lecturer1_headers = {"Authorization": f"Bearer {create_access_token(subject=lecturer1.username)}"}
+    student1_headers = {"Authorization": f"Bearer {create_access_token(subject=student1.username)}"}
+
+    # Unauthenticated -> 401
+    unauth_resp = client.delete(f"/api/v1/user/{student2.username}")
+    assert unauth_resp.status_code == 401
+
+    # Self-deletion -> 403
+    self_delete_resp = client.delete(
+        f"/api/v1/user/{admin1.username}",
+        headers=admin1_headers,
+    )
+    assert self_delete_resp.status_code == 403
+    assert self_delete_resp.json()["detail"] == "Users cannot delete their own account."
+
+    # Student cannot delete another student -> 403
+    student_delete_resp = client.delete(
+        f"/api/v1/user/{student2.username}",
+        headers=student1_headers,
+    )
+    assert student_delete_resp.status_code == 403
+    assert student_delete_resp.json()["detail"] == "Only lecturers or admins can delete student accounts."
+
+    # Lecturer cannot delete another lecturer -> 403
+    lecturer_delete_lecturer_resp = client.delete(
+        f"/api/v1/user/{lecturer2.username}",
+        headers=lecturer1_headers,
+    )
+    assert lecturer_delete_lecturer_resp.status_code == 403
+    assert lecturer_delete_lecturer_resp.json()["detail"] == "Only admins can delete lecturer accounts."
+
+    # Lecturer cannot delete an admin -> 403
+    lecturer_delete_admin_resp = client.delete(
+        f"/api/v1/user/{admin2.username}",
+        headers=lecturer1_headers,
+    )
+    assert lecturer_delete_admin_resp.status_code == 403
+    assert lecturer_delete_admin_resp.json()["detail"] == "Only admins can delete admin accounts."
+
+    # Lecturer can delete a student -> 204
+    lecturer_delete_student_resp = client.delete(
+        f"/api/v1/user/{student2.username}",
+        headers=lecturer1_headers,
+    )
+    assert lecturer_delete_student_resp.status_code == 204
+
+    # Admin can delete another admin -> 204
+    admin_delete_admin_resp = client.delete(
+        f"/api/v1/user/{admin2.username}",
+        headers=admin1_headers,
+    )
+    assert admin_delete_admin_resp.status_code == 204

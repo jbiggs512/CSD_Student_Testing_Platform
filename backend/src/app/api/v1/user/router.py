@@ -27,11 +27,10 @@ def approve_student(
 ) -> User:
     return service.approve_student(db, username, current_user)
 
-# TODO: Confirm method of authenticating/retrieving 'current_user'.
 @router.delete("/{username}", status_code=204)
 def delete_user(
     username: str,
     db: Annotated[Session, Depends(get_db)],
-    # current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
-    service.delete_user(db, username)  # , current_user)
+    service.delete_user(db, username, current_user)
