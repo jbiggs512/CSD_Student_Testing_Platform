@@ -1,3 +1,3 @@
 // Test page API requests
-export {}
+export { getTestDetails } from "./testApi";
 

@@ -1,2 +1,2 @@
 // Test page state, types, and business logic
-export {}
+export { type TestDetails, type TestPageContentProps } from './types';
