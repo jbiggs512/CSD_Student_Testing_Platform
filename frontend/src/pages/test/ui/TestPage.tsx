@@ -11,12 +11,12 @@ export function TestPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Handle option selection for a question
-  const handleSelectOption = (questionId: number, optionId: string) => {
+  const handleSelectOption = (questionId: number, optionId: number) => {
     if (!testDetails) return;
     testDetails?.questions.forEach((question) => {
-      if (question.id === questionId) {
+      if (question.questionId === questionId) {
         question.options.forEach((option) => {
-          option.selected = option.id === optionId;
+          option.selected = option.optionId === optionId;
         });
       }
     })
@@ -35,7 +35,7 @@ export function TestPage() {
   // Check if a question has been answered
   const isAnswered = (questionId: number) => {
     if (!testDetails) return false;
-    const question = testDetails?.questions.find(q => q.id === questionId);
+    const question = testDetails?.questions.find(q => q.questionId === questionId);
     return question ? question.options.some(option => option.selected) : false;
   }
 

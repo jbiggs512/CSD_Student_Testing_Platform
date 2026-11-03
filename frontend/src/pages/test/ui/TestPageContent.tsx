@@ -42,7 +42,7 @@ export function TestPageContent(props: TestPageContentProps) {
               <p className="mb-1 text-sm font-semibold uppercase text-navy/80">Time Remaining</p>
               <div className="flex items-center gap-3 font-heading text-4xl font-bold">
                 <Clock className="h-8 w-8" strokeWidth={2.5} />
-                {toMMSS(props.testDetails.time)}
+                {toMMSS(props.testDetails.timeLimit * 60)}
               </div>
             </div>
           </Card>
@@ -62,17 +62,17 @@ export function TestPageContent(props: TestPageContentProps) {
               <Progress value={(props.testDetails.currentQuestion) / (props.testDetails.totalQuestions) * 100} />
             </div>
 
-            <h3 className="mb-8 font-heading text-3xl font-bold text-navy">{props.testDetails.questions[props.testDetails.currentQuestion - 1]?.text}</h3>
+            <h3 className="mb-8 font-heading text-3xl font-bold text-navy">{props.testDetails.questions[props.testDetails.currentQuestion - 1]?.questionText}</h3>
 
             <div className="mb-8 flex flex-col gap-4">
               {props.testDetails.questions[props.testDetails.currentQuestion - 1]?.options.map((option) => (
                 <div
-                  key={option.id}
+                  key={option.optionId}
                   className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-colors ${option.selected
                     ? 'border-navy bg-slate-50' // Selected option styling
                     : 'border-border hover:bg-muted/50'
                     }`}
-                  onClick={() => props.onSelectOption(props.testDetails.questions[props.testDetails.currentQuestion - 1].id, option.id)}
+                  onClick={() => props.onSelectOption(props.testDetails.questions[props.testDetails.currentQuestion - 1].questionId, option.optionId)}
                 >
                   {/* Custom Radio Button UI */}
                   <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${option.selected ? 'border-navy' : 'border-slate-300'
@@ -82,11 +82,11 @@ export function TestPageContent(props: TestPageContentProps) {
 
                   {/* Letter Indicator */}
                   <div className="flex h-8 w-8 items-center justify-center rounded bg-muted text-sm font-bold text-navy">
-                    {option.id}
+                    {option.optionId}
                   </div>
 
                   {/* Answer Text */}
-                  <span className="text-sm font-medium text-navy">{option.text}</span>
+                  <span className="text-sm font-medium text-navy">{option.optionText}</span>
                 </div>
               ))}
             </div>

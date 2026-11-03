@@ -36,6 +36,7 @@ frontend/
 │   │   ├── landing/
 │   │   ├── login/
 │   │   └── register/
+│   │   └── test/
 │   ├── shared/           # Reusable, domain-agnostic code
 │   │   ├── api/          # Shared API client and requests
 │   │   ├── components/   # Shared UI and shadcn components

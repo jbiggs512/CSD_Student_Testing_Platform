@@ -1,12 +1,13 @@
 export interface Option {
-  readonly id: string;
-  readonly text: string;
+  readonly optionId: number;
+  readonly optionText: string;
+  readonly isCorrect: boolean;
   selected: boolean;
 }
 
 export interface Question {
-  readonly id: number;
-  readonly text: string;
+  readonly questionId: number;
+  readonly questionText: string;
   readonly options: Option[];
 }
 
@@ -14,8 +15,9 @@ export interface TestDetails {
   readonly course: string; 
   readonly subject: string;
   readonly testName: string;
+  readonly description: string;
   readonly timed: boolean;
-  readonly time: number; 
+  readonly timeLimit: number; 
   readonly currentQuestion: number;
   readonly totalQuestions: number;
   readonly questions: Question[]; 
@@ -23,7 +25,7 @@ export interface TestDetails {
 
 export interface TestPageContentProps {
   readonly testDetails: TestDetails;
-  readonly onSelectOption: (questionId: number, optionId: string) => void;
+  readonly onSelectOption: (questionId: number, optionId: number) => void;
   readonly onNavigateQuestion: (questionNumber: number) => void;
   readonly isAnswered: (questionId: number) => boolean;
 }

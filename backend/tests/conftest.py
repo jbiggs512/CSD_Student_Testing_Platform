@@ -14,6 +14,7 @@ from app.main import app as fastapi_app
 from app.api.deps import get_db
 from app.db.base import Base
 from app.db.scripts.seed_roles import seed_roles
+from app.db.scripts.seed_test import seed_test_data
 
 # Import models so SQLAlchemy registers them with Base.metadata
 import app.db.models
@@ -98,6 +99,7 @@ def test_engine(test_database_url):
 
         with TestingSessionLocal.begin() as db:
             seed_roles(db)
+            seed_test_data(db)
 
         yield engine
 
