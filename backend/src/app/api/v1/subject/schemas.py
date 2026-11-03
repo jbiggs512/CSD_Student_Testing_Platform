@@ -1,0 +1,19 @@
+from pydantic import BaseModel
+
+from app.enums import SubjectStatus
+
+class SubjectCreateRequest(BaseModel):
+    subject_name: str
+    course_id: int
+
+class SubjectUpdateRequest(BaseModel):
+    subject_name: str
+    course_id: int
+
+class SubjectResponse(BaseModel):
+    subject_id: int
+    subject_name: str
+    course_id: int
+    status: SubjectStatus
+
+    model_config = {"from_attributes": True}
