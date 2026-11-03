@@ -1,3 +1,7 @@
 // Dashboard page API requests
-export {}
+export {
+    getOutstandingTests,
+    getCompletedTests,
+    getCohortRank
+} from "./dashboardApi"
 
