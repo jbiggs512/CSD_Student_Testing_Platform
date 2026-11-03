@@ -26,7 +26,7 @@ export function DashboardPage() {
       }
     }
 
-    void loadData();
+    loadData();
   }, []);
 
   if (isLoading) {
