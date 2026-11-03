@@ -17,18 +17,15 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-
-        <Route path="/test/:id" element={<TestPage />} />
-
         <Route element={<ProtectedRoute />}>
           <Route element={<NavBar />}>
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
               <Route path="/dashboard" element={<DashboardPage />} />
             </Route>
           </Route>
-          {/* <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['student']} />}>
             <Route path="/test/:id" element={<TestPage />} />
-          </Route> */}
+          </Route>
           <Route path="*" element={<ProtectedRoute allowedRoles={[]} />} />
         </Route>
       </Routes>

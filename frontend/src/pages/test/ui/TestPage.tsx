@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { TestPageContent } from "./TestPageContent";
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { type TestDetails } from '../model';
 import { getTestDetails } from '../api';
 
 export function TestPage() {
+  const navigate = useNavigate();
   // Extract the test ID from the URL parameters using useParams
   const { id } = useParams(); 
   const [testDetails, setTestDetails] = useState<TestDetails | null>(null);
@@ -48,6 +49,7 @@ export function TestPage() {
       }
       catch (error) {
         console.error("Error loading test data:", error);
+        navigate('/dashboard'); // Navigate to the dashboard if there's an error fetching test details
       }
       finally {
         setIsLoading(false);

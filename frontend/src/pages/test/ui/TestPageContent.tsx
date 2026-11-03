@@ -4,8 +4,10 @@ import { Progress } from "@/shared/components/ui/progress";
 import { Clock } from "lucide-react";
 import type { TestPageContentProps } from "../model";
 import logo from '@shared/assets/altius-transparent.png'
+import { useNavigate } from 'react-router';
 
 export function TestPageContent(props: TestPageContentProps) {
+  const navigate = useNavigate();
   const toMMSS = (secs: number) => {
     const secNum = parseInt(secs.toString(), 10);
     const minutes = Math.floor(secNum / 60) % 60;
@@ -24,7 +26,7 @@ export function TestPageContent(props: TestPageContentProps) {
       <header className="flex items-start justify-between">
         <div className="flex w-full items-center justify-end px-2">
           <img src={logo} alt="Logo" className="h-16 w-auto mr-auto" />
-          <Button>Exit Test</Button>
+          <Button onClick={() => navigate('/dashboard')}>Exit Test</Button>
         </div>
       </header>
 
