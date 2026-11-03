@@ -1,16 +1,16 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
-from fastapi import HTTPException
+from sqlalchemy.orm import Session, joinedload
+from fastapi import HTTPException, status
 
 from typing import TypeAlias
 
 from app.db.models import User, Role
-from app.enums import UserRole
-from app.api.v1.user.schemas import LecturerCreateRequest
+from app.enums import AccountStatus, UserRole
+from app.api.v1.user.schemas import LecturerCreateRequest, StudentCreateRequest
 from app.core.security import hash_password
 
 UserCreateRequest: TypeAlias = (
-    LecturerCreateRequest
+    LecturerCreateRequest | StudentCreateRequest
 )
 
 def create_user(
@@ -49,38 +49,102 @@ def create_user(
 
     return user
 
-# TODO: Confirm method of authenticating 'current_user'.
+
 def delete_user(
     db: Session,
     target_username: str,
-    # current_user: User
+    current_user: User,
 ) -> None:
-
     # Check if the user exists in the database and retrieve it.
     target_user = db.scalar(
-        select(User).where
-            (User.username == target_username)
+        select(User)
+        .options(joinedload(User.role))
+        .where(User.username == target_username)
     )
 
     if target_user is None:
-        raise HTTPException(status_code=404, detail=f"User '{target_username}' not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User '{target_username}' not found.",
+        )
 
-    # TODO: Confirm method of authenticating/retrieving 'current_user' before implementing the delete logic.
-    #current_role = current_user.role.role_name
-    #target_role = target_user.role.role_name
+    if current_user.username == target_user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Users cannot delete their own account.",
+        )
 
+    current_role = current_user.role.role_name
+    target_role = target_user.role.role_name
 
     # Check if the authenticated user has the necessary permissions to delete the user.
-    #match target_role:
-    #    case UserRole.STUDENT.value:
-    #        pass
-    #    case UserRole.LECTURER.value:
-    #        pass
-    #    case UserRole.ADMIN.value:
-    #        pass
-    #    case _:
-    #        pass
+    match target_role:
+        case UserRole.STUDENT.value:
+            if current_role not in {UserRole.LECTURER.value, UserRole.ADMIN.value}:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only lecturers or admins can delete student accounts.",
+                )
+        case UserRole.LECTURER.value:
+            if current_role != UserRole.ADMIN.value:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only admins can delete lecturer accounts.",
+                )
+        case UserRole.ADMIN.value:
+            if current_role != UserRole.ADMIN.value:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only admins can delete admin accounts.",
+                )
+        case _:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions to delete this user.",
+            )
 
     # Delete the user from the database.
     db.delete(target_user)
     db.commit()
+
+
+def approve_student(
+    db: Session,
+    target_username: str,
+    current_user: User,
+) -> User:
+    if current_user.role.role_name not in {UserRole.LECTURER.value, UserRole.ADMIN.value}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only lecturers or admins can approve student accounts.",
+        )
+
+    target_user = db.scalar(
+        select(User)
+        .options(joinedload(User.role))
+        .where(User.username == target_username)
+    )
+
+    if target_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User '{target_username}' not found.",
+        )
+
+    if target_user.role.role_name != UserRole.STUDENT.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User '{target_username}' is not a student account.",
+        )
+
+    if target_user.account_status != AccountStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Student account '{target_username}' is not pending approval.",
+        )
+
+    target_user.account_status = AccountStatus.ACTIVE
+    db.commit()
+    db.refresh(target_user)
+
+    return target_user
