@@ -1,16 +1,16 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
-from fastapi import HTTPException
+from sqlalchemy.orm import Session, joinedload
+from fastapi import HTTPException, status
 
 from typing import TypeAlias
 
 from app.db.models import User, Role
-from app.enums import UserRole
-from app.api.v1.user.schemas import LecturerCreateRequest
+from app.enums import AccountStatus, UserRole
+from app.api.v1.user.schemas import LecturerCreateRequest, StudentCreateRequest
 from app.core.security import hash_password
 
 UserCreateRequest: TypeAlias = (
-    LecturerCreateRequest
+    LecturerCreateRequest | StudentCreateRequest
 )
 
 def create_user(
@@ -84,3 +84,45 @@ def delete_user(
     # Delete the user from the database.
     db.delete(target_user)
     db.commit()
+
+
+def approve_student(
+    db: Session,
+    target_username: str,
+    current_user: User,
+) -> User:
+    if current_user.role.role_name not in {UserRole.LECTURER.value, UserRole.ADMIN.value}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only lecturers or admins can approve student accounts.",
+        )
+
+    target_user = db.scalar(
+        select(User)
+        .options(joinedload(User.role))
+        .where(User.username == target_username)
+    )
+
+    if target_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User '{target_username}' not found.",
+        )
+
+    if target_user.role.role_name != UserRole.STUDENT.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User '{target_username}' is not a student account.",
+        )
+
+    if target_user.account_status != AccountStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Student account '{target_username}' is not pending approval.",
+        )
+
+    target_user.account_status = AccountStatus.ACTIVE
+    db.commit()
+    db.refresh(target_user)
+
+    return target_user
