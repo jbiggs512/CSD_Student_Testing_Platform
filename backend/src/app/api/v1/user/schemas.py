@@ -33,6 +33,15 @@ class LecturerCreateRequest(BaseUserCreateRequest):
     def account_status(self) -> str:
         return AccountStatus.ACTIVE.value
 
+class StudentCreateRequest(BaseUserCreateRequest):
+    @property
+    def role(self) -> str:
+        return UserRole.STUDENT.value
+    
+    @property
+    def account_status(self) -> str:
+        return AccountStatus.PENDING.value
+
 class UserResponse(BaseModel):
     user_id: int
     username: str
