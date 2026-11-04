@@ -2,7 +2,7 @@ import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { App } from './App'
-import { SubjectManagementPage } from './pages/subjectManagement'
+import { SubjectsPage } from './pages/subjects'
 import { NavBar, ProtectedRoute } from './shared/components'
 import './index.css'
 
@@ -34,14 +34,14 @@ createRoot(document.getElementById('root')!).render(
               <Route element={<ProtectedRoute allowedRoles={['student']} />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
               </Route>
+              <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                <Route
+                  path="/subjects"
+                  element={<SubjectsPage />}
+                />
+              </Route>
             </Route>
             <Route path="*" element={<ProtectedRoute allowedRoles={[]} />} />
-            <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-              <Route
-                path="/subjectManagement"
-                element={<SubjectManagementPage />}
-              />
-            </Route>
           </Route>
         </Routes>
       </Suspense>

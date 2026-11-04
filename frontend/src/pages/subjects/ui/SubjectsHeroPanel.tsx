@@ -1,13 +1,13 @@
 import { PlusIcon } from 'lucide-react'
 import { Button } from '@shared/components/ui/button'
 
-interface SubjectManagementHeroPanelProps {
+interface SubjectsHeroPanelProps {
   onAddSubject: () => void
 }
 
-export function SubjectManagementHeroPanel({
+export function SubjectsHeroPanel({
   onAddSubject,
-}: Readonly<SubjectManagementHeroPanelProps>) {
+}: Readonly<SubjectsHeroPanelProps>) {
   return (
     <section className="flex flex-col gap-6 rounded-2xl bg-navy p-8 text-white shadow-md sm:flex-row sm:items-end sm:justify-between sm:p-10">
       <div className="max-w-2xl space-y-2">

@@ -41,9 +41,10 @@ import {
   SubjectApiError,
   updateSubject,
 } from '../api/subjectApi'
-import { SubjectManagementHeroPanel } from './SubjectManagementHeroPanel'
+import { SubjectsHeroPanel } from './SubjectsHeroPanel'
 
 type StatusFilter = 'all' | SubjectStatus
+type SortOption = 'name-asc' | 'name-desc' | 'course-asc' | 'status'
 
 interface SubjectFormValues {
   subject_name: string
@@ -103,7 +104,7 @@ function SummaryCard({
   )
 }
 
-export function SubjectManagementPage() {
+export function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -113,6 +114,7 @@ export function SubjectManagementPage() {
 
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [sortOption, setSortOption] = useState<SortOption>('name-asc')
 
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
@@ -146,18 +148,32 @@ export function SubjectManagementPage() {
   const filteredSubjects = useMemo(() => {
     const normalisedSearch = searchTerm.trim().toLocaleLowerCase()
 
-    return subjects.filter((subject) => {
-      const matchesSearch =
-        normalisedSearch.length === 0 ||
-        subject.subject_name.toLocaleLowerCase().includes(normalisedSearch) ||
-        String(subject.course_id).includes(normalisedSearch)
+    return subjects
+      .filter((subject) => {
+        const matchesSearch =
+          normalisedSearch.length === 0 ||
+          subject.subject_name.toLocaleLowerCase().includes(normalisedSearch) ||
+          String(subject.course_id).includes(normalisedSearch)
 
-      const matchesStatus =
-        statusFilter === 'all' || subject.status === statusFilter
+        const matchesStatus =
+          statusFilter === 'all' || subject.status === statusFilter
 
-      return matchesSearch && matchesStatus
-    })
-  }, [searchTerm, statusFilter, subjects])
+        return matchesSearch && matchesStatus
+      })
+      .sort((left, right) => {
+        if (sortOption === 'course-asc') {
+          return left.course_id - right.course_id
+        }
+
+        if (sortOption === 'status') {
+          return left.status.localeCompare(right.status) ||
+            left.subject_name.localeCompare(right.subject_name)
+        }
+
+        const nameComparison = left.subject_name.localeCompare(right.subject_name)
+        return sortOption === 'name-desc' ? -nameComparison : nameComparison
+      })
+  }, [searchTerm, sortOption, statusFilter, subjects])
 
   function openCreateSheet() {
     setEditingSubject(null)
@@ -272,7 +288,7 @@ export function SubjectManagementPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 bg-[#f7f8fb] px-4 py-8 sm:px-6 lg:px-8">
-      <SubjectManagementHeroPanel onAddSubject={openCreateSheet} />
+      <SubjectsHeroPanel onAddSubject={openCreateSheet} />
 
       {pageError && (
         <Alert variant="destructive">
@@ -316,7 +332,7 @@ export function SubjectManagementPage() {
               Search, edit and manage the subjects registered in the platform.
             </CardDescription>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
             <div className="relative min-w-0 sm:w-64">
               <SearchIcon
                 aria-hidden="true"
@@ -345,6 +361,20 @@ export function SubjectManagementPage() {
                 </Button>
               ))}
             </div>
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              Sort by
+              <select
+              aria-label="Sort subjects"
+              value={sortOption}
+              onChange={(event) => setSortOption(event.target.value as SortOption)}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm font-normal text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+              <option value="name-asc">Name A-Z</option>
+              <option value="name-desc">Name Z-A</option>
+              <option value="course-asc">Course ID</option>
+              <option value="status">Status</option>
+              </select>
+            </label>
           </div>
         </CardHeader>
 

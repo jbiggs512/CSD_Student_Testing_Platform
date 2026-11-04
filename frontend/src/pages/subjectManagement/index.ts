@@ -1,1 +1,0 @@
-export {SubjectManagementPage} from './ui/SubjectManagementPage'
