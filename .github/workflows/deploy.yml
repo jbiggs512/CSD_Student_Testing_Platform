@@ -1,0 +1,128 @@
+name: Deploy
+
+# Runs whenever a new version tag (e.g. v1.2.0) is pushed.
+# Images are pushed to GHCR, then deployed to Azure App Service:
+#   development (automatic) -> production (automatic, or gated by environment approval)
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.service }} image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service: [backend, frontend]
+    outputs:
+      image_base: ${{ steps.base.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute lowercase image base
+        id: base
+        run: echo "name=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.base.outputs.name }}-${{ matrix.service }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.service }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  deploy-development:
+    name: Deploy to development
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: development
+    permissions:
+      id-token: write # OIDC login to Azure
+      contents: read
+    steps:
+      - name: Compute version
+        id: v
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy backend
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_BACKEND_APP_NAME }}
+          images: ${{ needs.publish.outputs.image_base }}-backend:${{ steps.v.outputs.version }}
+
+      - name: Deploy frontend
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_FRONTEND_APP_NAME }}
+          images: ${{ needs.publish.outputs.image_base }}-frontend:${{ steps.v.outputs.version }}
+
+  deploy-production:
+    name: Deploy to production
+    needs: [publish, deploy-development]
+    runs-on: ubuntu-latest
+    environment: production # add required reviewers in repo settings if you want a manual gate
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Compute version
+        id: v
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy backend
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_BACKEND_APP_NAME }}
+          images: ${{ needs.publish.outputs.image_base }}-backend:${{ steps.v.outputs.version }}
+
+      - name: Deploy frontend
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_FRONTEND_APP_NAME }}
+          images: ${{ needs.publish.outputs.image_base }}-frontend:${{ steps.v.outputs.version }}
+
