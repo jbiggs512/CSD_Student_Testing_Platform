@@ -44,6 +44,24 @@ export function ProtectedRoute({
     }
   }, [activeUser, location.pathname])
 
+  // Re-verify auth state if the page was restored from the browser's back/forward cache (bfcache)
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setCheckedPathname(null)
+        void restoreAuthSession().then((user) => {
+          setRestoredUser(user)
+          setCheckedPathname(location.pathname)
+        })
+      }
+    }
+
+    window.addEventListener('pageshow', handlePageShow)
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow)
+    }
+  }, [location.pathname])
+
   const user =
     activeUser ?? (checkedPathname === location.pathname ? restoredUser : null)
 
@@ -67,4 +85,3 @@ export function ProtectedRoute({
 
   return <Outlet />
 }
-
