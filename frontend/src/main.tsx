@@ -2,8 +2,6 @@ import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { App } from './App'
-import { AdminDashboardPage } from './pages/adminDashboard'
-import { SubjectsPage } from './pages/subjects'
 import { NavBar, ProtectedRoute } from './shared/components'
 import './index.css'
 
@@ -18,6 +16,12 @@ const RegisterPage = lazy(() =>
 )
 const DashboardPage = lazy(() =>
   import('./pages/dashboard').then((m) => ({ default: m.DashboardPage })),
+)
+const AdminDashboardPage = lazy(() =>
+  import('./pages/adminDashboard').then((m) => ({ default: m.AdminDashboardPage })),
+)
+const SubjectsPage = lazy(() =>
+  import('./pages/subjects').then((m) => ({ default: m.SubjectsPage })),
 )
 
 createRoot(document.getElementById('root')!).render(
