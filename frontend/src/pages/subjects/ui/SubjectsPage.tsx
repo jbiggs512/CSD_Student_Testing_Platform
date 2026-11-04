@@ -64,7 +64,7 @@ function getDisplayError(error: unknown): string {
   return 'Something went wrong. Please try again.'
 }
 
-function StatusBadge({ status }: { status: SubjectStatus }) {
+function StatusBadge({ status }: Readonly<{ status: SubjectStatus }>) {
   const isActive = status === 'active'
 
   return (
