@@ -6,13 +6,13 @@ from app.db.models import TestAttempt, Test, Subject, Course, User
 
 def get_outstanding_tests(
     db: Session, 
-    studentId: int
+    student_id: int
 ) -> list[OutstandingTestResponse]:
     
     # Find test IDs that the student has already completed
     completed_tests_subquery = (
         select(TestAttempt.test_id)
-        .where(TestAttempt.user_id == studentId,
+        .where(TestAttempt.user_id == student_id,
                 TestAttempt.completed_at.isnot(None)
         )
     )
@@ -23,7 +23,7 @@ def get_outstanding_tests(
         .join(Subject, Test.subject_id == Subject.subject_id)
         .join(Course, Subject.course_id == Course.course_id)
         .join(Course.users)
-        .where(User.user_id == studentId and not Test.test_id.in_(completed_tests_subquery)
+        .where(User.user_id == student_id and not Test.test_id.in_(completed_tests_subquery)
         )
     )
 

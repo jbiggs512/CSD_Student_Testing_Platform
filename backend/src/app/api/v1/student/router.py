@@ -8,10 +8,10 @@ from app.api.v1.student import service
 
 router = APIRouter()
 
-@router.get("/outstandingTests/{studentId}")
+@router.get("/outstandingTests/{student_id}")
 def get_test(
-    studentId: int,
+    student_id: int,
     db: Annotated[Session, Depends(get_db)],
 ) -> list[schemas.OutstandingTestResponse]:
     """Get outstanding tests by student ID"""
-    return service.get_outstanding_tests(db, studentId)
+    return service.get_outstanding_tests(db, student_id)
