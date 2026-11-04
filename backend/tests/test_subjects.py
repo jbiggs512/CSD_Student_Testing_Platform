@@ -259,6 +259,28 @@ def test_admin_can_disable_and_reenable_subject(
     assert enable_response.json()["status"] == SubjectStatus.ACTIVE.value
 
 
+def test_admin_cannot_edit_subject_to_duplicate_course_name(
+    client, db_session, test_course, auth_headers
+):
+    headers = auth_headers(UserRole.ADMIN)
+    create_test_subject(db_session, test_course, "Existing Subject")
+    subject = create_test_subject(db_session, test_course, "Other Subject")
+
+    response = client.patch(
+        f"{SUBJECTS_URL}/{subject.subject_id}",
+        json={
+            "subject_name": "Existing Subject",
+            "course_id": test_course.course_id,
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Subject already exists for this course."
+    )
+
+
 def test_update_missing_subject_returns_404(
     client, auth_headers
 ):

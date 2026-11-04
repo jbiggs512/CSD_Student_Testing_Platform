@@ -54,6 +54,28 @@ def update_subject(db: Session, request: SubjectUpdateRequest, subject_id: int) 
     # Retrieve the existing subject
     existing_subject = get_subject_or_404(db, subject_id)
 
+    next_subject_name = (
+        request.subject_name
+        if request.subject_name is not None
+        else existing_subject.subject_name
+    )
+    next_course_id = (
+        request.course_id
+        if request.course_id is not None
+        else existing_subject.course_id
+    )
+
+    duplicate_subject = db.execute(
+        select(Subject).where(
+            Subject.course_id == next_course_id,
+            Subject.subject_name == next_subject_name,
+            Subject.subject_id != subject_id,
+        )
+    ).scalar_one_or_none()
+
+    if duplicate_subject:
+        raise HTTPException(status_code=400, detail=SUBJECT_ALREADY_EXISTS_DETAIL)
+
     if request.subject_name is not None:
         existing_subject.subject_name = request.subject_name
     if request.course_id is not None:
