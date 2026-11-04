@@ -149,6 +149,30 @@ def test_login_active_student_updates_last_login(client, db_session):
     assert user.last_login is not None
 
 
+def test_login_username_is_case_insensitive(client, db_session):
+    _seed_user(
+        db_session,
+        username="WS654321",
+        password="StudentPassword123!",
+        role_name=UserRole.STUDENT,
+        account_status=AccountStatus.ACTIVE,
+    )
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "ws654321", "password": "StudentPassword123!"},
+    )
+    assert response.status_code == 200
+    assert response.json()["user"]["username"] == "WS654321"
+
+    token_response = client.post(
+        "/api/v1/auth/token",
+        data={"username": "Ws654321", "password": "StudentPassword123!"},
+    )
+    assert token_response.status_code == 200
+    assert token_response.json()["user"]["username"] == "WS654321"
+
+
 def test_login_unknown_username_returns_401(client):
     response = client.post(
         "/api/v1/auth/login",
