@@ -26,7 +26,7 @@ createRoot(document.getElementById('root')!).render(
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
             <Route
-              path="/subjectManagement"
+              path="/adminDashboard"
               element={<SubjectManagementPage />}
             />
           </Route>
