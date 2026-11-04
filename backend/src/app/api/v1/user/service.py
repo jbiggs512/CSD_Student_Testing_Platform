@@ -9,6 +9,10 @@ from app.enums import AccountStatus, UserRole
 from app.api.v1.user.schemas import LecturerCreateRequest, StudentCreateRequest
 from app.core.security import hash_password
 
+ROLE_NOT_FOUND_DETAIL = "Role does not exist."
+USERNAME_EXISTS_DETAIL = "Username is already in use."
+EMAIL_EXISTS_DETAIL = "Email is already registered."
+
 UserCreateRequest: TypeAlias = (
     LecturerCreateRequest | StudentCreateRequest
 )
@@ -17,7 +21,7 @@ def create_user(
     db: Session,
     user_data: UserCreateRequest,
 ) -> User:
-    
+
     # DB Role Check
     role = db.scalar(
         select(Role).where(
@@ -26,7 +30,36 @@ def create_user(
     )
 
     if role is None:
-        raise HTTPException(status_code=422, detail=f"Role '{user_data.role}' does not exist.")
+        raise HTTPException(
+            status_code=422,
+            detail=ROLE_NOT_FOUND_DETAIL
+        )
+
+    # Check for duplicate username
+    existing_username = db.scalar(
+        select(User).where(
+            User.username == user_data.username
+        )
+    )
+
+    if existing_username:
+        raise HTTPException(
+            status_code=409,
+            detail=USERNAME_EXISTS_DETAIL
+        )
+
+    # Check for duplicate email
+    existing_email = db.scalar(
+        select(User).where(
+            User.email == user_data.email
+        )
+    )
+
+    if existing_email:
+        raise HTTPException(
+            status_code=409,
+            detail=EMAIL_EXISTS_DETAIL
+        )
 
     # Hash the password before storing it in the database.
     hashed_password = hash_password(user_data.password)
