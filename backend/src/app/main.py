@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.db.models.course import Course
+
 from typing import Annotated
 
 from fastapi import Depends
@@ -41,3 +43,25 @@ def database_health(
 ):
     db.execute(text("SELECT 1"))
     return {"database": "connected"}
+
+@app.get("/api/v1/courses")
+def get_courses(
+    db: Annotated[Session, Depends(get_db)]
+) -> list[dict[str, int | str]]:
+    """
+    Retrieve all available courses.
+
+    Requires an authenticated user.
+    """
+
+    courses = db.scalars(
+        select(Course).order_by(Course.course_title)
+    ).all()
+
+    return [
+        {
+            "course_id": course.course_id,
+            "course_title": course.course_title,
+        }
+        for course in courses
+    ]
