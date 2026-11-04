@@ -6,3 +6,4 @@ export {
   deleteSubject,
   SubjectApiError,
 } from './subjectApi'
+export { getCourses } from './courseApi'

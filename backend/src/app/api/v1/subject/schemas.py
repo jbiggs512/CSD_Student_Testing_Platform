@@ -14,6 +14,7 @@ class SubjectResponse(BaseModel):
     subject_id: int
     subject_name: str
     course_id: int
+    course_title: str
     status: SubjectStatus
 
     model_config = {"from_attributes": True}

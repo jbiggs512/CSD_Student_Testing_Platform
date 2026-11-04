@@ -3,4 +3,5 @@ export type {
   SubjectStatus,
   SubjectCreateRequest,
   SubjectUpdateRequest,
+  Course,
 } from './types'

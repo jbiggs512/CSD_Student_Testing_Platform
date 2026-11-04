@@ -33,14 +33,16 @@ import type {
   Subject,
   SubjectStatus,
   UpdateSubjectRequest,
+  Course,
 } from '../model/types'
 import {
   createSubject,
   deleteSubject,
   getSubjects,
+  getCourses,
   SubjectApiError,
   updateSubject,
-} from '../api/subjectApi'
+} from '../api'
 import { SubjectsHeroPanel } from './SubjectsHeroPanel'
 
 type StatusFilter = 'all' | SubjectStatus
@@ -106,6 +108,7 @@ function SummaryCard({
 
 export function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [courses, setCourses] = useState<Course[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
@@ -125,8 +128,12 @@ export function SubjectsPage() {
     setPageError(null)
 
     try {
-      const result = await getSubjects()
-      setSubjects(result)
+      const [subjectResult, courseResult] = await Promise.all([
+        getSubjects(),
+        getCourses(),
+      ])
+      setSubjects(subjectResult)
+      setCourses(courseResult)
     } catch (error) {
       setPageError(getDisplayError(error))
     } finally {
@@ -153,7 +160,7 @@ export function SubjectsPage() {
         const matchesSearch =
           normalisedSearch.length === 0 ||
           subject.subject_name.toLocaleLowerCase().includes(normalisedSearch) ||
-          String(subject.course_id).includes(normalisedSearch)
+          subject.course_title.toLocaleLowerCase().includes(normalisedSearch)
 
         const matchesStatus =
           statusFilter === 'all' || subject.status === statusFilter
@@ -162,7 +169,7 @@ export function SubjectsPage() {
       })
       .sort((left, right) => {
         if (sortOption === 'course-asc') {
-          return left.course_id - right.course_id
+          return left.course_title.localeCompare(right.course_title)
         }
 
         if (sortOption === 'status') {
@@ -340,7 +347,7 @@ export function SubjectsPage() {
               />
               <Input
                 aria-label="Search subjects"
-                placeholder="Search subjects or course ID..."
+                placeholder="Search subjects or courses..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 className="pl-9"
@@ -371,7 +378,7 @@ export function SubjectsPage() {
               >
               <option value="name-asc">Name A-Z</option>
               <option value="name-desc">Name Z-A</option>
-              <option value="course-asc">Course ID</option>
+              <option value="course-asc">Course</option>
               <option value="status">Status</option>
               </select>
             </label>
@@ -411,7 +418,7 @@ export function SubjectsPage() {
                 <thead className="bg-navy text-xs uppercase tracking-wide text-white/80">
                   <tr>
                     <th scope="col" className="px-6 py-3 font-medium">Subject</th>
-                    <th scope="col" className="px-6 py-3 font-medium">Course ID</th>
+                    <th scope="col" className="px-6 py-3 font-medium">Course</th>
                     <th scope="col" className="px-6 py-3 font-medium">Status</th>
                     <th scope="col" className="px-6 py-3 text-right font-medium">Actions</th>
                   </tr>
@@ -428,7 +435,7 @@ export function SubjectsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 tabular-nums text-muted-foreground">
-                        {subject.course_id}
+                        {subject.course_title}
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge status={subject.status} />
@@ -522,16 +529,12 @@ export function SubjectsPage() {
 
             <div className="space-y-2">
               <label htmlFor="course-id" className="text-sm font-medium">
-                Course ID
+                Course
               </label>
-              <Input
+              <select
                 id="course-id"
                 name="course_id"
-                type="number"
-                min={1}
-                step={1}
                 required
-                placeholder="Enter the course ID"
                 value={formValues.course_id}
                 onChange={(event) =>
                   setFormValues((current) => ({
@@ -539,9 +542,19 @@ export function SubjectsPage() {
                     course_id: event.target.value,
                   }))
                 }
-              />
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="" disabled>
+                  Select a course
+                </option>
+                {courses.map((course) => (
+                  <option key={course.course_id} value={course.course_id}>
+                    {course.course_title}
+                  </option>
+                ))}
+              </select>
               <p className="text-xs text-muted-foreground">
-                Enter the ID of the course this subject belongs to.
+                Select the course this subject belongs to.
               </p>
             </div>
 

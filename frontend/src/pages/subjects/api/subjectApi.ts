@@ -18,9 +18,6 @@ export class SubjectApiError extends Error {
   }
 }
 
-/**
- * Shared request handler for authenticated subject API requests.
- */
 async function subjectRequest<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -40,7 +37,7 @@ async function subjectRequest<T>(
     response = await fetch(`${SUBJECTS_URL}${endpoint}`, {
       ...options,
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: 'Bearer ' + token,
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         ...options.headers,
       },
@@ -56,18 +53,12 @@ async function subjectRequest<T>(
     let detailMessage: string | undefined
 
     try {
-      const errorBody = (await response.json()) as {
-        detail?: unknown
-      }
-
-      if (
-        typeof errorBody.detail === 'string' &&
-        errorBody.detail.trim()
-      ) {
+      const errorBody = (await response.json()) as { detail?: unknown }
+      if (typeof errorBody.detail === 'string' && errorBody.detail.trim()) {
         detailMessage = errorBody.detail
       }
     } catch {
-      // Fall back to a default error message.
+      // Use the generic message when the server does not return JSON.
     }
 
     throw new SubjectApiError(
@@ -83,23 +74,14 @@ async function subjectRequest<T>(
   return (await response.json()) as T
 }
 
-/**
- * Retrieve all subjects.
- */
 export function getSubjects(): Promise<Subject[]> {
   return subjectRequest<Subject[]>('')
 }
 
-/**
- * Retrieve a subject by ID.
- */
 export function getSubject(subjectId: number): Promise<Subject> {
   return subjectRequest<Subject>(`/${subjectId}`)
 }
 
-/**
- * Create a new subject.
- */
 export function createSubject(
   request: SubjectCreateRequest,
 ): Promise<Subject> {
@@ -109,9 +91,6 @@ export function createSubject(
   })
 }
 
-/**
- * Update an existing subject.
- */
 export function updateSubject(
   subjectId: number,
   request: SubjectUpdateRequest,
@@ -122,9 +101,6 @@ export function updateSubject(
   })
 }
 
-/**
- * Delete a subject.
- */
 export function deleteSubject(subjectId: number): Promise<void> {
   return subjectRequest<void>(`/${subjectId}`, {
     method: 'DELETE',
