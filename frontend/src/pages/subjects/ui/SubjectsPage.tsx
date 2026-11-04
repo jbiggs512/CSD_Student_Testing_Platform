@@ -28,6 +28,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@shared/components/ui/sheet'
+import { ConfirmDialog } from '@shared/components/ui/confirm-dialog'
 import type {
   SubjectCreateRequest,
   Subject,
@@ -121,6 +122,7 @@ export function SubjectsPage() {
 
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
+  const [subjectPendingDelete, setSubjectPendingDelete] = useState<Subject | null>(null)
   const [formValues, setFormValues] = useState<SubjectFormValues>(EMPTY_FORM)
 
   const loadSubjects = useCallback(async () => {
@@ -274,19 +276,16 @@ export function SubjectsPage() {
     }
   }
 
-  async function handleDelete(subject: Subject) {
-    const confirmed = window.confirm(
-      `Delete "${subject.subject_name}"? This action cannot be undone.`,
-    )
-
-    if (!confirmed) return
+  async function confirmDelete() {
+    if (!subjectPendingDelete) return
 
     setPageError(null)
     setSuccessMessage(null)
 
     try {
-      await deleteSubject(subject.subject_id)
+      await deleteSubject(subjectPendingDelete.subject_id)
       setSuccessMessage('Subject deleted successfully.')
+      setSubjectPendingDelete(null)
       await loadSubjects()
     } catch (error) {
       setPageError(getDisplayError(error))
@@ -468,7 +467,7 @@ export function SubjectsPage() {
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            onClick={() => void handleDelete(subject)}
+                            onClick={() => setSubjectPendingDelete(subject)}
                             aria-label={`Delete ${subject.subject_name}`}
                             className="text-destructive hover:text-destructive"
                           >
@@ -593,6 +592,21 @@ export function SubjectsPage() {
           </form>
         </SheetContent>
       </Sheet>
+
+      <ConfirmDialog
+        open={subjectPendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setSubjectPendingDelete(null)
+        }}
+        title="Delete subject?"
+        description={
+          subjectPendingDelete
+            ? `Delete "${subjectPendingDelete.subject_name}"? This action cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete"
+        onConfirm={() => void confirmDelete()}
+      />
     </main>
   )
 }

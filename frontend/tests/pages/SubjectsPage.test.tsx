@@ -3,11 +3,12 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SubjectsPage } from '@/pages/subjects'
 
-const { getSubjects, getCourses, createSubject, updateSubject } = vi.hoisted(() => ({
+const { getSubjects, getCourses, createSubject, updateSubject, deleteSubject } = vi.hoisted(() => ({
   getSubjects: vi.fn(),
   getCourses: vi.fn(),
   createSubject: vi.fn(),
   updateSubject: vi.fn(),
+  deleteSubject: vi.fn(),
 }))
 
 vi.mock('@/pages/subjects/api', () => ({
@@ -15,7 +16,7 @@ vi.mock('@/pages/subjects/api', () => ({
   getCourses,
   createSubject,
   updateSubject,
-  deleteSubject: vi.fn(),
+  deleteSubject,
   SubjectApiError: class SubjectApiError extends Error {},
 }))
 
@@ -146,5 +147,36 @@ describe('SubjectsPage', () => {
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Subject already exists for this course.',
     )
+  })
+
+  it('confirms subject deletion in the shared dialog', async () => {
+    getSubjects.mockResolvedValue(subjects)
+    getCourses.mockResolvedValue(courses)
+    deleteSubject.mockResolvedValue(undefined)
+
+    renderSubjectsPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete Software Testing' }))
+
+    expect(screen.getByRole('dialog')).toBeDefined()
+    expect(screen.getByText('Delete "Software Testing"? This action cannot be undone.')).toBeDefined()
+    expect(deleteSubject).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Delete$/ }))
+
+    await waitFor(() => {
+      expect(deleteSubject).toHaveBeenCalledWith(1)
+    })
+  })
+
+  it('does not delete a subject when deletion is cancelled', async () => {
+    getSubjects.mockResolvedValue(subjects)
+    getCourses.mockResolvedValue(courses)
+
+    renderSubjectsPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete Algorithms' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Cancel$/ }))
+
+    expect(deleteSubject).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
