@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -18,7 +19,7 @@ def create_course(db: Session, course_title: str) -> Course:
         select(Course).where(Course.course_title == course_title)
     )
     if existing_course:
-        raise ValueError(COURSE_ALREADY_EXISTS_DETAIL)
+        raise HTTPException(status_code=400, detail=COURSE_ALREADY_EXISTS_DETAIL)
 
     course = Course(course_title=course_title)
     db.add(course)
@@ -30,7 +31,7 @@ def create_course(db: Session, course_title: str) -> Course:
 def update_course(db: Session, course_id: int, course_title: str) -> Course:
     course = db.get(Course, course_id)
     if course is None:
-        raise LookupError(COURSE_NOT_FOUND_DETAIL)
+        raise HTTPException(status_code=404, detail=COURSE_NOT_FOUND_DETAIL)
 
     existing_course = db.scalar(
         select(Course).where(
@@ -39,7 +40,7 @@ def update_course(db: Session, course_id: int, course_title: str) -> Course:
         )
     )
     if existing_course:
-        raise ValueError(COURSE_ALREADY_EXISTS_DETAIL)
+        raise HTTPException(status_code=400, detail=COURSE_ALREADY_EXISTS_DETAIL)
 
     course.course_title = course_title
     db.commit()
