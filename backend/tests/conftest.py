@@ -4,7 +4,7 @@ import uuid
 
 import pytest
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
@@ -15,6 +15,12 @@ from app.api.deps import get_db
 from app.db.base import Base
 from app.db.scripts.seed_roles import seed_roles
 from app.db.scripts.seed_test import seed_test_data
+from app.db.scripts.seed_courses import seed_courses
+
+# Imports for auth fixtures
+from app.core.security import hash_password
+from app.db.models import Role, User
+from app.enums import AccountStatus, UserRole
 
 # Import models so SQLAlchemy registers them with Base.metadata
 import app.db.models
@@ -100,6 +106,7 @@ def test_engine(test_database_url):
         with TestingSessionLocal.begin() as db:
             seed_roles(db)
             seed_test_data(db)
+            seed_courses(db)
 
         yield engine
 
@@ -168,3 +175,57 @@ def client(db_session):
     finally:
         fastapi_app.dependency_overrides.clear()
         fastapi_app.dependency_overrides.update(previous_overrides)
+
+@pytest.fixture
+def auth_headers(client, db_session):
+    """
+    Provide a factory for authenticating as different user roles.
+
+    Creates a real user, logs them in through the API,
+    and returns their Bearer access token header.
+    """
+
+    def _auth_headers(role: UserRole, username: str = None) -> dict:
+        role_record = db_session.scalar(
+            select(Role).where(Role.role_name == role.value)
+        )
+
+        assert role_record is not None
+
+        # Generate a unique username for each test user.
+        if username is None:
+            username = f"TEST_{role.value}_{uuid.uuid4().hex[:8]}"
+
+        password = "TestPassword123!"
+
+        user = User(
+            username=username,
+            first_name="Test",
+            last_name=role.value.title(),
+            email=f"{username}@example.com",
+            password_hash=hash_password(password),
+            role_id=role_record.role_id,
+            account_status=AccountStatus.ACTIVE,
+        )
+
+        db_session.add(user)
+        db_session.commit()
+
+        # Authenticate through the actual login endpoint.
+        response = client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": username,
+                "password": password,
+            },
+        )
+
+        assert response.status_code == 200, response.text
+
+        access_token = response.json()["access_token"]
+
+        return {
+            "Authorization": f"Bearer {access_token}"
+        }
+
+    return _auth_headers
