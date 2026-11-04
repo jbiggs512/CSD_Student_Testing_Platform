@@ -93,6 +93,7 @@ def test_create_subject_as_admin(
 
     assert data["subject_name"] == subject_data["subject_name"]
     assert data["course_id"] == test_course.course_id
+    assert data["course_title"] == test_course.course_title
     assert data["status"] == SubjectStatus.ACTIVE.value
 
     # Verify the subject was persisted in the database.
@@ -225,6 +226,7 @@ def test_update_subject_as_admin(
     assert data["subject_id"] == subject.subject_id
     assert data["subject_name"] == "Updated Subject"
     assert data["course_id"] == test_course.course_id
+    assert data["course_title"] == test_course.course_title
 
     # Verify the database was updated.
     db_session.refresh(subject)
