@@ -14,6 +14,11 @@ def request_create_lecturer(lecturer: schemas.LecturerCreateRequest,
                             db: Annotated[Session, Depends(get_db)]):
     return service.create_user(db, lecturer)
 
+@router.post("/admin", response_model=schemas.UserResponse, status_code=201)
+def request_create_admin(admin: schemas.AdminCreateRequest,
+                         db: Annotated[Session, Depends(get_db)]):
+    return service.create_user(db, admin)
+
 @router.post("/student", response_model=schemas.UserResponse, status_code=201)
 def request_create_student(student: schemas.StudentCreateRequest,
                            db: Annotated[Session, Depends(get_db)]):
