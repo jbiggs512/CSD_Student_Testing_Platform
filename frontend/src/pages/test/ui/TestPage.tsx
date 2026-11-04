@@ -63,6 +63,10 @@ export function TestPage() {
     return <div className="flex min-h-screen items-center justify-center">Loading test...</div>;
   }
 
+  if (!testDetails) {
+    return null;
+  }
+
   return (
     <TestPageContent testDetails={testDetails!}
       onSelectOption={handleSelectOption}
