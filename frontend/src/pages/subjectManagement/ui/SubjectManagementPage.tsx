@@ -87,10 +87,14 @@ function SummaryCard({
   description: string
 }) {
   return (
-    <Card className="gap-3 py-5">
+    <Card className="gap-3 border-0 py-5 shadow-sm">
       <CardHeader className="gap-1 px-5">
-        <CardDescription>{title}</CardDescription>
-        <CardTitle className="text-3xl tabular-nums">{value}</CardTitle>
+        <CardDescription className="font-medium uppercase tracking-wide">
+          {title}
+        </CardDescription>
+        <CardTitle className="font-heading text-4xl tabular-nums text-plum">
+          {value}
+        </CardTitle>
       </CardHeader>
       <CardContent className="px-5">
         <p className="text-xs text-muted-foreground">{description}</p>
@@ -267,7 +271,7 @@ export function SubjectManagementPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 bg-[#f7f8fb] px-4 py-8 sm:px-6 lg:px-8">
       <SubjectManagementHeroPanel onAddSubject={openCreateSheet} />
 
       {pageError && (
@@ -302,10 +306,12 @@ export function SubjectManagementPage() {
         />
       </section>
 
-      <Card className="gap-0 py-0">
+      <Card className="gap-0 border-0 py-0 shadow-md">
         <CardHeader className="gap-4 border-b py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <CardTitle>Subjects</CardTitle>
+            <CardTitle className="font-heading text-2xl font-bold text-plum">
+              Subjects
+            </CardTitle>
             <CardDescription>
               Search, edit and manage the subjects registered in the platform.
             </CardDescription>
@@ -372,7 +378,7 @@ export function SubjectManagementPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                <thead className="bg-navy text-xs uppercase tracking-wide text-white/80">
                   <tr>
                     <th scope="col" className="px-6 py-3 font-medium">Subject</th>
                     <th scope="col" className="px-6 py-3 font-medium">Course ID</th>
@@ -382,7 +388,7 @@ export function SubjectManagementPage() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {filteredSubjects.map((subject) => (
-                    <tr key={subject.subject_id} className="transition-colors hover:bg-muted/30">
+                    <tr key={subject.subject_id} className="transition-colors hover:bg-pink/5">
                       <td className="px-6 py-4">
                         <div className="font-medium text-foreground">
                           {subject.subject_name}
