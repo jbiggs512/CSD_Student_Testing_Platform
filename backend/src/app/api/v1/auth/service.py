@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import jwt
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.v1.auth.schemas import TokenResponse
@@ -72,7 +72,7 @@ def authenticate_user(db: Session, username: str, password: str) -> User:
     user = db.scalar(
         select(User)
         .options(joinedload(User.role))
-        .where(User.username == username)
+        .where(func.lower(User.username) == username.lower())
     )
 
     if user is None:
@@ -127,7 +127,7 @@ def refresh_user_session(db: Session, refresh_token: str | None) -> AuthSessionR
     user = db.scalar(
         select(User)
         .options(joinedload(User.role))
-        .where(User.username == username)
+        .where(func.lower(User.username) == username.lower())
     )
     if user is None:
         raise invalid_refresh_exception
