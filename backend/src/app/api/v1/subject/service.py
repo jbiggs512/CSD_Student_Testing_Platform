@@ -54,9 +54,12 @@ def update_subject(db: Session, request: SubjectUpdateRequest, subject_id: int) 
     # Retrieve the existing subject
     existing_subject = get_subject_or_404(db, subject_id)
 
-    # Update the subject details
-    existing_subject.subject_name = request.subject_name
-    existing_subject.course_id = request.course_id
+    if request.subject_name is not None:
+        existing_subject.subject_name = request.subject_name
+    if request.course_id is not None:
+        existing_subject.course_id = request.course_id
+    if request.status is not None:
+        existing_subject.status = request.status
 
     db.commit()
     db.refresh(existing_subject)

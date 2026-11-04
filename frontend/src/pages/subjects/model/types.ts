@@ -19,6 +19,7 @@ export interface SubjectCreateRequest {
 }
 
 export interface SubjectUpdateRequest {
-  subject_name: string
-  course_id: number
+  subject_name?: string
+  course_id?: number
+  status?: SubjectStatus
 }

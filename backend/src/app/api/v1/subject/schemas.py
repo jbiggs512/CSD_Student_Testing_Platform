@@ -7,8 +7,9 @@ class SubjectCreateRequest(BaseModel):
     course_id: int
 
 class SubjectUpdateRequest(BaseModel):
-    subject_name: str
-    course_id: int
+    subject_name: str | None = None
+    course_id: int | None = None
+    status: SubjectStatus | None = None
 
 class SubjectResponse(BaseModel):
     subject_id: int

@@ -232,6 +232,31 @@ def test_update_subject_as_admin(
     assert subject.subject_name == "Updated Subject"
 
 
+def test_admin_can_disable_and_reenable_subject(
+    client, db_session, test_course, auth_headers
+):
+    headers = auth_headers(UserRole.ADMIN)
+    subject = create_test_subject(db_session, test_course)
+
+    disable_response = client.patch(
+        f"{SUBJECTS_URL}/{subject.subject_id}",
+        json={"status": SubjectStatus.DISABLED.value},
+        headers=headers,
+    )
+
+    assert disable_response.status_code == 200
+    assert disable_response.json()["status"] == SubjectStatus.DISABLED.value
+
+    enable_response = client.patch(
+        f"{SUBJECTS_URL}/{subject.subject_id}",
+        json={"status": SubjectStatus.ACTIVE.value},
+        headers=headers,
+    )
+
+    assert enable_response.status_code == 200
+    assert enable_response.json()["status"] == SubjectStatus.ACTIVE.value
+
+
 def test_update_missing_subject_returns_404(
     client, auth_headers
 ):
