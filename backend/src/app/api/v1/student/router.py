@@ -8,7 +8,7 @@ from app.api.v1.student import service
 
 router = APIRouter()
 
-@router.get("/outstandingTests/{studentId}", response_model=list[schemas.OutstandingTestResponse])
+@router.get("/outstandingTests/{studentId}")
 def get_test(
     studentId: int,
     db: Annotated[Session, Depends(get_db)],
