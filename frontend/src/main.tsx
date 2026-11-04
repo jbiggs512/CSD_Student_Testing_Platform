@@ -17,6 +17,9 @@ const RegisterPage = lazy(() =>
 const DashboardPage = lazy(() =>
   import('./pages/dashboard').then((m) => ({ default: m.DashboardPage })),
 )
+const TestPage = lazy(() =>
+  import('./pages/test').then((m) => ({ default: m.TestPage })),
+)
 
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
@@ -33,6 +36,9 @@ createRoot(document.getElementById('root')!).render(
               <Route element={<ProtectedRoute allowedRoles={['student']} />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
               </Route>
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+              <Route path="/test/:id" element={<TestPage />} />
             </Route>
             <Route path="*" element={<ProtectedRoute allowedRoles={[]} />} />
           </Route>
