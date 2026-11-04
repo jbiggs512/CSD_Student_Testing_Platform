@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password
 from app.db.models import Role, User
+from app.db.scripts.seed_users import DEFAULT_USERS, seed_users
 from app.enums import UserRole, AccountStatus
 
 
@@ -456,3 +457,23 @@ def test_create_lecturer_duplicate_username_returns_409(client):
 
     assert response.status_code == 409
     assert response.json()["detail"] == "Username is already in use."
+
+def test_seed_users_is_idempotent(db_session):
+    """
+    Test that seed_users creates the default admin, lecturer, approved student,
+    and pending student accounts, and is idempotent on subsequent runs.
+    """
+    seed_users(db_session)
+    db_session.commit()
+
+    # Running a second time should skip existing users without error.
+    seed_users(db_session)
+    db_session.commit()
+
+    for spec in DEFAULT_USERS:
+        user = db_session.scalar(select(User).where(User.username == spec.username))
+        assert user is not None
+        assert user.email == spec.email
+        assert user.role.role_name == spec.role.value
+        assert user.account_status == spec.account_status
+
