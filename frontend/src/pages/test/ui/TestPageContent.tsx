@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router';
 export function TestPageContent(props: TestPageContentProps) {
   const navigate = useNavigate();
   const toMMSS = (secs: number) => {
-    const secNum = parseInt(secs.toString(), 10);
+    const secNum = Number.parseInt(secs.toString(), 10);
     const minutes = Math.floor(secNum / 60) % 60;
     const seconds = secNum % 60;
 
@@ -35,7 +35,7 @@ export function TestPageContent(props: TestPageContentProps) {
         <div className="mb-6 lg:mb-0">
           <p className="mb-2 text-sm font-semibold uppercase text-white/80">{props.testDetails.course} - {props.testDetails.subject}</p>
           <h1 className="mb-2 font-heading text-5xl font-bold text-white">{props.testDetails.testName}</h1>
-           <p className="text-sm text-white/80">{props.testDetails.course} - {props.testDetails.description}</p>
+          <p className="text-sm text-white/80">{props.testDetails.course} - {props.testDetails.description}</p>
         </div>
 
         {/* Timer Card */}
@@ -69,7 +69,7 @@ export function TestPageContent(props: TestPageContentProps) {
 
             <div className="mb-8 flex flex-col gap-4">
               {props.testDetails.questions[props.testDetails.currentQuestion - 1]?.options.map((option) => (
-                <div
+                <button 
                   key={option.optionId}
                   className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-colors ${option.selected
                     ? 'border-navy bg-slate-50' // Selected option styling
@@ -85,12 +85,12 @@ export function TestPageContent(props: TestPageContentProps) {
 
                   {/* Letter Indicator (A, B, C, D */}
                   <div className="flex h-8 w-8 items-center justify-center rounded bg-muted text-sm font-bold text-navy">
-                    {String.fromCharCode(65 + props.testDetails.questions[props.testDetails.currentQuestion - 1].options.indexOf(option))} 
+                    {String.fromCodePoint(65 + props.testDetails.questions[props.testDetails.currentQuestion - 1].options.indexOf(option))}
                   </div>
 
                   {/* Answer Text */}
                   <span className="text-sm font-medium text-navy">{option.optionText}</span>
-                </div>
+                </button>
               ))}
             </div>
 
@@ -118,19 +118,19 @@ export function TestPageContent(props: TestPageContentProps) {
                 const isAnswered = props.isAnswered(num);
                 const isCurrent = num === (props.testDetails.currentQuestion);
 
+                let borderBgClasses = 'border-border bg-white text-navy hover:border-slate-400';
+                if (isAnswered) {
+                  borderBgClasses = 'border-navy bg-navy text-white';
+                } else if (isCurrent) {
+                  borderBgClasses = 'border-primary bg-white text-primary outline outline-1 outline-primary';
+                }
+
                 return (
-                  <div
+                  <button
                     key={num}
-                    className={`flex aspect-square items-center justify-center rounded border text-sm font-bold transition-colors ${isAnswered
-                      ? 'border-navy bg-navy text-white'
-                      : isCurrent
-                        ? 'border-primary bg-white text-primary outline outline-1 outline-primary'
-                        : 'border-border bg-white text-navy hover:border-slate-400'
-                      }`}
+                    className={`flex aspect-square items-center justify-center rounded border text-sm font-bold transition-colors ${borderBgClasses}`}
                     onClick={() => props.onNavigateQuestion(num)}
-                  >
-                    {num}
-                  </div>
+                  >{num}</button>
                 );
               })}
             </div>

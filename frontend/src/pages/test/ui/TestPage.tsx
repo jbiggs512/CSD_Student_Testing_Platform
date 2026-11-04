@@ -7,7 +7,7 @@ import { getTestDetails } from '../api';
 export function TestPage() {
   const navigate = useNavigate();
   // Extract the test ID from the URL parameters using useParams
-  const { id } = useParams(); 
+  const { id } = useParams();
   const [testDetails, setTestDetails] = useState<TestDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -44,7 +44,7 @@ export function TestPage() {
     async function loadData() {
       try {
         // Fetch all data needed for the test
-        const testDetails = await getTestDetails(id ? parseInt(id) : 0);
+        const testDetails = await getTestDetails(id ? Number.parseInt(id) : 0);
         setTestDetails(testDetails);
       }
       catch (error) {
@@ -56,7 +56,9 @@ export function TestPage() {
       }
     }
 
-    loadData();
+    loadData().catch((error) => {
+      console.error("Failed to load test data:", error);
+    });;
   }, []);
 
   if (isLoading) {
