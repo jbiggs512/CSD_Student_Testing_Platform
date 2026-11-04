@@ -5,6 +5,7 @@ import {
   clearAccessToken,
   getAccessToken,
   getCurrentUser,
+  logoutUser,
   restoreAuthSession,
   setAccessToken,
   setCurrentUser,
@@ -180,5 +181,51 @@ describe('ProtectedRoute & restoreAuthSession', () => {
     fetchSpy.mockRejectedValueOnce(new TypeError('Failed to fetch'))
     await expect(restoreAuthSession()).resolves.toBeNull()
     expect(getAccessToken()).toBeNull()
+  })
+
+  it('logoutUser clears in-memory state and sends /auth/logout request', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+
+    setAccessToken('active-token')
+    setCurrentUser(buildUser('student'))
+
+    await logoutUser()
+
+    expect(getAccessToken()).toBeNull()
+    expect(getCurrentUser()).toBeNull()
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/logout'),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      }),
+    )
+  })
+
+  it('re-verifies session when page is restored from bfcache', async () => {
+    setAccessToken('jwt-student-token')
+    setCurrentUser(buildUser('student'))
+
+    renderProtectedRoutes('/dashboard')
+    expect(screen.getByText('Student Dashboard')).toBeDefined()
+
+    // Simulate logout in another tab or bfcache restore without valid refresh token
+    clearAccessToken()
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ detail: 'Refresh token missing.' }),
+    } as Response)
+
+    // Trigger pageshow event with persisted = true
+    const event = new Event('pageshow') as unknown as PageTransitionEvent
+    Object.defineProperty(event, 'persisted', { value: true })
+    window.dispatchEvent(event)
+
+    await waitFor(() => {
+      expect(screen.getByText('Login Screen')).toBeDefined()
+    })
   })
 })
