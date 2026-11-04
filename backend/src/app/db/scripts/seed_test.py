@@ -5,71 +5,70 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.db.models import Course, Subject, Test, Question, QuestionOption
 
-def seed_test_data(db: Session) -> None:
-    # Check if course data already exists
-    existing_course = db.scalar(select(Course).where(Course.course_id == 1))
-    if not existing_course:
-        # Create a course for the test
-        course = Course(
-            course_id=1,
-            course_title="Sample Course",
-        )
-        db.add(course)
-        db.flush()  # Flush to get the course_id
 
-   # Check if subject data already exists
-    existing_subject = db.scalar(select(Subject).where(Subject.subject_id == 1))
-    if not existing_subject:
-        # Create a subject for the test
+def seed_test_data(db: Session) -> None:
+    course = db.scalar(
+        select(Course).where(Course.course_title == "Sample Course")
+    )
+    if course is None:
+        course = Course(course_title="Sample Course")
+        db.add(course)
+        db.flush()
+
+    subject = db.scalar(
+        select(Subject).where(
+            Subject.subject_name == "Sample Subject",
+            Subject.course_id == course.course_id,
+        )
+    )
+    if subject is None:
         subject = Subject(
-            subject_id=1,
             subject_name="Sample Subject",
-            course_id=1  
+            course_id=course.course_id,
         )
         db.add(subject)
-        db.flush()  # Flush to get the subject_id
+        db.flush()
 
-    # Check if test data already exists
-    existing_test = db.scalar(select(Test).where(Test.test_id == 1))
-    if existing_test:
+    test = db.scalar(
+        select(Test).where(
+            Test.test_name == "Sample Test",
+            Test.subject_id == subject.subject_id,
+        )
+    )
+    if test is not None:
         print("Test data already exists. Skipping seeding.")
         return
 
-    # Create a test
     test = Test(
-        test_id=1,
-        subject_id=1,
+        subject_id=subject.subject_id,
         test_name="Sample Test",
         description="This is a sample test.",
         questions_per_attempt=5,
     )
     db.add(test)
-    db.flush()  # Flush to get the test_id
+    db.flush()
 
-    # Create questions for the test
     questions = [
         Question(
-            question_id=i + 1,
             test_id=test.test_id,
-            question_text=f"Sample Question {i + 1}"
+            question_text=f"Sample Question {index}",
         )
-        for i in range(5)
+        for index in range(1, 6)
     ]
     db.add_all(questions)
-    db.flush()  # Flush to get the question_ids
+    db.flush()
 
-    # Create options for each question
     for question in questions:
-        options = [
-            QuestionOption(
-                option_id=j + 1 + (question.question_id - 1) * 4,
-                question_id=question.question_id,
-                option_text=f"Option {j + 1} for Question {question.question_id}",
-                is_correct=(j == 0)  # First option is correct
-            )
-            for j in range(4)
-        ]
-        db.add_all(options)
+        db.add_all(
+            [
+                QuestionOption(
+                    question_id=question.question_id,
+                    option_text=f"Option {index} for Question {question.question_id}",
+                    is_correct=index == 1,
+                )
+                for index in range(1, 5)
+            ]
+        )
 
     db.commit()
     print("Seeded test data successfully.")
