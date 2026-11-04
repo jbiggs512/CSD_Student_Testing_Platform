@@ -3,16 +3,17 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SubjectsPage } from '@/pages/subjects'
 
-const { getSubjects, getCourses, updateSubject } = vi.hoisted(() => ({
+const { getSubjects, getCourses, createSubject, updateSubject } = vi.hoisted(() => ({
   getSubjects: vi.fn(),
   getCourses: vi.fn(),
+  createSubject: vi.fn(),
   updateSubject: vi.fn(),
 }))
 
 vi.mock('@/pages/subjects/api', () => ({
   getSubjects,
   getCourses,
-  createSubject: vi.fn(),
+  createSubject,
   updateSubject,
   deleteSubject: vi.fn(),
   SubjectApiError: class SubjectApiError extends Error {},
@@ -96,5 +97,54 @@ describe('SubjectsPage', () => {
     await waitFor(() => {
       expect(updateSubject).toHaveBeenCalledWith(1, { status: 'disabled' })
     })
+  })
+
+  it('sends a status-only request when re-enabling a subject', async () => {
+    getSubjects.mockResolvedValue(subjects)
+    getCourses.mockResolvedValue(courses)
+    updateSubject.mockResolvedValue({
+      ...subjects[1],
+      status: 'active',
+    })
+
+    renderSubjectsPage()
+    fireEvent.click(await screen.findByRole('button', {
+      name: 'Enable Algorithms',
+    }))
+
+    await waitFor(() => {
+      expect(updateSubject).toHaveBeenCalledWith(2, { status: 'active' })
+    })
+  })
+
+  it('shows API errors when subjects cannot be loaded', async () => {
+    getSubjects.mockRejectedValue(new Error('Unable to load subjects.'))
+    getCourses.mockResolvedValue(courses)
+
+    renderSubjectsPage()
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Unable to load subjects.',
+    )
+  })
+
+  it('shows duplicate errors when creating a subject', async () => {
+    getSubjects.mockResolvedValue([])
+    getCourses.mockResolvedValue(courses)
+    createSubject.mockRejectedValue(new Error('Subject already exists for this course.'))
+
+    renderSubjectsPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'Add subject' }))
+    fireEvent.change(screen.getByLabelText('Subject name'), {
+      target: { value: 'Software Testing' },
+    })
+    fireEvent.change(screen.getByLabelText('Course'), {
+      target: { value: '1' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create subject' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Subject already exists for this course.',
+    )
   })
 })
