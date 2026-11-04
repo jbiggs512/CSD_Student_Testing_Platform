@@ -23,6 +23,9 @@ const AdminDashboardPage = lazy(() =>
 const SubjectsPage = lazy(() =>
   import('./pages/subjects').then((m) => ({ default: m.SubjectsPage })),
 )
+const TestPage = lazy(() =>
+  import('./pages/test').then((m) => ({ default: m.TestPage })),
+)
 
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
@@ -49,6 +52,9 @@ createRoot(document.getElementById('root')!).render(
                   element={<SubjectsPage />}
                 />
               </Route>
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+              <Route path="/test/:id" element={<TestPage />} />
             </Route>
             <Route path="*" element={<ProtectedRoute allowedRoles={[]} />} />
           </Route>
