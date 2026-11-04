@@ -3,9 +3,11 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SubjectsPage } from '@/pages/subjects'
 
-const getSubjects = vi.fn()
-const getCourses = vi.fn()
-const updateSubject = vi.fn()
+const { getSubjects, getCourses, updateSubject } = vi.hoisted(() => ({
+  getSubjects: vi.fn(),
+  getCourses: vi.fn(),
+  updateSubject: vi.fn(),
+}))
 
 vi.mock('@/pages/subjects/api', () => ({
   getSubjects,
