@@ -2,11 +2,6 @@ import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { App } from './App'
-import { DashboardPage } from './pages/dashboard'
-import { LandingPage } from './pages/landing'
-import { LoginPage } from './pages/login'
-import { RegisterPage } from './pages/register'
-import { TestPage } from './pages/test'
 import { NavBar, ProtectedRoute } from './shared/components'
 import './index.css'
 
@@ -21,6 +16,9 @@ const RegisterPage = lazy(() =>
 )
 const DashboardPage = lazy(() =>
   import('./pages/dashboard').then((m) => ({ default: m.DashboardPage })),
+)
+const TestPage = lazy(() =>
+  import('./pages/test').then((m) => ({ default: m.TestPage })),
 )
 
 createRoot(document.getElementById('root')!).render(
