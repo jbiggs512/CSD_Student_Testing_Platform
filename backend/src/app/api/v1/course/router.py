@@ -13,7 +13,6 @@ router = APIRouter()
 
 @router.post(
     "",
-    response_model=schemas.CourseResponse,
     status_code=201,
     responses={400: {"description": "A course with this title already exists."}},
 )
@@ -27,7 +26,6 @@ def create_course(
 
 @router.patch(
     "/{course_id}",
-    response_model=schemas.CourseResponse,
     responses={
         400: {"description": "A course with this title already exists."},
         404: {"description": "Course not found."},
@@ -42,7 +40,7 @@ def update_course(
     return service.update_course(db, course_id, request.course_title.strip())
 
 
-@router.get("", response_model=list[schemas.CourseResponse])
+@router.get("")
 def get_courses(
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(get_current_user)],

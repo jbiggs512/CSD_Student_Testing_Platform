@@ -45,7 +45,7 @@ def test_get_courses_returns_titles_in_alphabetical_order(
     titles = [course["course_title"] for course in data]
 
     assert titles == sorted(titles)
-    assert {"course_id", "course_title"} == set(data[0])
+    assert set(data[0]) == {"course_id", "course_title"}
 
 
 def test_get_courses_requires_authentication(client):

@@ -12,7 +12,7 @@ from app.enums import UserRole
 
 router = APIRouter()
 
-@router.post("", response_model=schemas.SubjectResponse, status_code=201)
+@router.post("", status_code=201)
 def create_subject(
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
@@ -20,7 +20,7 @@ def create_subject(
 ) -> schemas.SubjectResponse:
     return service.create_subject(db, request)
 
-@router.patch("/{subject_id}", response_model=schemas.SubjectResponse)
+@router.patch("/{subject_id}")
 def update_subject(
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
@@ -29,7 +29,7 @@ def update_subject(
 ) -> schemas.SubjectResponse:
     return service.update_subject(db, request, subject_id)
 
-@router.get("/{subject_id}", response_model=schemas.SubjectResponse)
+@router.get("/{subject_id}")
 def get_subject(
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(get_current_user)],
@@ -37,7 +37,7 @@ def get_subject(
 ) -> schemas.SubjectResponse:
     return service.get_subject(db, subject_id)
 
-@router.get("", response_model=list[schemas.SubjectResponse])
+@router.get("")
 def get_subjects(
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(get_current_user)]
