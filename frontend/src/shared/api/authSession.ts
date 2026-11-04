@@ -34,6 +34,7 @@ export function getDashboardPathForRole(role: UserRole): string {
 let currentAccessToken: string | null = null
 let currentUser: AuthUser | null = null
 let pendingRestore: Promise<AuthUser | null> | null = null
+let sessionEpoch = 0
 
 export function getAccessToken(): string | null {
   return currentAccessToken
@@ -52,11 +53,33 @@ export function setCurrentUser(user: AuthUser | null): void {
 }
 
 export function clearAccessToken(): void {
+  sessionEpoch += 1
   currentAccessToken = null
   currentUser = null
+  pendingRestore = null
+}
+
+/**
+ * Completely invalidates both the client in-memory auth state and the backend's
+ * HttpOnly refresh token cookie so the user cannot be re-authenticated upon
+ * subsequent navigation or page reloads.
+ */
+export async function logoutUser(): Promise<void> {
+  clearAccessToken()
+
+  try {
+    await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+  } catch {
+    // Session is already cleared locally; ignore network error during logout.
+  }
 }
 
 async function performSessionRestore(): Promise<AuthUser | null> {
+  const currentEpoch = sessionEpoch
+
   try {
     let token = currentAccessToken
 
@@ -65,6 +88,10 @@ async function performSessionRestore(): Promise<AuthUser | null> {
         method: 'POST',
         credentials: 'include',
       })
+
+      if (sessionEpoch !== currentEpoch) {
+        return null
+      }
 
       if (!refreshResponse.ok) {
         clearAccessToken()
@@ -86,12 +113,20 @@ async function performSessionRestore(): Promise<AuthUser | null> {
       setAccessToken(token)
     }
 
+    if (sessionEpoch !== currentEpoch) {
+      return null
+    }
+
     const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
       },
     })
+
+    if (sessionEpoch !== currentEpoch) {
+      return null
+    }
 
     if (!meResponse.ok) {
       clearAccessToken()

@@ -4,6 +4,7 @@ export {
   getAccessToken,
   getCurrentUser,
   getDashboardPathForRole,
+  logoutUser,
   restoreAuthSession,
   setAccessToken,
   setCurrentUser,
