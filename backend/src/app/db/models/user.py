@@ -45,7 +45,7 @@ class User(Base):
     )
 
     username: Mapped[str] = mapped_column(
-        String(8),
+        String(50),
         nullable=False,
         unique=True,
     )

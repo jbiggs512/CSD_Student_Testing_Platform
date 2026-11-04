@@ -33,33 +33,50 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
+    name: Build & Test
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    # PostgreSQL service for backend testing
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: altius
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # Environment variables available to all steps in this job
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/altius
+
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v7
 
       # Install uv to manage Python dependencies
       - name: Install uv
-        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf # v3
+        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf
 
-      # Runs a set of commands using the runners shell
+      # Install backend dependencies
       - name: Install backend dependencies
         working-directory: ./backend
         run: uv sync --locked # NOSONAR
         # Sonar does not recongise that uv locks files. This is a safe bypass.
 
-      # Runs a set of commands using the runners shell
+      # Run backend tests
       - name: Run Pytest & Generate Coverage
         working-directory: ./backend
         run: uv run pytest # NOSONAR
         # Sonar does not recongise that uv locks files. This is a safe bypass.
 
-      # Upload the coverage XML so the SonarQube job can read it
+      # Upload backend coverage XML so the SonarQube job can read it
       - name: Upload Backend Coverage Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -75,22 +92,27 @@ jobs:
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
+      # Install frontend dependencies
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: npm ci --ignore-scripts
 
+      # Lint frontend
       - name: Lint frontend
         working-directory: ./frontend
         run: npm run lint
 
+      # Build frontend
       - name: Build frontend
         working-directory: ./frontend
         run: npm run build
 
+      # Test frontend
       - name: Test frontend & Generate Coverage
         working-directory: ./frontend
         run: npm run test:coverage
 
+      # Upload frontend coverage
       - name: Upload Frontend Coverage Artifact
         uses: actions/upload-artifact@v4
         with:
