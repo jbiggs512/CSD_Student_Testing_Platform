@@ -29,10 +29,10 @@ import {
   SheetTitle,
 } from '@shared/components/ui/sheet'
 import type {
-  CreateSubjectRequest,
+  SubjectCreateRequest,
   Subject,
   SubjectStatus,
-  UpdateSubjectRequest,
+  SubjectUpdateRequest,
   Course,
 } from '../model/types'
 import {
@@ -230,14 +230,14 @@ export function SubjectsPage() {
 
     try {
       if (editingSubject) {
-        const changes: UpdateSubjectRequest = {
+        const changes: SubjectUpdateRequest = {
           subject_name: subjectName,
           course_id: courseId,
         }
         await updateSubject(editingSubject.subject_id, changes)
         setSuccessMessage('Subject updated successfully.')
       } else {
-        const payload: CreateSubjectRequest = {
+        const payload: SubjectCreateRequest = {
           subject_name: subjectName,
           course_id: courseId,
         }
@@ -265,7 +265,7 @@ export function SubjectsPage() {
     const action = nextStatus === 'active' ? 'enabled' : 'disabled'
 
     try {
-      const changes: UpdateSubjectRequest = { status: nextStatus }
+      const changes: SubjectUpdateRequest = { status: nextStatus }
       await updateSubject(subject.subject_id, changes)
       setSuccessMessage(`Subject ${action} successfully.`)
       await loadSubjects()
