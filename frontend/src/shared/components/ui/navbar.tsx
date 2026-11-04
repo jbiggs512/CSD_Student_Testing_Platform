@@ -82,7 +82,11 @@ export function NavBar() {
                   <NavigationMenuItem key={item.to + item.label}>
                     <NavigationMenuLink
                       active={location.pathname === item.to}
-                      className={navigationMenuTriggerStyle()}
+                      className={`${navigationMenuTriggerStyle()} ${
+                        location.pathname === item.to
+                          ? "bg-muted font-semibold text-plum hover:bg-muted"
+                          : ""
+                      }`}
                       render={
                         <Link
                           to={item.to}
