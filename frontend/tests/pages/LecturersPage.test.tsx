@@ -100,6 +100,20 @@ describe('LecturersPage', () => {
     expect(updateLecturerPassword).not.toHaveBeenCalled()
   })
 
+  it('disables and re-enables a lecturer account', async () => {
+    getLecturers.mockResolvedValue([lecturer])
+    updateLecturer.mockResolvedValue({ ...lecturer, account_status: 'disabled' })
+
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'Disable jane.lecturer' }))
+
+    await waitFor(() => {
+      expect(updateLecturer).toHaveBeenCalledWith('jane.lecturer', {
+        account_status: 'disabled',
+      })
+    })
+  })
+
   it('confirms lecturer deletion before calling the API', async () => {
     getLecturers.mockResolvedValue([lecturer])
     deleteLecturer.mockResolvedValue(undefined)

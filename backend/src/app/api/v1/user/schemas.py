@@ -39,6 +39,7 @@ class LecturerUpdateRequest(BaseModel):
     last_name: str | None = None
     email: EmailStr | None = None
     password: str | None = None
+    account_status: AccountStatus | None = None
 
 class StudentCreateRequest(BaseUserCreateRequest):
     @property

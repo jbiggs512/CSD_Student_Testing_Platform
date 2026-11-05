@@ -5,6 +5,7 @@ import {
   Edit2Icon,
   KeyRoundIcon,
   LoaderCircleIcon,
+  PowerIcon,
   SearchIcon,
   Trash2Icon,
   UsersIcon,
@@ -92,6 +93,7 @@ export function LecturersPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled'>('all')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isPasswordOpen, setIsPasswordOpen] = useState(false)
   const [editingLecturer, setEditingLecturer] = useState<Lecturer | null>(null)
@@ -118,15 +120,18 @@ export function LecturersPage() {
 
   const filteredLecturers = useMemo(() => {
     const search = searchTerm.trim().toLocaleLowerCase()
-    if (!search) return lecturers
-
-    return lecturers.filter((lecturer) =>
-      [lecturer.username, lecturer.first_name, lecturer.last_name, lecturer.email]
-        .join(' ')
-        .toLocaleLowerCase()
-        .includes(search),
-    )
-  }, [lecturers, searchTerm])
+    return lecturers.filter((lecturer) => {
+      const matchesStatus =
+        statusFilter === 'all' || lecturer.account_status === statusFilter
+      const matchesSearch =
+        !search ||
+        [lecturer.username, lecturer.first_name, lecturer.last_name, lecturer.email]
+          .join(' ')
+          .toLocaleLowerCase()
+          .includes(search)
+      return matchesStatus && matchesSearch
+    })
+  }, [lecturers, searchTerm, statusFilter])
 
   function openCreateForm() {
     setEditingLecturer(null)
@@ -257,6 +262,21 @@ export function LecturersPage() {
     }
   }
 
+  async function toggleStatus(lecturer: Lecturer) {
+    setPageError(null)
+    setSuccessMessage(null)
+    try {
+      const nextStatus = lecturer.account_status === 'active' ? 'disabled' : 'active'
+      await updateLecturer(lecturer.username, { account_status: nextStatus })
+      setSuccessMessage(
+        `Lecturer ${nextStatus === 'active' ? 'enabled' : 'disabled'} successfully.`,
+      )
+      await loadLecturers()
+    } catch (error) {
+      setPageError(getDisplayError(error))
+    }
+  }
+
   return (
     <main className="flex min-h-screen w-full flex-col gap-8 bg-[#f7f8fb] p-4">
       <section className="flex flex-col gap-6 rounded-2xl bg-navy p-10 text-white shadow-md sm:flex-row sm:items-end sm:justify-between sm:p-14">
@@ -288,7 +308,7 @@ export function LecturersPage() {
         </Alert>
       )}
 
-      <section aria-label="Lecturer statistics" className="grid gap-4 sm:grid-cols-3">
+      <section aria-label="Lecturer statistics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="gap-3 border-0 py-5 shadow-sm">
           <CardHeader className="gap-1 px-5">
             <CardDescription className="font-medium uppercase tracking-wide">Total lecturers</CardDescription>
@@ -296,6 +316,17 @@ export function LecturersPage() {
           </CardHeader>
           <CardContent className="px-5">
             <p className="text-xs text-muted-foreground">All lecturer accounts</p>
+          </CardContent>
+        </Card>
+        <Card className="gap-3 border-0 py-5 shadow-sm">
+          <CardHeader className="gap-1 px-5">
+            <CardDescription className="font-medium uppercase tracking-wide">Disabled lecturers</CardDescription>
+            <CardTitle className="font-heading text-4xl tabular-nums text-plum">
+              {lecturers.filter(({ account_status }) => account_status === 'disabled').length}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-5">
+            <p className="text-xs text-muted-foreground">Accounts unavailable for sign in</p>
           </CardContent>
         </Card>
         <Card className="gap-3 border-0 py-5 shadow-sm">
@@ -335,6 +366,21 @@ export function LecturersPage() {
               onChange={(event) => setSearchTerm(event.target.value)}
               className="pl-9"
             />
+          </div>
+          <div className="flex rounded-md border p-1" aria-label="Filter lecturers by status">
+            {(['all', 'active', 'disabled'] as const).map((filter) => (
+              <Button
+                key={filter}
+                type="button"
+                size="sm"
+                variant={statusFilter === filter ? 'secondary' : 'ghost'}
+                aria-pressed={statusFilter === filter}
+                onClick={() => setStatusFilter(filter)}
+                className="capitalize"
+              >
+                {filter}
+              </Button>
+            ))}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -385,6 +431,18 @@ export function LecturersPage() {
                           </Button>
                           <Button type="button" variant="ghost" size="sm" onClick={() => openPasswordForm(lecturer)} aria-label={`Reset password for ${lecturer.username}`}>
                             <KeyRoundIcon aria-hidden="true" /><span className="hidden lg:inline">Password</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void toggleStatus(lecturer)}
+                            aria-label={`${lecturer.account_status === 'active' ? 'Disable' : 'Enable'} ${lecturer.username}`}
+                          >
+                            <PowerIcon aria-hidden="true" />
+                            <span className="hidden lg:inline">
+                              {lecturer.account_status === 'active' ? 'Disable' : 'Enable'}
+                            </span>
                           </Button>
                           <Button type="button" variant="ghost" size="icon-sm" onClick={() => setLecturerPendingDelete(lecturer)} aria-label={`Delete ${lecturer.username}`} className="text-destructive hover:text-destructive">
                             <Trash2Icon aria-hidden="true" />

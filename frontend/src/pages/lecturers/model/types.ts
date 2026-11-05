@@ -24,6 +24,7 @@ export interface LecturerUpdateRequest {
   first_name?: string
   last_name?: string
   email?: string
+  account_status?: LecturerStatus
 }
 
 export interface LecturerPasswordRequest {

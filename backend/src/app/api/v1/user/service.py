@@ -145,6 +145,8 @@ def update_lecturer(
         lecturer.last_name = changes.last_name
     if changes.password is not None:
         lecturer.password_hash = hash_password(changes.password)
+    if changes.account_status is not None:
+        lecturer.account_status = changes.account_status
 
     db.commit()
     db.refresh(lecturer)
