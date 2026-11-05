@@ -87,7 +87,18 @@ def test_created_lecturer_hashes_password_and_can_login(client, db_session):
         "password": "LecturerPassword123!",
     }
 
-    create_resp = client.post("/api/v1/user/lecturer", json=lecturer_payload)
+    admin = _seed_user(
+        db_session,
+        username="AD100002",
+        role_name=UserRole.ADMIN,
+        email="admin100002@weston.ac.uk",
+    )
+    admin_token = create_access_token(subject=admin.username)
+    create_resp = client.post(
+        "/api/v1/user/lecturer",
+        json=lecturer_payload,
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
     assert create_resp.status_code == 201
 
     stored_user = db_session.scalar(
