@@ -293,7 +293,7 @@ export function SubjectsPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 bg-[#f7f8fb] px-4 py-8 sm:px-6 lg:px-8">
+    <main className="flex min-h-screen w-full flex-col gap-8 bg-[#f7f8fb] p-4">
       <SubjectsHeroPanel onAddSubject={openCreateSheet} />
 
       {pageError && (
