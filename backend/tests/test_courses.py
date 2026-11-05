@@ -1,27 +1,10 @@
-import pytest
-
-from sqlalchemy import select
+import uuid
 
 from app.db.models import Course
 from app.enums import UserRole
 
 
 COURSES_URL = "/api/v1/course"
-
-
-@pytest.fixture
-def test_course(db_session):
-    course = db_session.scalar(
-        select(Course).where(
-            Course.course_title == "BSc Software Engineering"
-        )
-    )
-    if course is None:
-        course = Course(course_title="BSc Software Engineering")
-        db_session.add(course)
-        db_session.commit()
-        db_session.refresh(course)
-    return course
 
 
 def test_get_courses_returns_titles_in_alphabetical_order(
@@ -54,10 +37,16 @@ def test_get_courses_requires_authentication(client):
     assert response.status_code == 401
 
 
-def test_admin_cannot_create_duplicate_course(client, test_course, auth_headers):
+def test_admin_cannot_create_duplicate_course(client, db_session, auth_headers):
+    existing_course = Course(
+        course_title=f"Existing Course {uuid.uuid4().hex[:8]}"
+    )
+    db_session.add(existing_course)
+    db_session.commit()
+
     response = client.post(
         COURSES_URL,
-        json={"course_title": test_course.course_title},
+        json={"course_title": existing_course.course_title},
         headers=auth_headers(UserRole.ADMIN),
     )
 
@@ -68,15 +57,19 @@ def test_admin_cannot_create_duplicate_course(client, test_course, auth_headers)
 
 
 def test_admin_cannot_edit_course_to_duplicate_title(
-    client, db_session, test_course, auth_headers
+    client, db_session, auth_headers
 ):
-    other_course = Course(course_title="Other Course")
+    existing_course = Course(
+        course_title=f"Existing Course {uuid.uuid4().hex[:8]}"
+    )
+    other_course = Course(course_title=f"Other Course {uuid.uuid4().hex[:8]}")
     db_session.add(other_course)
+    db_session.add(existing_course)
     db_session.commit()
 
     response = client.patch(
         f"{COURSES_URL}/{other_course.course_id}",
-        json={"course_title": test_course.course_title},
+        json={"course_title": existing_course.course_title},
         headers=auth_headers(UserRole.ADMIN),
     )
 
