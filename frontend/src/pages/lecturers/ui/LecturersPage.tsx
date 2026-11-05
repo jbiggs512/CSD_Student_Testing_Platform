@@ -5,6 +5,7 @@ import {
   Edit2Icon,
   KeyRoundIcon,
   LoaderCircleIcon,
+  PlusIcon,
   PowerIcon,
   SearchIcon,
   Trash2Icon,
@@ -288,10 +289,12 @@ export function LecturersPage() {
             Lecturer management
           </h1>
           <p className="text-sm leading-6 text-white/80 sm:text-base">
-            Create and maintain the lecturer accounts that manage learning and assessment.
+            Create and maintain lecturer accounts, reset passwords, and disable
+            accounts without deleting their records.
           </p>
         </div>
         <Button onClick={openCreateForm} className="w-full bg-white text-navy hover:bg-white/90 sm:w-auto">
+          <PlusIcon aria-hidden="true" />
           Add lecturer
         </Button>
       </section>
