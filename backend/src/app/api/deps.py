@@ -13,7 +13,7 @@ from app.core.config import settings
 from app.core.security import TOKEN_TYPE_ACCESS, decode_token
 from app.db.models import User
 from app.db.session import SessionLocal
-from app.enums import AccountStatus
+from app.enums import AccountStatus, UserRole
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/auth/token",
@@ -72,3 +72,16 @@ def get_current_user(
         )
 
     return user
+
+def require_roles(*roles: UserRole):
+    def role_checker(
+        current_user: User = Depends(get_current_user)
+    ):
+        if current_user.role.role_name not in [role.value for role in roles]:
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have permission to perform this action."
+            )
+        return current_user
+
+    return role_checker

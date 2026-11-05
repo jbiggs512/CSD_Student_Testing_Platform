@@ -59,6 +59,10 @@ class Subject(Base):
         back_populates="subjects",
     )
 
+    @property
+    def course_title(self) -> str:
+        return self.course.course_title
+
     tests: Mapped[list["Test"]] = relationship(
         back_populates="subject",
         passive_deletes="all",
