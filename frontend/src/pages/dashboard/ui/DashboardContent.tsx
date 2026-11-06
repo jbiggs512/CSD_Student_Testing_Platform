@@ -12,6 +12,7 @@ import {
   SelectValue,
   Progress,
 } from "@/shared/components";
+import { Link } from 'react-router'
 import { SORT_OPTIONS, FILTER_OPTIONS, COURSE_TITLE, type DashboardContentProps } from "../model";
 
 export function DashboardContent({ completedTests = [], outstandingTests = [], cohortRank = { rank: 0, size: 0 } }: DashboardContentProps) {
@@ -120,7 +121,9 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
                     <p className="mt-2 text-sm font-semibold text-navy">{questionsPerAttempt} Questions</p>
                   </CardContent>
                   <CardFooter>
-                    <Button>Start Test</Button>
+                    <Button>
+                      <Link to={`/test/${id}`}>Start Test</Link>
+                    </Button>
                   </CardFooter>
                 </Card>
               ))}

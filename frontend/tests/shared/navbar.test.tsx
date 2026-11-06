@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearAccessToken,
   getAccessToken,
@@ -37,6 +37,7 @@ function renderNavBar() {
 describe('NavBar', () => {
   beforeEach(() => {
     clearAccessToken()
+    vi.restoreAllMocks()
   })
 
   afterEach(() => {
@@ -74,5 +75,21 @@ describe('NavBar', () => {
     fireEvent.click(screen.getByText('Logout'))
     expect(getAccessToken()).toBeNull()
     expect(getCurrentUser()).toBeNull()
+  })
+
+  it('calls /auth/logout endpoint with credentials when Logout is clicked', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }))
+    seedRole('student')
+
+    renderNavBar()
+
+    fireEvent.click(screen.getByText('Logout'))
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/logout'),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      }),
+    )
   })
 })

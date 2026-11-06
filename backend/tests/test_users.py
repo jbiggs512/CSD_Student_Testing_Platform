@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password
 from app.db.models import Role, User
+from app.db.scripts.seed_users import DEFAULT_USERS, seed_users
 from app.enums import UserRole, AccountStatus
 
 
@@ -379,3 +380,100 @@ def test_delete_user_permissions(client, db_session):
         headers=admin1_headers,
     )
     assert admin_delete_admin_resp.status_code == 204
+
+def test_create_lecturer_duplicate_email_returns_409(client):
+    """
+    Test that creating a lecturer with an existing email returns 409.
+    """
+
+    lecturer_data = {
+        "username": "first.lecturer",
+        "first_name": "First",
+        "last_name": "Lecturer",
+        "email": "duplicate.email@example.com",
+        "password": "SecurePassword123!",
+    }
+
+    # Create the first lecturer.
+    response = client.post(
+        "/api/v1/user/lecturer",
+        json=lecturer_data,
+    )
+
+    assert response.status_code == 201
+
+    # Attempt to create another lecturer with the same email.
+    duplicate_data = {
+        "username": "second.lecturer",
+        "first_name": "Second",
+        "last_name": "Lecturer",
+        "email": "duplicate.email@example.com",
+        "password": "SecurePassword123!",
+    }
+
+    response = client.post(
+        "/api/v1/user/lecturer",
+        json=duplicate_data,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Email is already registered."
+
+
+def test_create_lecturer_duplicate_username_returns_409(client):
+    """
+    Test that creating a lecturer with an existing username returns 409.
+    """
+
+    lecturer_data = {
+        "username": "duplicate.lecturer",
+        "first_name": "First",
+        "last_name": "Lecturer",
+        "email": "first.lecturer@example.com",
+        "password": "SecurePassword123!",
+    }
+
+    # Create the first lecturer.
+    response = client.post(
+        "/api/v1/user/lecturer",
+        json=lecturer_data,
+    )
+
+    assert response.status_code == 201
+
+    # Attempt to create another lecturer with the same username.
+    duplicate_data = {
+        "username": "duplicate.lecturer",
+        "first_name": "Second",
+        "last_name": "Lecturer",
+        "email": "second.lecturer@example.com",
+        "password": "SecurePassword123!",
+    }
+
+    response = client.post(
+        "/api/v1/user/lecturer",
+        json=duplicate_data,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Username is already in use."
+
+def test_seed_users_is_idempotent(db_session):
+    """
+    Test that seed_users creates the default admin, lecturer, approved student,
+    and pending student accounts, and is idempotent on subsequent runs.
+    """
+    seed_users(db_session)
+    db_session.commit()
+
+    # Running a second time should skip existing users without error.
+    seed_users(db_session)
+    db_session.commit()
+
+    for spec in DEFAULT_USERS:
+        user = db_session.scalar(select(User).where(User.username == spec.username))
+        assert user is not None
+        assert user.email == spec.email
+        assert user.role.role_name == spec.role.value
+        assert user.account_status == spec.account_status
+

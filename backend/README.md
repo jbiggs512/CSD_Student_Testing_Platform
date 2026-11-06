@@ -260,7 +260,15 @@ backend/
 │           ├── deps.py    # Shared route dependencies
 │           └── v1/
 │               ├── router.py
-│               └── auth/
+│               ├── auth/
+│               │   ├── router.py
+│               │   ├── schemas.py
+│               │   └── service.py
+│               ├── test/
+│               │   ├── router.py
+│               │   ├── schemas.py
+│               │   └── service.py
+│               └── user/
 │                   ├── router.py
 │                   ├── schemas.py
 │                   └── service.py
