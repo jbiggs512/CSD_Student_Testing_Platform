@@ -74,7 +74,7 @@ jobs:
       id-token: write # OIDC login to Azure
       contents: read
     env:
-      WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+      WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME || (github.ref == 'refs/heads/master' && 'altius-prod-app-yrlaqlt6b6bmc' || 'altius-dev-app-eilj5iusmg46y') }}
       RESOURCE_GROUP: ${{ github.ref == 'refs/heads/master' && 'rg-altius-prod' || 'rg-altius-dev' }}
     steps:
       - name: Azure login
