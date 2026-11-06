@@ -1,0 +1,141 @@
+name: Deploy
+
+# Continuous Deployment pipeline:
+#   - Push to `development` -> builds & pushes images to GHCR -> deploys to Azure Dev Web App
+#   - Push to `master`      -> builds & pushes images to GHCR -> deploys to Azure Prod Web App
+on:
+  push:
+    branches: ["master", "development"]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.service }} image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service: [backend, frontend]
+    outputs:
+      image_base: ${{ steps.base.outputs.name }}
+      image_tag: ${{ steps.base.outputs.tag }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Compute lowercase image base and tag
+        id: base
+        run: |
+          echo "name=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@f7ce87c1d6bead3e36075b2ce75da1f6cc28aaca # v3.9.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@318604b99e75e41977312d83839a89be02ca4893 # v5.9.0
+        with:
+          images: ${{ steps.base.outputs.name }}-${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
+        with:
+          context: ./${{ matrix.service }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  deploy:
+    name: Deploy to ${{ github.ref == 'refs/heads/master' && 'production' || 'development' }}
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/master' && 'production' || 'development' }}
+    permissions:
+      id-token: write # OIDC login to Azure
+      contents: read
+    env:
+      WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME || (github.ref == 'refs/heads/master' && 'altius-prod-app-yrlaqlt6b6bmc' || 'altius-dev-app-eilj5iusmg46y') }}
+      RESOURCE_GROUP: ${{ github.ref == 'refs/heads/master' && 'rg-altius-prod' || 'rg-altius-dev' }}
+    steps:
+      - name: Azure login
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Generate multi-container compose config
+        run: |
+          cat << 'EOF' > docker-compose.azure.yml
+          version: "3.8"
+          services:
+            web:
+              image: ${{ needs.publish.outputs.image_base }}-frontend:${{ needs.publish.outputs.image_tag }}
+              ports:
+                - "80:5173"
+              environment:
+                - VITE_API_URL=/api/v1
+                - BACKEND_PROXY_TARGET=http://backend:8000
+              depends_on:
+                - backend
+              restart: always
+
+            backend:
+              image: ${{ needs.publish.outputs.image_base }}-backend:${{ needs.publish.outputs.image_tag }}
+              expose:
+                - "8000"
+              environment:
+                - DATABASE_URL=${DATABASE_URL}
+                - SECRET_KEY=${SECRET_KEY}
+                - COOKIE_SECURE=${COOKIE_SECURE}
+              restart: always
+          EOF
+
+      - name: Deploy multi-container Web App
+        uses: azure/webapps-deploy@02a81bead70021f5284939794bcec79c271ab383 # v3.0.8
+        with:
+          app-name: ${{ env.WEBAPP_NAME }}
+          configuration-file: docker-compose.azure.yml
+          images: |
+            ${{ needs.publish.outputs.image_base }}-frontend:${{ needs.publish.outputs.image_tag }}
+            ${{ needs.publish.outputs.image_base }}-backend:${{ needs.publish.outputs.image_tag }}
+
+      - name: Restart Web App and verify health
+        run: |
+          echo "Restarting ${WEBAPP_NAME} in ${RESOURCE_GROUP}..."
+          az webapp restart --name "${WEBAPP_NAME}" --resource-group "${RESOURCE_GROUP}"
+
+          APP_URL="https://${WEBAPP_NAME}.azurewebsites.net"
+          echo "Waiting for ${APP_URL}/health/database and ${APP_URL}/ to become healthy..."
+          for i in $(seq 1 30); do
+            DB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${APP_URL}/health/database" || true)
+            UI_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${APP_URL}/" || true)
+            echo "Attempt ${i}/30: frontend=${UI_STATUS}, db_health=${DB_STATUS}"
+            if [ "${DB_STATUS}" = "200" ] && [ "${UI_STATUS}" = "200" ]; then
+              echo "Deployment is live and healthy at ${APP_URL}"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for application health check"
+          exit 1
