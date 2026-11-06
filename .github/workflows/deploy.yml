@@ -5,7 +5,7 @@ name: Deploy
 #   - Push to `master`      -> builds & pushes images to GHCR -> deploys both containers to the Azure Prod Web App
 on:
   push:
-    branches: ["master", "development"]
+    branches: ["master", "development", "89-work-item-set-up-azure-cloud-infrastructure"]
   workflow_dispatch:
 
 env:
@@ -68,7 +68,7 @@ jobs:
   deploy-development:
     name: Deploy to development
     needs: publish
-    if: github.ref == 'refs/heads/development' || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master')
+    if: github.ref != 'refs/heads/master'
     runs-on: ubuntu-latest
     environment: development
     permissions:
