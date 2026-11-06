@@ -5,7 +5,7 @@ name: Deploy
 #   - Push to `master`      -> builds & pushes images to GHCR -> deploys to Azure Prod Web App
 on:
   push:
-    branches: ["master", "development", "89-work-item-set-up-azure-cloud-infrastructure"]
+    branches: ["master", "development"]
   workflow_dispatch:
 
 env:
