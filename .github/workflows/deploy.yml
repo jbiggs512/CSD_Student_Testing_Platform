@@ -28,7 +28,7 @@ jobs:
       image_base: ${{ steps.base.outputs.name }}
       image_tag: ${{ steps.base.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Compute lowercase image base and tag
         id: base
@@ -36,10 +36,10 @@ jobs:
           echo "name=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
           echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@f7ce87c1d6bead3e36075b2ce75da1f6cc28aaca # v3.9.0
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -47,7 +47,7 @@ jobs:
 
       - name: Image metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@318604b99e75e41977312d83839a89be02ca4893 # v5.9.0
         with:
           images: ${{ steps.base.outputs.name }}-${{ matrix.service }}
           tags: |
@@ -56,7 +56,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
         with:
           context: ./${{ matrix.service }}
           push: true
@@ -76,7 +76,7 @@ jobs:
       contents: read
     steps:
       - name: Azure login
-        uses: azure/login@v2
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -84,7 +84,7 @@ jobs:
 
       - name: Configure database connection
         if: ${{ secrets.DATABASE_URL != '' }}
-        uses: azure/appservice-settings@v1
+        uses: azure/appservice-settings@1808c4fbba4b8723107948a295d396a5c0e33dcd # v1.1.1
         with:
           app-name: ${{ vars.AZURE_WEBAPP_NAME }}
           app-settings-json: |
@@ -124,7 +124,7 @@ jobs:
           EOF
 
       - name: Deploy multi-container Web App
-        uses: azure/webapps-deploy@v3
+        uses: azure/webapps-deploy@02a81bead70021f5284939794bcec79c271ab383 # v3.0.8
         with:
           app-name: ${{ vars.AZURE_WEBAPP_NAME }}
           multi-container-config-type: compose
@@ -144,7 +144,7 @@ jobs:
       contents: read
     steps:
       - name: Azure login
-        uses: azure/login@v2
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -152,7 +152,7 @@ jobs:
 
       - name: Configure database connection
         if: ${{ secrets.DATABASE_URL != '' }}
-        uses: azure/appservice-settings@v1
+        uses: azure/appservice-settings@1808c4fbba4b8723107948a295d396a5c0e33dcd # v1.1.1
         with:
           app-name: ${{ vars.AZURE_WEBAPP_NAME }}
           app-settings-json: |
@@ -192,7 +192,7 @@ jobs:
           EOF
 
       - name: Deploy multi-container Web App
-        uses: azure/webapps-deploy@v3
+        uses: azure/webapps-deploy@02a81bead70021f5284939794bcec79c271ab383 # v3.0.8
         with:
           app-name: ${{ vars.AZURE_WEBAPP_NAME }}
           multi-container-config-type: compose
