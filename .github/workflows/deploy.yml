@@ -112,9 +112,8 @@ jobs:
       - name: Deploy multi-container Web App
         uses: azure/webapps-deploy@02a81bead70021f5284939794bcec79c271ab383 # v3.0.8
         with:
-          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
-          multi-container-config-type: compose
-          multi-container-config-file: docker-compose.azure.yml
+          app-name: ${{ vars.AZURE_WEBAPP_NAME || 'altius-dev-app-eilj5iusmg46y' }}
+          configuration-file: docker-compose.azure.yml
           images: |
             ${{ needs.publish.outputs.image_base }}-backend:${{ needs.publish.outputs.image_tag }}
             ${{ needs.publish.outputs.image_base }}-frontend:${{ needs.publish.outputs.image_tag }}
@@ -166,9 +165,8 @@ jobs:
       - name: Deploy multi-container Web App
         uses: azure/webapps-deploy@02a81bead70021f5284939794bcec79c271ab383 # v3.0.8
         with:
-          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
-          multi-container-config-type: compose
-          multi-container-config-file: docker-compose.azure.yml
+          app-name: ${{ vars.AZURE_WEBAPP_NAME || 'altius-prod-app-yrlaqlt6b6bmc' }}
+          configuration-file: docker-compose.azure.yml
           images: |
             ${{ needs.publish.outputs.image_base }}-backend:${{ needs.publish.outputs.image_tag }}
             ${{ needs.publish.outputs.image_base }}-frontend:${{ needs.publish.outputs.image_tag }}
