@@ -68,7 +68,7 @@ jobs:
   deploy-development:
     name: Deploy to development
     needs: publish
-    if: github.ref == 'refs/heads/development'
+    if: github.ref == 'refs/heads/development' || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master')
     runs-on: ubuntu-latest
     environment: development
     permissions:
@@ -81,20 +81,6 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Configure database connection
-        if: ${{ secrets.DATABASE_URL != '' }}
-        uses: azure/appservice-settings@1808c4fbba4b8723107948a295d396a5c0e33dcd # v1.1.1
-        with:
-          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
-          app-settings-json: |
-            [
-              {
-                "name": "DATABASE_URL",
-                "value": "${{ secrets.DATABASE_URL }}",
-                "slotSetting": false
-              }
-            ]
 
       - name: Generate multi-container compose config
         run: |
@@ -149,20 +135,6 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Configure database connection
-        if: ${{ secrets.DATABASE_URL != '' }}
-        uses: azure/appservice-settings@1808c4fbba4b8723107948a295d396a5c0e33dcd # v1.1.1
-        with:
-          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
-          app-settings-json: |
-            [
-              {
-                "name": "DATABASE_URL",
-                "value": "${{ secrets.DATABASE_URL }}",
-                "slotSetting": false
-              }
-            ]
 
       - name: Generate multi-container compose config
         run: |
