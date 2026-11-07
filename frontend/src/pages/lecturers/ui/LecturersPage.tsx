@@ -134,6 +134,15 @@ export function LecturersPage() {
     })
   }, [lecturers, searchTerm, statusFilter])
 
+  const emptyStateTitle =
+    lecturers.length === 0 ? 'No lecturers yet' : 'No matching lecturers'
+  const emptyStateDescription =
+    lecturers.length === 0
+      ? 'Create the first lecturer account to get started.'
+      : 'Try changing your search term.'
+  let submitLabel = editingLecturer ? 'Save changes' : 'Create lecturer'
+  if (isSaving) submitLabel = 'Saving...'
+
   function openCreateForm() {
     setEditingLecturer(null)
     setFormValues(EMPTY_LECTURER_FORM)
@@ -397,11 +406,9 @@ export function LecturersPage() {
               <div className="rounded-full bg-muted p-3">
                 <UsersIcon className="size-6 text-muted-foreground" aria-hidden="true" />
               </div>
-              <h2 className="font-medium">{lecturers.length === 0 ? 'No lecturers yet' : 'No matching lecturers'}</h2>
+              <h2 className="font-medium">{emptyStateTitle}</h2>
               <p className="max-w-sm text-sm text-muted-foreground">
-                {lecturers.length === 0
-                  ? 'Create the first lecturer account to get started.'
-                  : 'Try changing your search term.'}
+                {emptyStateDescription}
               </p>
               {lecturers.length === 0 && <Button onClick={openCreateForm}>Add your first lecturer</Button>}
             </div>
@@ -499,7 +506,7 @@ export function LecturersPage() {
               <Button type="button" variant="outline" onClick={() => closeForm(false)} disabled={isSaving}>Cancel</Button>
               <Button type="submit" disabled={isSaving}>
                 {isSaving && <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />}
-                {isSaving ? 'Saving...' : editingLecturer ? 'Save changes' : 'Create lecturer'}
+                {submitLabel}
               </Button>
             </SheetFooter>
           </form>

@@ -87,6 +87,13 @@ export function updateLecturer(
   username: string,
   request: LecturerUpdateRequest,
 ): Promise<Lecturer> {
+  return patchLecturer(username, request)
+}
+
+function patchLecturer(
+  username: string,
+  request: LecturerUpdateRequest | LecturerPasswordRequest,
+): Promise<Lecturer> {
   return lecturerRequest<Lecturer>(`/${encodeURIComponent(username)}`, {
     method: 'PATCH',
     body: JSON.stringify(request),
@@ -97,10 +104,7 @@ export function updateLecturerPassword(
   username: string,
   request: LecturerPasswordRequest,
 ): Promise<Lecturer> {
-  return lecturerRequest<Lecturer>(`/${encodeURIComponent(username)}`, {
-    method: 'PATCH',
-    body: JSON.stringify(request),
-  })
+  return patchLecturer(username, request)
 }
 
 export function deleteLecturer(username: string): Promise<void> {
