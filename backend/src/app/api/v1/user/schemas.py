@@ -14,13 +14,13 @@ class BaseUserCreateRequest(BaseModel, ABC):
 
     @property
     @abstractmethod
-    def role(self) -> str:
+    def role(self) -> str:  # pragma: no cover
         """Implemented by subclasses to return the role of the user being created."""
         pass
 
     @property
     @abstractmethod
-    def account_status(self) -> str:
+    def account_status(self) -> str:  # pragma: no cover
         """Account status is determined by the role of the user being created."""
         pass
 
@@ -32,6 +32,14 @@ class LecturerCreateRequest(BaseUserCreateRequest):
     @property
     def account_status(self) -> str:
         return AccountStatus.ACTIVE.value
+
+
+class LecturerUpdateRequest(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    email: EmailStr | None = None
+    password: str | None = None
+    account_status: AccountStatus | None = None
 
 class StudentCreateRequest(BaseUserCreateRequest):
     @property

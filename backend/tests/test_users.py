@@ -1,7 +1,13 @@
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password
+from app.api.v1.user import schemas, service
 from app.db.models import Role, User
 from app.db.scripts.seed_users import DEFAULT_USERS, seed_users
 from app.enums import UserRole, AccountStatus
@@ -36,7 +42,7 @@ def _seed_user(
     return user
 
 
-def test_create_lecturer_account(client):
+def test_create_lecturer_account(client, db_session):
     """
     Test that a new lecturer account can be created successfully.
     """
@@ -49,9 +55,18 @@ def test_create_lecturer_account(client):
         "password": "SecurePassword123!",
     }
 
+    admin = _seed_user(
+        db_session,
+        username="AD100001",
+        role_name=UserRole.ADMIN,
+    )
+    admin_token = create_access_token(subject=admin.username)
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
     response = client.post(
         "/api/v1/user/lecturer",
         json=lecturer_data,
+        headers=admin_headers,
     )
 
     assert response.status_code == 201
@@ -97,6 +112,212 @@ def test_create_student_account(client):
     assert data["account_status"] == AccountStatus.PENDING.value
     assert "password" not in data
     assert "password_hash" not in data
+
+
+def test_admin_can_list_edit_and_delete_lecturers(client, db_session):
+    admin = _seed_user(
+        db_session,
+        username="AD100003",
+        role_name=UserRole.ADMIN,
+        email="admin100003@example.com",
+    )
+    lecturer = _seed_user(
+        db_session,
+        username="LC100003",
+        role_name=UserRole.LECTURER,
+        email="lecturer100003@example.com",
+    )
+    admin_token = create_access_token(subject=admin.username)
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+    list_response = client.get(
+        "/api/v1/user/lecturer",
+        headers=admin_headers,
+    )
+    assert list_response.status_code == 200
+    assert any(
+        user["username"] == lecturer.username
+        for user in list_response.json()
+    )
+
+    update_response = client.patch(
+        f"/api/v1/user/lecturer/{lecturer.username}",
+        json={
+            "first_name": "Updated",
+            "last_name": "Lecturer",
+            "email": "updated.lecturer100003@example.com",
+        },
+        headers=admin_headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["first_name"] == "Updated"
+    assert update_response.json()["email"] == (
+        "updated.lecturer100003@example.com"
+    )
+
+    delete_response = client.delete(
+        f"/api/v1/user/lecturer/{lecturer.username}",
+        headers=admin_headers,
+    )
+    assert delete_response.status_code == 204
+    remaining_lecturers = client.get(
+        "/api/v1/user/lecturer",
+        headers=admin_headers,
+    ).json()
+    assert all(
+        user["username"] != lecturer.username
+        for user in remaining_lecturers
+    )
+
+
+def test_lecturer_management_requires_admin(client, db_session):
+    lecturer = _seed_user(
+        db_session,
+        username="LC100004",
+        role_name=UserRole.LECTURER,
+        email="lecturer100004@example.com",
+    )
+    lecturer_token = create_access_token(subject=lecturer.username)
+    lecturer_headers = {"Authorization": f"Bearer {lecturer_token}"}
+
+    response = client.get(
+        "/api/v1/user/lecturer",
+        headers=lecturer_headers,
+    )
+
+    assert response.status_code == 403
+
+    response = client.post(
+        "/api/v1/user/lecturer",
+        json={
+            "username": "LC100005",
+            "first_name": "Not",
+            "last_name": "Allowed",
+            "email": "lecturer100005@example.com",
+            "password": "SecurePassword123!",
+        },
+        headers=lecturer_headers,
+    )
+
+    assert response.status_code == 403
+
+    response = client.patch(
+        f"/api/v1/user/lecturer/{lecturer.username}",
+        json={"first_name": "Not Allowed"},
+        headers=lecturer_headers,
+    )
+
+    assert response.status_code == 403
+
+    response = client.delete(
+        f"/api/v1/user/lecturer/{lecturer.username}",
+        headers=lecturer_headers,
+    )
+
+    assert response.status_code == 403
+
+
+def test_lecturer_update_validates_target_and_email(client, db_session):
+    admin = _seed_user(
+        db_session,
+        username="AD100005",
+        role_name=UserRole.ADMIN,
+        email="admin100005@example.com",
+    )
+    lecturer = _seed_user(
+        db_session,
+        username="LC100006",
+        role_name=UserRole.LECTURER,
+        email="lecturer100006@example.com",
+    )
+    other_lecturer = _seed_user(
+        db_session,
+        username="LC100007",
+        role_name=UserRole.LECTURER,
+        email="lecturer100007@example.com",
+    )
+    admin_token = create_access_token(subject=admin.username)
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    response = client.patch(
+        "/api/v1/user/lecturer/unknown-lecturer",
+        json={"first_name": "Missing"},
+        headers=headers,
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Lecturer not found."
+
+    response = client.patch(
+        f"/api/v1/user/lecturer/{lecturer.username}",
+        json={"email": other_lecturer.email},
+        headers=headers,
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Email is already registered."
+
+    response = client.patch(
+        f"/api/v1/user/lecturer/{lecturer.username}",
+        json={"password": "UpdatedPassword123!"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    db_session.refresh(lecturer)
+    assert lecturer.password_hash != "UpdatedPassword123!"
+
+
+def test_lecturer_delete_returns_404_for_unknown_lecturer(client, db_session):
+    admin = _seed_user(
+        db_session,
+        username="AD100006",
+        role_name=UserRole.ADMIN,
+        email="admin100006@example.com",
+    )
+    admin_token = create_access_token(subject=admin.username)
+
+    response = client.delete(
+        "/api/v1/user/lecturer/unknown-lecturer",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Lecturer not found."
+
+
+def test_create_user_rejects_missing_role():
+    db = Mock()
+    db.scalar.return_value = None
+    request = schemas.LecturerCreateRequest(
+        username="missing.role",
+        first_name="Missing",
+        last_name="Role",
+        email="missing.role@example.com",
+        password="SecurePassword123!",
+    )
+
+    with pytest.raises(HTTPException) as error:
+        service.create_user(db, request)
+
+    assert error.value.status_code == 422
+    assert error.value.detail == "Role does not exist."
+
+
+def test_delete_user_rejects_unknown_role():
+    db = Mock()
+    target_user = SimpleNamespace(
+        username="unknown.role",
+        role=SimpleNamespace(role_name="unknown"),
+    )
+    current_user = SimpleNamespace(
+        username="admin",
+        role=SimpleNamespace(role_name=UserRole.ADMIN.value),
+    )
+    db.scalar.return_value = target_user
+
+    with pytest.raises(HTTPException) as error:
+        service.delete_user(db, target_user.username, current_user)
+
+    assert error.value.status_code == 403
+    assert error.value.detail == "Insufficient permissions to delete this user."
 
 
 def test_approve_student_account_by_lecturer(client, db_session):
@@ -267,6 +488,7 @@ def test_delete_lecturer_account(client, db_session):
     response = client.post(
         "/api/v1/user/lecturer",
         json=lecturer_data,
+        headers=admin_headers,
     )
     assert response.status_code == 201
 
@@ -381,7 +603,7 @@ def test_delete_user_permissions(client, db_session):
     )
     assert admin_delete_admin_resp.status_code == 204
 
-def test_create_lecturer_duplicate_email_returns_409(client):
+def test_create_lecturer_duplicate_email_returns_409(client, db_session):
     """
     Test that creating a lecturer with an existing email returns 409.
     """
@@ -394,10 +616,18 @@ def test_create_lecturer_duplicate_email_returns_409(client):
         "password": "SecurePassword123!",
     }
 
-    # Create the first lecturer.
+    admin = _seed_user(
+        db_session,
+        username="AD400001",
+        role_name=UserRole.ADMIN,
+    )
+    admin_token = create_access_token(subject=admin.username)
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
     response = client.post(
         "/api/v1/user/lecturer",
         json=lecturer_data,
+        headers=admin_headers,
     )
 
     assert response.status_code == 201
@@ -414,13 +644,14 @@ def test_create_lecturer_duplicate_email_returns_409(client):
     response = client.post(
         "/api/v1/user/lecturer",
         json=duplicate_data,
+        headers=admin_headers,
     )
 
     assert response.status_code == 409
     assert response.json()["detail"] == "Email is already registered."
 
 
-def test_create_lecturer_duplicate_username_returns_409(client):
+def test_create_lecturer_duplicate_username_returns_409(client, db_session):
     """
     Test that creating a lecturer with an existing username returns 409.
     """
@@ -433,10 +664,18 @@ def test_create_lecturer_duplicate_username_returns_409(client):
         "password": "SecurePassword123!",
     }
 
-    # Create the first lecturer.
+    admin = _seed_user(
+        db_session,
+        username="AD400002",
+        role_name=UserRole.ADMIN,
+    )
+    admin_token = create_access_token(subject=admin.username)
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
     response = client.post(
         "/api/v1/user/lecturer",
         json=lecturer_data,
+        headers=admin_headers,
     )
 
     assert response.status_code == 201
@@ -453,6 +692,7 @@ def test_create_lecturer_duplicate_username_returns_409(client):
     response = client.post(
         "/api/v1/user/lecturer",
         json=duplicate_data,
+        headers=admin_headers,
     )
 
     assert response.status_code == 409
@@ -476,4 +716,3 @@ def test_seed_users_is_idempotent(db_session):
         assert user.email == spec.email
         assert user.role.role_name == spec.role.value
         assert user.account_status == spec.account_status
-

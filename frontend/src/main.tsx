@@ -23,6 +23,9 @@ const AdminDashboardPage = lazy(() =>
 const SubjectsPage = lazy(() =>
   import('./pages/subjects').then((m) => ({ default: m.SubjectsPage })),
 )
+const LecturersPage = lazy(() =>
+  import('./pages/lecturers').then((m) => ({ default: m.LecturersPage })),
+)
 const TestPage = lazy(() =>
   import('./pages/test').then((m) => ({ default: m.TestPage })),
 )
@@ -50,6 +53,10 @@ createRoot(document.getElementById('root')!).render(
                 <Route
                   path="/subjects"
                   element={<SubjectsPage />}
+                />
+                <Route
+                  path="/lecturers"
+                  element={<LecturersPage />}
                 />
               </Route>
             </Route>
