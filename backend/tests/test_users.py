@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password
 from app.api.v1.user import schemas, service
-from app.db.models import Role, User
+from app.db.models import Course, Role, User
 from app.db.scripts.seed_users import DEFAULT_USERS, seed_users
 from app.enums import UserRole, AccountStatus
 
@@ -84,16 +84,21 @@ def test_create_lecturer_account(client, db_session):
     assert "password_hash" not in data
 
 
-def test_create_student_account(client):
+def test_create_student_account(client, db_session):
     """
-    Test that a new student account is created with pending status.
+    Test that a new student account is created with pending status and associated course.
     """
+    course = Course(course_title="BSc Software Engineering")
+    db_session.add(course)
+    db_session.commit()
+
     student_data = {
         "username": "WS100001",
         "first_name": "Pending",
         "last_name": "Student",
         "email": "ws100001@example.com",
         "password": "SecurePassword123!",
+        "courses": [course.course_id],
     }
 
     response = client.post(
@@ -112,6 +117,12 @@ def test_create_student_account(client):
     assert data["account_status"] == AccountStatus.PENDING.value
     assert "password" not in data
     assert "password_hash" not in data
+
+    created_user = db_session.scalar(
+        select(User).where(User.username == student_data["username"])
+    )
+    assert created_user is not None
+    assert [c.course_id for c in created_user.courses] == [course.course_id]
 
 
 def test_admin_can_list_edit_and_delete_lecturers(client, db_session):

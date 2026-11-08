@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 
 from typing import TypeAlias
 
-from app.db.models import User, Role
+from app.db.models import Course, User, Role
 from app.enums import AccountStatus, UserRole
 from app.api.v1.user.schemas import (
     LecturerCreateRequest,
@@ -97,6 +97,14 @@ def create_user(
         role_id=role.role_id,
         account_status=user_data.account_status,
     )
+
+    if user_data.courses:
+        selected_courses = list(
+            db.scalars(
+                select(Course).where(Course.course_id.in_(user_data.courses))
+            ).all()
+        )
+        user.courses = selected_courses
 
     # Save the user to the database.
     db.add(user)
