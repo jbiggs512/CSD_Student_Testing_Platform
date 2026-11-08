@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import {
   AlertCircleIcon,
   Edit2Icon,
@@ -133,6 +133,92 @@ export function LecturersPage() {
       return matchesStatus && matchesSearch
     })
   }, [lecturers, searchTerm, statusFilter])
+
+  const emptyStateTitle =
+    lecturers.length === 0 ? 'No lecturers yet' : 'No matching lecturers'
+  const emptyStateDescription =
+    lecturers.length === 0
+      ? 'Create the first lecturer account to get started.'
+      : 'Try changing your search term.'
+  let submitLabel = editingLecturer ? 'Save changes' : 'Create lecturer'
+  if (isSaving) submitLabel = 'Saving...'
+
+  let lecturerContent: ReactNode
+  if (isLoading) {
+    lecturerContent = (
+      <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-muted-foreground">
+        <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
+        Loading lecturers...
+      </div>
+    )
+  } else if (filteredLecturers.length === 0) {
+    lecturerContent = (
+      <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+        <div className="rounded-full bg-muted p-3">
+          <UsersIcon className="size-6 text-muted-foreground" aria-hidden="true" />
+        </div>
+        <h2 className="font-medium">{emptyStateTitle}</h2>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          {emptyStateDescription}
+        </p>
+        {lecturers.length === 0 && <Button onClick={openCreateForm}>Add your first lecturer</Button>}
+      </div>
+    )
+  } else {
+    lecturerContent = (
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[820px] text-left text-sm">
+          <thead className="bg-navy text-xs uppercase tracking-wide text-white/80">
+            <tr>
+              <th scope="col" className="px-6 py-3 font-medium">Lecturer</th>
+              <th scope="col" className="px-6 py-3 font-medium">Email</th>
+              <th scope="col" className="px-6 py-3 font-medium">Status</th>
+              <th scope="col" className="px-6 py-3 text-right font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {filteredLecturers.map((lecturer) => (
+              <tr key={lecturer.user_id} className="transition-colors hover:bg-pink/5">
+                <td className="px-6 py-4">
+                  <div className="font-medium text-foreground">
+                    {lecturer.first_name} {lecturer.last_name}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">{lecturer.username}</div>
+                </td>
+                <td className="px-6 py-4 text-muted-foreground">{lecturer.email}</td>
+                <td className="px-6 py-4"><StatusBadge status={lecturer.account_status} /></td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => openEditForm(lecturer)} aria-label={`Edit ${lecturer.username}`}>
+                      <Edit2Icon aria-hidden="true" /><span className="hidden lg:inline">Edit</span>
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => openPasswordForm(lecturer)} aria-label={`Reset password for ${lecturer.username}`}>
+                      <KeyRoundIcon aria-hidden="true" /><span className="hidden lg:inline">Password</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void toggleStatus(lecturer)}
+                      aria-label={`${lecturer.account_status === 'active' ? 'Disable' : 'Enable'} ${lecturer.username}`}
+                    >
+                      <PowerIcon aria-hidden="true" />
+                      <span className="hidden lg:inline">
+                        {lecturer.account_status === 'active' ? 'Disable' : 'Enable'}
+                      </span>
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon-sm" onClick={() => setLecturerPendingDelete(lecturer)} aria-label={`Delete ${lecturer.username}`} className="text-destructive hover:text-destructive">
+                      <Trash2Icon aria-hidden="true" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
 
   function openCreateForm() {
     setEditingLecturer(null)
@@ -387,77 +473,7 @@ export function LecturersPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-muted-foreground">
-              <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
-              Loading lecturers...
-            </div>
-          ) : filteredLecturers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-              <div className="rounded-full bg-muted p-3">
-                <UsersIcon className="size-6 text-muted-foreground" aria-hidden="true" />
-              </div>
-              <h2 className="font-medium">{lecturers.length === 0 ? 'No lecturers yet' : 'No matching lecturers'}</h2>
-              <p className="max-w-sm text-sm text-muted-foreground">
-                {lecturers.length === 0
-                  ? 'Create the first lecturer account to get started.'
-                  : 'Try changing your search term.'}
-              </p>
-              {lecturers.length === 0 && <Button onClick={openCreateForm}>Add your first lecturer</Button>}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[820px] text-left text-sm">
-                <thead className="bg-navy text-xs uppercase tracking-wide text-white/80">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 font-medium">Lecturer</th>
-                    <th scope="col" className="px-6 py-3 font-medium">Email</th>
-                    <th scope="col" className="px-6 py-3 font-medium">Status</th>
-                    <th scope="col" className="px-6 py-3 text-right font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filteredLecturers.map((lecturer) => (
-                    <tr key={lecturer.user_id} className="transition-colors hover:bg-pink/5">
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-foreground">
-                          {lecturer.first_name} {lecturer.last_name}
-                        </div>
-                        <div className="mt-1 text-xs text-muted-foreground">{lecturer.username}</div>
-                      </td>
-                      <td className="px-6 py-4 text-muted-foreground">{lecturer.email}</td>
-                      <td className="px-6 py-4"><StatusBadge status={lecturer.account_status} /></td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button type="button" variant="ghost" size="sm" onClick={() => openEditForm(lecturer)} aria-label={`Edit ${lecturer.username}`}>
-                            <Edit2Icon aria-hidden="true" /><span className="hidden lg:inline">Edit</span>
-                          </Button>
-                          <Button type="button" variant="ghost" size="sm" onClick={() => openPasswordForm(lecturer)} aria-label={`Reset password for ${lecturer.username}`}>
-                            <KeyRoundIcon aria-hidden="true" /><span className="hidden lg:inline">Password</span>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => void toggleStatus(lecturer)}
-                            aria-label={`${lecturer.account_status === 'active' ? 'Disable' : 'Enable'} ${lecturer.username}`}
-                          >
-                            <PowerIcon aria-hidden="true" />
-                            <span className="hidden lg:inline">
-                              {lecturer.account_status === 'active' ? 'Disable' : 'Enable'}
-                            </span>
-                          </Button>
-                          <Button type="button" variant="ghost" size="icon-sm" onClick={() => setLecturerPendingDelete(lecturer)} aria-label={`Delete ${lecturer.username}`} className="text-destructive hover:text-destructive">
-                            <Trash2Icon aria-hidden="true" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {lecturerContent}
         </CardContent>
       </Card>
 
@@ -499,7 +515,7 @@ export function LecturersPage() {
               <Button type="button" variant="outline" onClick={() => closeForm(false)} disabled={isSaving}>Cancel</Button>
               <Button type="submit" disabled={isSaving}>
                 {isSaving && <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />}
-                {isSaving ? 'Saving...' : editingLecturer ? 'Save changes' : 'Create lecturer'}
+                {submitLabel}
               </Button>
             </SheetFooter>
           </form>
