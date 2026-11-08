@@ -27,4 +27,5 @@ def create_test_attempt(
      current_user: Annotated[User, Depends(get_current_user)],
     _: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ) -> schemas.TestAttemptResponse:
+    """Create new test attempt record."""
     return service.save_test_attempt(db, request, current_user)

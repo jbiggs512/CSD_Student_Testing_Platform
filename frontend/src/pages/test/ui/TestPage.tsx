@@ -3,6 +3,7 @@ import { TestPageContent } from "./TestPageContent";
 import { useNavigate, useParams } from 'react-router';
 import { type TestDetails, type TestAttemptRequest } from '../model';
 import { getTestDetails, createTestAttempt } from '../api';
+import { toast } from '@/shared/components';
 
 export function TestPage() {
   const navigate = useNavigate();
@@ -70,6 +71,13 @@ export function TestPage() {
 
     try {
       await createTestAttempt(request);
+      // Add toast to page to display success to user
+      toast.add({
+        type: "success",
+        title: "Test results saved!",
+        description: `You achieved ${score} points`,
+      })
+      // Navigate student back to dashboard
       navigate('/dashboard');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to submit the test. Please try again.';

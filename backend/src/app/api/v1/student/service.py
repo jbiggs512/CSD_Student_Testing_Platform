@@ -23,7 +23,8 @@ def get_outstanding_tests(
         .join(Subject, Test.subject_id == Subject.subject_id)
         .join(Course, Subject.course_id == Course.course_id)
         .join(Course.users)
-        .where(User.user_id == student_id and not Test.test_id.in_(completed_tests_subquery)
+        .where(User.user_id == student_id,
+            ~Test.test_id.in_(completed_tests_subquery)
         )
     )
 
