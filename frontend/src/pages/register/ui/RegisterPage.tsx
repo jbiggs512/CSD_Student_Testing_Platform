@@ -20,16 +20,47 @@ import {
   RegisterApiError,
   registerStudent,
 } from '../api'
-import { validateRegistrationInput, type CourseOption } from '../model'
+import {
+  validateRegistrationInput,
+  type CourseOption,
+  type RegistrationFormInput,
+} from '../model'
+
+const INITIAL_FORM: RegistrationFormInput = {
+  studentNumber: '',
+  firstName: '',
+  lastName: '',
+  courseId: '',
+  email: '',
+  password: '',
+}
+
+const TOP_TEXT_FIELDS = [
+  {
+    key: 'studentNumber',
+    id: 'student-number',
+    label: 'Student Number',
+    autoComplete: 'username',
+    placeholder: 'Enter your student number',
+  },
+  {
+    key: 'firstName',
+    id: 'first-name',
+    label: 'First Name',
+    autoComplete: 'given-name',
+    placeholder: 'Enter your first name',
+  },
+  {
+    key: 'lastName',
+    id: 'last-name',
+    label: 'Last Name',
+    autoComplete: 'family-name',
+    placeholder: 'Enter your last name',
+  },
+] as const
 
 export function RegisterPage() {
-  const [studentNumber, setStudentNumber] = useState('')
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [courseId, setCourseId] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-
+  const [form, setForm] = useState<RegistrationFormInput>(INITIAL_FORM)
   const [courses, setCourses] = useState<CourseOption[]>([])
   const [isLoadingCourses, setIsLoadingCourses] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -37,51 +68,46 @@ export function RegisterPage() {
   const [isRegistered, setIsRegistered] = useState(false)
 
   useEffect(() => {
-    let isMounted = true
+    let active = true
 
     getAvailableCourses()
-      .then((loadedCourses) => {
-        if (isMounted) {
-          setCourses(loadedCourses)
-        }
+      .then((result) => {
+        if (active) setCourses(result)
       })
-      .catch((error: unknown) => {
-        if (isMounted) {
+      .catch((err: unknown) => {
+        if (active) {
           setErrorMessage(
-            error instanceof RegisterApiError
-              ? error.message
+            err instanceof RegisterApiError
+              ? err.message
               : 'Unable to load courses right now. Please try again.',
           )
         }
       })
       .finally(() => {
-        if (isMounted) {
-          setIsLoadingCourses(false)
-        }
+        if (active) setIsLoadingCourses(false)
       })
 
     return () => {
-      isMounted = false
+      active = false
     }
   }, [])
 
+  function updateField<K extends keyof RegistrationFormInput>(
+    field: K,
+    value: RegistrationFormInput[K],
+  ) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
   const selectedCourseTitle = courses.find(
-    (course) => String(course.course_id) === courseId,
+    (course) => String(course.course_id) === form.courseId,
   )?.course_title
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsRegistered(false)
 
-    const validationError = validateRegistrationInput({
-      studentNumber,
-      firstName,
-      lastName,
-      courseId,
-      email,
-      password,
-    })
-
+    const validationError = validateRegistrationInput(form)
     if (validationError) {
       setErrorMessage(validationError)
       return
@@ -92,26 +118,21 @@ export function RegisterPage() {
 
     try {
       await registerStudent({
-        username: studentNumber.trim(),
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        email: email.trim(),
-        password,
-        courses: [Number(courseId)],
+        username: form.studentNumber.trim(),
+        first_name: form.firstName.trim(),
+        last_name: form.lastName.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        courses: [Number(form.courseId)],
       })
       setIsRegistered(true)
-      setStudentNumber('')
-      setFirstName('')
-      setLastName('')
-      setCourseId('')
-      setEmail('')
-      setPassword('')
-    } catch (error) {
-      if (error instanceof RegisterApiError) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage('Unable to register right now. Please try again.')
-      }
+      setForm(INITIAL_FORM)
+    } catch (err) {
+      setErrorMessage(
+        err instanceof RegisterApiError
+          ? err.message
+          : 'Unable to register right now. Please try again.',
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -142,60 +163,30 @@ export function RegisterPage() {
       )}
 
       <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
-        <div className="space-y-1.5">
-          <Label htmlFor="student-number">Student Number</Label>
-          <Input
-            id="student-number"
-            name="studentNumber"
-            type="text"
-            autoComplete="username"
-            placeholder="Enter your student number"
-            value={studentNumber}
-            onChange={(event) => setStudentNumber(event.target.value)}
-            disabled={isSubmitting}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="first-name">First Name</Label>
-          <Input
-            id="first-name"
-            name="firstName"
-            type="text"
-            autoComplete="given-name"
-            placeholder="Enter your first name"
-            value={firstName}
-            onChange={(event) => setFirstName(event.target.value)}
-            disabled={isSubmitting}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="last-name">Last Name</Label>
-          <Input
-            id="last-name"
-            name="lastName"
-            type="text"
-            autoComplete="family-name"
-            placeholder="Enter your last name"
-            value={lastName}
-            onChange={(event) => setLastName(event.target.value)}
-            disabled={isSubmitting}
-          />
-        </div>
+        {TOP_TEXT_FIELDS.map((field) => (
+          <div key={field.id} className="space-y-1.5">
+            <Label htmlFor={field.id}>{field.label}</Label>
+            <Input
+              id={field.id}
+              name={field.key}
+              type="text"
+              autoComplete={field.autoComplete}
+              placeholder={field.placeholder}
+              value={form[field.key]}
+              onChange={(e) => updateField(field.key, e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+        ))}
 
         <div className="space-y-1.5">
           <Label htmlFor="course">Course</Label>
           <Select
-            value={courseId || null}
-            onValueChange={(value) => setCourseId(value ?? '')}
+            value={form.courseId || null}
+            onValueChange={(val) => updateField('courseId', val ?? '')}
             disabled={isSubmitting || isLoadingCourses}
           >
-            <SelectTrigger
-              id="course"
-              aria-label="Course"
-              className="h-9 w-full"
-            >
+            <SelectTrigger id="course" aria-label="Course" className="h-9 w-full">
               <SelectValue placeholder="Select course">
                 {selectedCourseTitle ?? 'Select course'}
               </SelectValue>
@@ -214,28 +205,28 @@ export function RegisterPage() {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="register-email">Email</Label>
           <Input
-            id="email"
+            id="register-email"
             name="email"
             type="email"
             autoComplete="email"
             placeholder="Enter your email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            value={form.email}
+            onChange={(e) => updateField('email', e.target.value)}
             disabled={isSubmitting}
           />
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="register-password">Password</Label>
           <PasswordInput
-            id="password"
+            id="register-password"
             name="password"
             autoComplete="new-password"
             placeholder="Create a password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            value={form.password}
+            onChange={(e) => updateField('password', e.target.value)}
             disabled={isSubmitting}
           />
         </div>

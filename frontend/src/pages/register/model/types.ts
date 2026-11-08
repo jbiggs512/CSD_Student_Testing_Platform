@@ -1,3 +1,5 @@
+import type { AuthenticatedUser } from '@shared/api'
+
 export interface CourseOption {
   course_id: number
   course_title: string
@@ -12,17 +14,7 @@ export interface StudentRegistrationRequest {
   courses: number[]
 }
 
-export interface RegisteredStudentResponse {
-  user_id: number
-  username: string
-  first_name: string
-  last_name: string
-  email: string
-  role: 'student' | 'lecturer' | 'admin'
-  account_status: 'active' | 'pending' | 'disabled'
-  registration_date: string
-  last_login: string | null
-}
+export type RegisteredStudentResponse = AuthenticatedUser
 
 /**
  * Matches valid student numbers / usernames (3-50 alphanumeric characters, dots, underscores, or hyphens).
@@ -51,23 +43,19 @@ export interface RegistrationFormInput {
 export function validateRegistrationInput(
   input: RegistrationFormInput,
 ): string | null {
-  const studentNumber = input.studentNumber.trim()
-  const firstName = input.firstName.trim()
-  const lastName = input.lastName.trim()
-  const courseId = input.courseId.trim()
-  const email = input.email.trim()
-  const password = input.password
+  const values = [
+    input.studentNumber,
+    input.firstName,
+    input.lastName,
+    input.courseId,
+    input.email,
+  ].map((v) => v.trim())
 
-  if (
-    !studentNumber ||
-    !firstName ||
-    !lastName ||
-    !courseId ||
-    !email ||
-    !password
-  ) {
+  if (values.some((v) => !v) || !input.password) {
     return 'Incorrect Input, Please try again. All fields are required.'
   }
+
+  const [studentNumber, , , , email] = values
 
   if (!STUDENT_NUMBER_REGEX.test(studentNumber)) {
     return 'Incorrect Input, Please try again. Student Number must be 3-50 letters or numbers with no spaces.'
@@ -77,7 +65,7 @@ export function validateRegistrationInput(
     return 'Incorrect Input, Please try again. Please enter a valid email address.'
   }
 
-  if (!PASSWORD_COMPLEXITY_REGEX.test(password)) {
+  if (!PASSWORD_COMPLEXITY_REGEX.test(input.password)) {
     return 'Incorrect Input, Please try again. Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.'
   }
 
