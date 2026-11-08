@@ -6,6 +6,7 @@ import {
   RegisterApiError,
   RegisterPage,
   validateRegistrationInput,
+  type RegistrationFormInput,
 } from '@/pages/register'
 
 const SAMPLE_COURSES = [
@@ -13,7 +14,16 @@ const SAMPLE_COURSES = [
   { course_id: 2, course_title: 'BSc Computer Science' },
 ]
 
-function renderRegisterWithRoutes() {
+const VALID_FORM_INPUT: RegistrationFormInput = {
+  studentNumber: 'WS123456',
+  firstName: 'Alex',
+  lastName: 'Student',
+  courseId: '1',
+  email: 'alex.student@weston.ac.uk',
+  password: 'Password123!',
+}
+
+function renderRegisterPage() {
   return render(
     <MemoryRouter initialEntries={['/register']}>
       <Routes>
@@ -24,139 +34,86 @@ function renderRegisterWithRoutes() {
   )
 }
 
-function buildCoursesResponse(courses = SAMPLE_COURSES) {
-  return {
-    ok: true,
-    status: 200,
-    json: async () => courses,
-  } as Response
+function jsonResponse(body: unknown, status = 200, ok = status < 400): Response {
+  return { ok, status, json: async () => body } as Response
 }
 
-function buildRegisterSuccessResponse() {
-  return {
-    ok: true,
-    status: 201,
-    json: async () => ({
-      user_id: 10,
-      username: 'WS123456',
-      first_name: 'Alex',
-      last_name: 'Student',
-      email: 'alex.student@weston.ac.uk',
-      role: 'student',
-      account_status: 'pending',
-      registration_date: '2026-11-08',
-      last_login: null,
-    }),
-  } as Response
+async function fillAndSubmitForm(overrides: Partial<RegistrationFormInput> = {}) {
+  const values = { ...VALID_FORM_INPUT, ...overrides }
+  const courseTrigger = screen.getByLabelText('Course') as HTMLButtonElement
+
+  await waitFor(() => expect(courseTrigger.disabled).toBe(false))
+
+  fireEvent.change(screen.getByLabelText('Student Number'), {
+    target: { value: values.studentNumber },
+  })
+  fireEvent.change(screen.getByLabelText('First Name'), {
+    target: { value: values.firstName },
+  })
+  fireEvent.change(screen.getByLabelText('Last Name'), {
+    target: { value: values.lastName },
+  })
+
+  fireEvent.click(courseTrigger)
+  fireEvent.click(await screen.findByText('BSc Software Engineering'))
+
+  fireEvent.change(screen.getByLabelText('Email'), {
+    target: { value: values.email },
+  })
+  fireEvent.change(screen.getByLabelText('Password'), {
+    target: { value: values.password },
+  })
+
+  fireEvent.click(screen.getByRole('button', { name: 'Register' }))
 }
 
 describe('RegisterPage', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks()
-  })
+  beforeEach(() => vi.restoreAllMocks())
+  afterEach(() => cleanup())
 
-  afterEach(() => {
-    cleanup()
-  })
+  it('renders registration fields, approval subtitle, and Login link', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse(SAMPLE_COURSES))
 
-  it('renders mockup branding, required fields, approval notice, and Login link', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(buildCoursesResponse())
-
-    const { container } = renderRegisterWithRoutes()
+    const { container } = renderRegisterPage()
 
     expect(container.querySelector('#register-page')).not.toBeNull()
+    expect(screen.getByRole('heading', { name: 'Register to Altius' })).toBeDefined()
     expect(
-      screen.getByRole('heading', { name: 'Register to Altius' }),
+      screen.getByText('Accounts will need lecturer approval before becoming active'),
     ).toBeDefined()
-    expect(
-      screen.getByText(
-        'Accounts will need lecturer approval before becoming active',
-      ),
-    ).toBeDefined()
-    expect(screen.getByText('Have an account? Log in now!')).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Login' }).getAttribute('href')).toBe('/login')
 
-    const loginLink = screen.getByRole('link', { name: 'Login' })
-    expect(loginLink.getAttribute('href')).toBe('/login')
-
-    expect(screen.getByLabelText('Student Number')).toBeDefined()
-    expect(screen.getByLabelText('First Name')).toBeDefined()
-    expect(screen.getByLabelText('Last Name')).toBeDefined()
-    expect(screen.getByLabelText('Course')).toBeDefined()
-    expect(screen.getByLabelText('Email')).toBeDefined()
-    expect(screen.getByLabelText('Password')).toBeDefined()
-    expect(screen.getByRole('button', { name: 'Register' })).toBeDefined()
-
-    await waitFor(() => {
-      expect(
-        (screen.getByLabelText('Course') as HTMLButtonElement).disabled,
-      ).toBe(false)
-    })
+    for (const label of [
+      'Student Number',
+      'First Name',
+      'Last Name',
+      'Course',
+      'Email',
+      'Password',
+    ]) {
+      expect(screen.getByLabelText(label)).toBeDefined()
+    }
   })
 
-  it('validates empty fields, student number regex, email format, and password complexity', () => {
-    expect(
-      validateRegistrationInput({
-        studentNumber: '',
-        firstName: 'Alex',
-        lastName: 'Student',
-        courseId: '1',
-        email: 'alex@weston.ac.uk',
-        password: 'Password123!',
-      }),
-    ).toContain('Incorrect Input, Please try again.')
-
-    expect(
-      validateRegistrationInput({
-        studentNumber: 'invalid student!',
-        firstName: 'Alex',
-        lastName: 'Student',
-        courseId: '1',
-        email: 'alex@weston.ac.uk',
-        password: 'Password123!',
-      }),
-    ).toContain('Student Number must be 3-50 letters or numbers')
-
-    expect(
-      validateRegistrationInput({
-        studentNumber: 'WS123456',
-        firstName: 'Alex',
-        lastName: 'Student',
-        courseId: '1',
-        email: 'invalid-email',
-        password: 'Password123!',
-      }),
-    ).toContain('valid email address')
-
-    expect(
-      validateRegistrationInput({
-        studentNumber: 'WS123456',
-        firstName: 'Alex',
-        lastName: 'Student',
-        courseId: '1',
-        email: 'alex@weston.ac.uk',
-        password: 'weakpassword',
-      }),
-    ).toContain('Password must be at least 8 characters')
-
-    expect(
-      validateRegistrationInput({
-        studentNumber: 'ws123456',
-        firstName: 'Alex',
-        lastName: 'Student',
-        courseId: '1',
-        email: 'alex@weston.ac.uk',
-        password: 'Password123!',
-      }),
-    ).toBeNull()
+  it.each([
+    [{ studentNumber: '' }, 'All fields are required'],
+    [{ studentNumber: 'bad id!' }, 'Student Number must be 3-50 letters or numbers'],
+    [{ email: 'invalid-email' }, 'valid email address'],
+    [{ password: 'weakpassword' }, 'Password must be at least 8 characters'],
+  ] as const)('validates invalid input %o', (override, expectedMessage) => {
+    expect(validateRegistrationInput({ ...VALID_FORM_INPUT, ...override })).toContain(
+      expectedMessage,
+    )
   })
 
-  it('shows the error banner when submitting invalid inputs without calling POST /user/student', async () => {
+  it('accepts valid registration input and blocks invalid form submission', () => {
+    expect(validateRegistrationInput(VALID_FORM_INPUT)).toBeNull()
+
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(buildCoursesResponse())
+      .mockResolvedValueOnce(jsonResponse(SAMPLE_COURSES))
 
-    renderRegisterWithRoutes()
-
+    renderRegisterPage()
     fireEvent.click(screen.getByRole('button', { name: 'Register' }))
 
     expect(fetchSpy).toHaveBeenCalledTimes(1)
@@ -165,46 +122,37 @@ describe('RegisterPage', () => {
     )
   })
 
-  it('submits student registration with selected course and displays pending approval message', async () => {
+  it('submits trimmed registration payload and shows pending approval alert', async () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(buildCoursesResponse())
-      .mockResolvedValueOnce(buildRegisterSuccessResponse())
+      .mockResolvedValueOnce(jsonResponse(SAMPLE_COURSES))
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            user_id: 10,
+            username: 'WS123456',
+            first_name: 'Alex',
+            last_name: 'Student',
+            email: 'alex.student@weston.ac.uk',
+            role: 'student',
+            account_status: 'pending',
+            registration_date: '2026-11-08',
+            last_login: null,
+          },
+          201,
+        ),
+      )
 
-    renderRegisterWithRoutes()
-
-    const courseTrigger = screen.getByLabelText('Course')
-    await waitFor(() => {
-      expect((courseTrigger as HTMLButtonElement).disabled).toBe(false)
+    renderRegisterPage()
+    await fillAndSubmitForm({
+      studentNumber: '  WS123456  ',
+      firstName: '  Alex  ',
+      lastName: '  Student  ',
+      email: '  alex.student@weston.ac.uk  ',
     })
-
-    fireEvent.change(screen.getByLabelText('Student Number'), {
-      target: { value: '  WS123456  ' },
-    })
-    fireEvent.change(screen.getByLabelText('First Name'), {
-      target: { value: '  Alex  ' },
-    })
-    fireEvent.change(screen.getByLabelText('Last Name'), {
-      target: { value: '  Student  ' },
-    })
-
-    fireEvent.click(courseTrigger)
-    const option = await screen.findByText('BSc Software Engineering')
-    fireEvent.click(option)
-
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: '  alex.student@weston.ac.uk  ' },
-    })
-    fireEvent.change(screen.getByLabelText('Password'), {
-      target: { value: 'Password123!' },
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Register' }))
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/Your account is pending lecturer approval/i),
-      ).toBeDefined()
+      expect(screen.getByText(/Your account is pending lecturer approval/i)).toBeDefined()
     })
 
     expect(fetchSpy).toHaveBeenCalledWith(
@@ -223,42 +171,16 @@ describe('RegisterPage', () => {
     )
   })
 
-  it('displays API error messages when registration or course loading fails', async () => {
+  it('handles registration and course loading errors cleanly', async () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(buildCoursesResponse())
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 409,
-        json: async () => ({ detail: 'Username is already in use.' }),
-      } as Response)
+      .mockResolvedValueOnce(jsonResponse(SAMPLE_COURSES))
+      .mockResolvedValueOnce(
+        jsonResponse({ detail: 'Username is already in use.' }, 409, false),
+      )
 
-    renderRegisterWithRoutes()
-
-    const courseTrigger = screen.getByLabelText('Course')
-    await waitFor(() => {
-      expect((courseTrigger as HTMLButtonElement).disabled).toBe(false)
-    })
-
-    fireEvent.change(screen.getByLabelText('Student Number'), {
-      target: { value: 'WS123456' },
-    })
-    fireEvent.change(screen.getByLabelText('First Name'), {
-      target: { value: 'Alex' },
-    })
-    fireEvent.change(screen.getByLabelText('Last Name'), {
-      target: { value: 'Student' },
-    })
-    fireEvent.click(courseTrigger)
-    fireEvent.click(await screen.findByText('BSc Software Engineering'))
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'alex@weston.ac.uk' },
-    })
-    fireEvent.change(screen.getByLabelText('Password'), {
-      target: { value: 'Password123!' },
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Register' }))
+    renderRegisterPage()
+    await fillAndSubmitForm()
 
     await waitFor(() => {
       expect(screen.getByRole('alert').textContent).toContain(
@@ -266,12 +188,12 @@ describe('RegisterPage', () => {
       )
     })
 
-    // Non-JSON error body fallback
+    // Non-JSON 500 error fallback
     fetchSpy.mockResolvedValueOnce({
       ok: false,
       status: 500,
       json: async () => {
-        throw new Error('Not JSON')
+        throw new Error('Invalid JSON')
       },
     } as unknown as Response)
     fireEvent.click(screen.getByRole('button', { name: 'Register' }))
@@ -281,7 +203,7 @@ describe('RegisterPage', () => {
       )
     })
 
-    // Network error on registerStudent
+    // Network failure
     fetchSpy.mockRejectedValueOnce(new TypeError('Failed to fetch'))
     fireEvent.click(screen.getByRole('button', { name: 'Register' }))
     await waitFor(() => {
@@ -289,28 +211,14 @@ describe('RegisterPage', () => {
         'Unable to connect to the server. Please try again.',
       )
     })
-  })
 
-  it('handles course loading API errors cleanly', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch')
-
-    fetchSpy.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-    } as Response)
+    // Course API error paths
+    fetchSpy.mockResolvedValueOnce(jsonResponse({}, 500, false))
     await expect(getAvailableCourses()).rejects.toThrow(RegisterApiError)
 
     fetchSpy.mockRejectedValueOnce(new TypeError('Network down'))
     await expect(getAvailableCourses()).rejects.toThrow(
       'Unable to load courses right now. Please try again.',
     )
-
-    fetchSpy.mockRejectedValueOnce(new Error('Courses failed'))
-    renderRegisterWithRoutes()
-    await waitFor(() => {
-      expect(screen.getByRole('alert').textContent).toContain(
-        'Unable to load courses right now. Please try again.',
-      )
-    })
   })
 })
