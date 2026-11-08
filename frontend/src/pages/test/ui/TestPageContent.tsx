@@ -44,9 +44,7 @@ export function TestPageContent(props: TestPageContentProps) {
 
           {/* Exit test button and confirmation dialog */}
           <Dialog>
-            <DialogTrigger>
-              <Button>Exit Test</Button>
-            </DialogTrigger>
+            <DialogTrigger render={<Button data-testid="exit-test">Exit Test</Button>} />
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Are you sure you want to exit this test?</DialogTitle>
@@ -61,7 +59,7 @@ export function TestPageContent(props: TestPageContentProps) {
                   </Button>
                 </DialogClose>
                 <DialogClose>
-                  <Button onClick={() => navigate('/dashboard')}>
+                  <Button data-testid="continue-exit-test" onClick={() => navigate('/dashboard')}>
                     Exit
                   </Button>
                 </DialogClose>
@@ -191,10 +189,9 @@ export function TestPageContent(props: TestPageContentProps) {
 
             {/* Submit test button and confirmation dialog */}
             <Dialog>
-              <DialogTrigger>
-                <Button className="w-full">
-                  Submit Test
-                </Button>
+              <DialogTrigger render={<Button data-testid="submit-test" className="w-full">
+                Submit Test
+              </Button>}>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -216,6 +213,7 @@ export function TestPageContent(props: TestPageContentProps) {
                     </Button>
                   </DialogClose>
                   <Button
+                    data-testid="continue-submit-test"
                     onClick={() => void props.onSubmit?.()}
                     disabled={props.isSubmitting}
                   >

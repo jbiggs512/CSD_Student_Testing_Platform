@@ -13,9 +13,7 @@ def get_test_data(
 ) -> TestResponse:
     
     # Fetch the test data from the database
-    test = db.scalar(
-        select(Test).where(Test.test_id == target_test_id)
-    )
+    test = db.get(Test, target_test_id)
 
     if test is None:
         raise HTTPException(status_code=404, detail=f"Test with ID '{target_test_id}' not found.")
@@ -26,8 +24,11 @@ def get_test_data(
         .join(Subject, Test.subject_id == Subject.subject_id)
         .join(Course, Subject.course_id == Course.course_id)
         .join(Course.users)
-        .where(User.user_id == current_user.user_id and Test.test_id == target_test_id)
+        .where(
+            User.user_id == current_user.user_id,
+            Test.test_id == target_test_id,
         )
+    )
 
     if test_user_check is None:
             raise HTTPException(status_code=401, detail=f"User not allowed to access test with ID '{target_test_id}'.")

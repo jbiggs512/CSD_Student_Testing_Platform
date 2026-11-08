@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TestPage, TestPageContent } from '@/pages/test'
 import type { TestDetails } from '@/pages/test/model'
 import { API_BASE_URL } from '@/shared/config/env'
-import { getTestDetails, TestApiError } from '@/pages/test/api/testApi'
+import { createTestAttempt, getTestDetails, TestApiError } from '@/pages/test/api/testApi'
+import { clearAccessToken, setAccessToken } from '@/shared/api'
+import { Toaster } from '@/shared/components'
 
 function createTestDetails(): TestDetails {
   return {
@@ -149,8 +151,44 @@ function renderTestWithRoutes(initialEntry = '/test/1') {
         <Route path="/test/:id" element={<TestPage />} />
         <Route path="/dashboard" element={<div>Student Dashboard</div>} />
       </Routes>
+      <Toaster />
     </MemoryRouter>,
   )
+}
+
+function renderDashboardNav(initialEntry = '/test/1') {
+  render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <Routes>
+        <Route path="/test/:id" element={<TestPageContent
+          testDetails={createTestDetails()}
+          onSelectOption={vi.fn()}
+          onNavigateQuestion={vi.fn()}
+          isAnswered={vi.fn(() => false)}
+        />} />
+        <Route path="/dashboard" element={<div>Student Dashboard</div>} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+// Helper function for POST requests
+function mockFetchResponses({ postOk = true, postStatus = 200, postData = {} } = {}) {
+  return vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+    if (init?.method === 'POST') {
+      return {
+        ok: postOk,
+        status: postStatus,
+        json: async () => postData,
+      } as Response;
+    }
+
+    return {
+      ok: true,
+      status: 200,
+      json: async () => createTestDetails(),
+    } as Response;
+  });
 }
 
 describe('Test Page Content', () => {
@@ -188,30 +226,48 @@ describe('Test Page Content', () => {
   })
 
   it('navigates to the dashboard when Exit Test is clicked', () => {
+    renderDashboardNav()
+
+    fireEvent.click(screen.getByTestId('exit-test'))
+    fireEvent.click(screen.getByTestId('continue-exit-test'))
+    expect(screen.getByText('Student Dashboard')).toBeDefined()
+  })
+
+  it('calls onSubmit when submission is confirmed', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
     render(
-      <MemoryRouter initialEntries={['/test/1']}>
-        <Routes>
-          <Route path="/test/:id" element={<TestPageContent
-            testDetails={createTestDetails()}
-            onSelectOption={vi.fn()}
-            onNavigateQuestion={vi.fn()}
-            isAnswered={vi.fn(() => false)}
-          />} />
-          <Route path="/dashboard" element={<div>Student Dashboard</div>} />
-        </Routes>
+      <MemoryRouter>
+        <TestPageContent
+          testDetails={createTestDetails()}
+          onSelectOption={vi.fn()}
+          onNavigateQuestion={vi.fn()}
+          isAnswered={vi.fn(() => false)}
+          onSubmit={onSubmit}
+        />
       </MemoryRouter>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Exit Test' }))
-    expect(screen.getByText('Student Dashboard')).toBeDefined()
+    fireEvent.click(screen.getByTestId('submit-test'))
+    fireEvent.click(screen.getByTestId('continue-submit-test'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1)
+    })
   })
+
 })
 
-describe('Test data loading', () => {
+describe('Test data API client', () => {
   beforeEach(() => vi.restoreAllMocks())
-  afterEach(cleanup)
+  afterEach(() => {
+    clearAccessToken()
+    vi.restoreAllMocks()
+    cleanup()
+  })
+
 
   it('shows loading state and requests details for the route test ID', async () => {
+    setAccessToken('test-token')
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
@@ -227,11 +283,16 @@ describe('Test data loading', () => {
 
     expect(fetchSpy).toHaveBeenCalledWith(
       expect.stringContaining('/test/1'),
-      expect.objectContaining({ method: 'GET' }),
-    )
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-token',
+        }),
+      })
+    );
   })
 
   it('selects only one option and updates the rendered question grid state', async () => {
+    setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
@@ -250,6 +311,7 @@ describe('Test data loading', () => {
   })
 
   it('navigates between questions and respects the previous/next boundaries', async () => {
+    setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
@@ -271,8 +333,66 @@ describe('Test data loading', () => {
     expect(screen.getByText('Question 2 of 10')).toBeDefined()
   })
 
+  it('submits the selected answers and navigates to the dashboard', async () => {
+    setAccessToken('test-token')
+    const fetchSpy = mockFetchResponses({
+      postData: {
+        attempt_id: 42,
+        test_id: 1,
+        started_at: '2026-11-08T00:00:00.000Z',
+        completed_at: '2026-11-08T00:01:00.000Z',
+        score: 30,
+        total_questions: 10,
+      }
+    })
+
+    renderTestWithRoutes()
+    await screen.findByRole('heading', { name: 'Beginner Software Quiz' })
+
+    fireEvent.click(screen.getByText('HyperText Markup Language'))
+    fireEvent.click(screen.getByTestId('submit-test'))
+    fireEvent.click(screen.getByTestId('continue-submit-test'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Student Dashboard')).toBeDefined()
+      expect(screen.getByText('Test results saved!')).toBeDefined()
+      expect(screen.getByText('You achieved 30 points')).toBeDefined()
+    })
+
+    const postCall = fetchSpy.mock.calls.find(([, init]) => init?.method === 'POST')
+    expect(postCall?.[0]).toEqual(expect.stringContaining('/test/attempt'))
+    expect(JSON.parse(String(postCall?.[1]?.body))).toMatchObject({
+      test_id: 1,
+      score: 30,
+      total_questions: 10,
+    })
+  })
+
+  it('shows a submission error without leaving the test page', async () => {
+    setAccessToken('test-token')
+    mockFetchResponses({
+    postOk: false,
+    postStatus: 500,
+    postData: { detail: 'Submission failed' },
+  });
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    renderTestWithRoutes()
+    await screen.findByRole('heading', { name: 'Beginner Software Quiz' })
+
+    fireEvent.click(screen.getByTestId('submit-test'))
+    fireEvent.click(screen.getByTestId('continue-submit-test'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Submission failed')).toBeDefined()
+    })
+    expect(screen.queryByText('Student Dashboard')).toBeNull()
+  })
+
   it('requests and returns test details successfully', async () => {
+    setAccessToken('test-token')
     const details = createTestDetails()
+
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
@@ -283,16 +403,47 @@ describe('Test data loading', () => {
     expect(fetchSpy).toHaveBeenCalledWith(
       `${API_BASE_URL}/test/10`,
       {
-        method: 'GET',
         headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-token',
         },
-      },
+      }
+    );
+  })
+
+  it('posts test attempt details successfully', async () => {
+    setAccessToken('test-token')
+    const request = {
+      test_id: 1,
+      started_at: '2026-11-08T00:00:00.000Z',
+      completed_at: '2026-11-08T00:01:00.000Z',
+      score: 30,
+      total_questions: 10,
+    }
+    const response = {
+      attempt_id: 42,
+      ...request,
+    }
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => response,
+    } as Response)
+
+    await expect(createTestAttempt(request)).resolves.toEqual(response)
+    expect(fetchSpy).toHaveBeenCalledWith(
+      `${API_BASE_URL}/test/attempt`,
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(request),
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+        }),
+      }),
     )
   })
 
   it('redirects to the dashboard when the API request fails', async () => {
+    setAccessToken('test-token')
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
@@ -308,6 +459,7 @@ describe('Test data loading', () => {
   })
 
   it('reports connection failures with a zero status', async () => {
+    setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network down'))
 
     await expect(getTestDetails(1)).rejects.toMatchObject({
@@ -318,6 +470,7 @@ describe('Test data loading', () => {
   })
 
   it('reports unauthorized responses', async () => {
+    setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
       status: 401,
@@ -329,6 +482,7 @@ describe('Test data loading', () => {
   })
 
   it('uses the default forbidden message for missing detail text', async () => {
+    setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
       status: 403,
@@ -344,6 +498,7 @@ describe('Test data loading', () => {
   })
 
   it('uses the server detail message for other error responses', async () => {
+    setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
       status: 500,
@@ -358,4 +513,3 @@ describe('Test data loading', () => {
     )
   })
 })
-
