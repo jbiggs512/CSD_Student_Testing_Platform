@@ -29,7 +29,7 @@ export const STUDENT_NUMBER_REGEX = /^[A-Za-z0-9._-]{3,50}$/
 export const PASSWORD_COMPLEXITY_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/
 
-export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@.]+\.[^\s@]+$/
 
 export interface RegistrationFormInput {
   studentNumber: string
