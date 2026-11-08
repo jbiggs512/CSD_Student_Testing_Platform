@@ -42,7 +42,7 @@ export function LoginPage() {
         username: trimmedUsername,
         password,
       })
-      navigate(getDashboardPathForRole(session.user.role))
+      navigate(getDashboardPathForRole(session.user.role), { replace: true })
     } catch (error) {
       if (error instanceof LoginApiError) {
         setErrorMessage(error.message)

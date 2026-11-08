@@ -87,7 +87,18 @@ def test_created_lecturer_hashes_password_and_can_login(client, db_session):
         "password": "LecturerPassword123!",
     }
 
-    create_resp = client.post("/api/v1/user/lecturer", json=lecturer_payload)
+    admin = _seed_user(
+        db_session,
+        username="AD100002",
+        role_name=UserRole.ADMIN,
+        email="admin100002@weston.ac.uk",
+    )
+    admin_token = create_access_token(subject=admin.username)
+    create_resp = client.post(
+        "/api/v1/user/lecturer",
+        json=lecturer_payload,
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
     assert create_resp.status_code == 201
 
     stored_user = db_session.scalar(
@@ -147,6 +158,30 @@ def test_login_active_student_updates_last_login(client, db_session):
 
     db_session.refresh(user)
     assert user.last_login is not None
+
+
+def test_login_username_is_case_insensitive(client, db_session):
+    _seed_user(
+        db_session,
+        username="WS654321",
+        password="StudentPassword123!",
+        role_name=UserRole.STUDENT,
+        account_status=AccountStatus.ACTIVE,
+    )
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "ws654321", "password": "StudentPassword123!"},
+    )
+    assert response.status_code == 200
+    assert response.json()["user"]["username"] == "WS654321"
+
+    token_response = client.post(
+        "/api/v1/auth/token",
+        data={"username": "Ws654321", "password": "StudentPassword123!"},
+    )
+    assert token_response.status_code == 200
+    assert token_response.json()["user"]["username"] == "WS654321"
 
 
 def test_login_unknown_username_returns_401(client):

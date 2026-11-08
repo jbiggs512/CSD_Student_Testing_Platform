@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Link, Outlet } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { MenuIcon } from "lucide-react";
-import { clearAccessToken, getCurrentUser, type UserRole } from "@/shared/api";
+import { getCurrentUser, logoutUser, type UserRole } from "@/shared/api";
 import {
   Button,
-  buttonVariants,
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
@@ -46,13 +45,28 @@ const navItems: Record<UserRole, NavItem[]> = {
 };
 
 export function NavBar() {
+  const location = useLocation();
+  const navigate = useNavigate();
   // State to control whether the mobile menu is open/closed
   const [open, setOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const userType = getCurrentUser()?.role ?? null;
 
   // Get the navigation items for the current user type, or an empty array if no user is logged in
   const items = userType ? navItems[userType] : [];
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    setOpen(false);
+    try {
+      await logoutUser();
+    } finally {
+      setIsLoggingOut(false);
+      navigate("/login", { replace: true });
+    }
+  };
 
   return (
     <>
@@ -66,13 +80,35 @@ export function NavBar() {
               <NavigationMenuList className="gap-2">
                 {items.map((item) => (
                   <NavigationMenuItem key={item.to + item.label}>
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()} render={<Link to={item.to}>{item.label}</Link>} />
+                    <NavigationMenuLink
+                      active={location.pathname === item.to}
+                      className={`${navigationMenuTriggerStyle()} ${
+                        location.pathname === item.to
+                          ? "bg-muted font-semibold text-plum hover:bg-muted"
+                          : ""
+                      }`}
+                      render={
+                        <Link
+                          to={item.to}
+                          aria-current={
+                            location.pathname === item.to ? "page" : undefined
+                          }
+                        >
+                          {item.label}
+                        </Link>
+                      }
+                    />
                   </NavigationMenuItem>
                 ))}
                 <NavigationMenuItem>
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}
-                    render={<Link to="/login" onClick={clearAccessToken} className={buttonVariants({ variant: "default" })}>Logout</Link>}
-                  />
+                  <Button
+                    variant="default"
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="cursor-pointer"
+                  >
+                    Logout
+                  </Button>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
@@ -88,18 +124,30 @@ export function NavBar() {
                 </SheetHeader>
                 <nav className="flex flex-col gap-1 px-4">
                   {items.map((item) => (
-                    <Link key={item.to + item.label} to={item.to} onClick={() => setOpen(false)}>
+                    <Link
+                      key={item.to + item.label}
+                      to={item.to}
+                      onClick={() => setOpen(false)}
+                      aria-current={
+                        location.pathname === item.to ? "page" : undefined
+                      }
+                      className={
+                        location.pathname === item.to
+                          ? "rounded-md bg-muted px-3 py-2 font-semibold text-plum"
+                          : "rounded-md px-3 py-2"
+                      }
+                    >
                       {item.label}
                     </Link>
                   ))}
-                  <Link to="/login"
-                    onClick={() => {
-                      clearAccessToken();
-                      setOpen(false);
-                    }}
-                    className={`${buttonVariants({ variant: "default" })} mt-4`}>
+                  <Button
+                    variant="default"
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="mt-4 w-full cursor-pointer"
+                  >
                     Logout
-                  </Link>
+                  </Button>
                 </nav>
               </SheetContent>
             </Sheet>

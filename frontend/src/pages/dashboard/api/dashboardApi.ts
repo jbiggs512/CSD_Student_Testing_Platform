@@ -1,30 +1,75 @@
+import { getAccessToken } from '@shared/api'
 import type { OutstandingTest, CompletedTest, CohortRank } from "../model"
+import { API_BASE_URL } from '@shared/config'
 
-export function getOutstandingTests(): OutstandingTest[] {
-    // Mock data for outstanding tests
-    return [
-        {
-            id: 1,
-            testName: 'Test 1',
-            subjectName: 'Subject 1',
-            description: 'This is a description for Test 1.',
-            questionsPerAttempt: 10,
-        },
-        {
-            id: 2,
-            testName: 'Test 2',
-            subjectName: 'Subject 2',
-            description: 'This is a description for Test 2.',
-            questionsPerAttempt: 15,
-        },
-        {
-            id: 3,
-            testName: 'Test 3',
-            subjectName: 'Subject 3',
-            description: 'This is a description for Test 3.',
-            questionsPerAttempt: 20,
-        },
-    ]
+export class DashboardApiError extends Error {
+    readonly status: number
+
+    constructor(message: string, status: number) {
+        super(message)
+        this.name = 'DashboardApiError'
+        this.status = status
+    }
+}
+
+export async function getOutstandingTests(id: number): Promise<OutstandingTest[]> {
+    const token = getAccessToken()
+    
+    if (!token) {
+        throw new DashboardApiError(
+            'Your session has expired. Please sign in again.',
+            401,
+        )
+    }
+        
+    let response: Response
+    try {
+        response = await fetch(`${API_BASE_URL}/student/outstandingTests/${id}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+        })
+    } catch {
+        throw new DashboardApiError(
+            'Unable to connect to the server. Please try again.',
+            0,
+        )
+    }
+
+    if (!response.ok) {
+        if (response.status === 401) {
+            throw new DashboardApiError('Incorrect Credentials. Please try again.', 401)
+        }
+
+        let detailMessage: string | undefined
+        try {
+            const errorBody = (await response.json()) as { detail?: unknown }
+            if (typeof errorBody.detail === 'string' && errorBody.detail.trim()) {
+                detailMessage = errorBody.detail
+            }
+        } catch {
+            // Non-JSON error bodies (e.g. proxy 502/500 pages) fall back to the default message below.
+        }
+
+        if (response.status === 403) {
+            throw new DashboardApiError(
+                detailMessage ?? 'Your account is not permitted to access this resource.',
+                403,
+            )
+        }
+
+        throw new DashboardApiError(
+            detailMessage ?? 'Unable to access the requested resource right now. Please try again.',
+            response.status,
+        )
+    }
+
+    const data = (await response.json()) as OutstandingTest[]
+
+    return data
 }
 
 export function getCompletedTests(): CompletedTest[] {

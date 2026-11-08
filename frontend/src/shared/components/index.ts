@@ -15,6 +15,7 @@ export {
 export { Input } from './ui/input'
 export { Label } from './ui/label'
 export { PasswordInput } from './ui/password-input'
+export { ConfirmDialog } from './ui/confirm-dialog'
 
 export {
   NavigationMenu,
