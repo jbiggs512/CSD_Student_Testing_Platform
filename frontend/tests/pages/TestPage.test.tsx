@@ -418,6 +418,7 @@ describe('Test data API client', () => {
       completed_at: '2026-11-08T00:01:00.000Z',
       score: 30,
       total_questions: 10,
+      correct_questions: 1
     }
     const response = {
       attempt_id: 42,
