@@ -29,6 +29,7 @@ class TestAttemptCreateRequest(BaseModel):
     completed_at: datetime
     score: int
     total_questions: int
+    correct_questions: int
     
 class TestAttemptResponse(BaseModel):
     attempt_id: int
@@ -38,6 +39,7 @@ class TestAttemptResponse(BaseModel):
     completed_at: datetime
     score: int
     total_questions: int
+    correct_questions: int
 
     model_config = {"from_attributes": True}
     

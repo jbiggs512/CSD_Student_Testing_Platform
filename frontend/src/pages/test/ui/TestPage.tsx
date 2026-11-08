@@ -58,12 +58,19 @@ export function TestPage() {
       return total + (selectedOption.is_correct ? 30 : -10);
     }, 0);
 
+    // Count number of correct answers
+    const correct = testDetails.questions.reduce((count, question) => {
+      const selected = question.options.find(opt => opt.selected);
+      return count + (selected?.is_correct ? 1 : 0);
+    }, 0);
+
     const request: TestAttemptRequest = {
       test_id: testDetails.test_id ?? Number.parseInt(id ?? '0'),
       started_at: startedAt,
       completed_at: new Date().toISOString(),
       score: score,
       total_questions: testDetails.questions_per_attempt,
+      correct_questions: correct,
     };
 
     setIsSubmitting(true);

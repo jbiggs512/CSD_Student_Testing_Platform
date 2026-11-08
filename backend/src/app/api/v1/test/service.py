@@ -72,7 +72,8 @@ def save_test_attempt(
         started_at=request.started_at,
         completed_at=request.completed_at,
         score=request.score,
-        total_questions=request.total_questions
+        total_questions=request.total_questions,
+        correct_questions=request.correct_questions
     )
     
     db.add(new_test_attempt)

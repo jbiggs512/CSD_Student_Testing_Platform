@@ -40,6 +40,7 @@ export interface TestAttemptRequest {
   completed_at: string;
   score: number;
   total_questions: number;
+  correct_questions: number;
 }
 
 export interface TestAttempt {
@@ -49,4 +50,5 @@ export interface TestAttempt {
   completed_at: string;
   score: number;
   total_questions: number;
+  correct_questions: number;
 }
