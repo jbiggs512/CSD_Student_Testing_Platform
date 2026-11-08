@@ -31,15 +31,12 @@ def test_get_courses_returns_titles_in_alphabetical_order(
     assert set(data[0]) == {"course_id", "course_title"}
 
 
-def test_get_courses_allows_public_access_for_registration(client, db_session):
-    db_session.add(Course(course_title="Software Engineering"))
-    db_session.commit()
-
+def test_get_courses_allows_public_access_for_registration(client):
     response = client.get(COURSES_URL)
 
     assert response.status_code == 200
     assert any(
-        course["course_title"] == "Software Engineering"
+        course["course_title"] == "BSc Software Engineering"
         for course in response.json()
     )
 

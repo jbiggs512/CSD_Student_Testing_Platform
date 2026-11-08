@@ -88,9 +88,10 @@ def test_create_student_account(client, db_session):
     """
     Test that a new student account is created with pending status and associated course.
     """
-    course = Course(course_title="BSc Software Engineering")
-    db_session.add(course)
-    db_session.commit()
+    course = db_session.scalar(
+        select(Course).where(Course.course_title == "BSc Software Engineering")
+    )
+    assert course is not None
 
     student_data = {
         "username": "WS100001",
