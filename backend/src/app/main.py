@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy import text, select
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.v1.router import api_router

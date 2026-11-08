@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Outlet, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { MenuIcon } from "lucide-react";
 import { getCurrentUser, logoutUser, type UserRole } from "@/shared/api";
 import {
@@ -45,6 +45,7 @@ const navItems: Record<UserRole, NavItem[]> = {
 };
 
 export function NavBar() {
+  const location = useLocation();
   const navigate = useNavigate();
   // State to control whether the mobile menu is open/closed
   const [open, setOpen] = useState(false);
@@ -79,7 +80,24 @@ export function NavBar() {
               <NavigationMenuList className="gap-2">
                 {items.map((item) => (
                   <NavigationMenuItem key={item.to + item.label}>
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()} render={<Link to={item.to}>{item.label}</Link>} />
+                    <NavigationMenuLink
+                      active={location.pathname === item.to}
+                      className={`${navigationMenuTriggerStyle()} ${
+                        location.pathname === item.to
+                          ? "bg-muted font-semibold text-plum hover:bg-muted"
+                          : ""
+                      }`}
+                      render={
+                        <Link
+                          to={item.to}
+                          aria-current={
+                            location.pathname === item.to ? "page" : undefined
+                          }
+                        >
+                          {item.label}
+                        </Link>
+                      }
+                    />
                   </NavigationMenuItem>
                 ))}
                 <NavigationMenuItem>
@@ -106,7 +124,19 @@ export function NavBar() {
                 </SheetHeader>
                 <nav className="flex flex-col gap-1 px-4">
                   {items.map((item) => (
-                    <Link key={item.to + item.label} to={item.to} onClick={() => setOpen(false)}>
+                    <Link
+                      key={item.to + item.label}
+                      to={item.to}
+                      onClick={() => setOpen(false)}
+                      aria-current={
+                        location.pathname === item.to ? "page" : undefined
+                      }
+                      className={
+                        location.pathname === item.to
+                          ? "rounded-md bg-muted px-3 py-2 font-semibold text-plum"
+                          : "rounded-md px-3 py-2"
+                      }
+                    >
                       {item.label}
                     </Link>
                   ))}

@@ -12,6 +12,7 @@ export {
 } from './ui/card'
 export { Input } from './ui/input'
 export { Label } from './ui/label'
+export { ConfirmDialog } from './ui/confirm-dialog'
 
 export {
   NavigationMenu,

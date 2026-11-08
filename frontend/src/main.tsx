@@ -17,6 +17,12 @@ const RegisterPage = lazy(() =>
 const DashboardPage = lazy(() =>
   import('./pages/dashboard').then((m) => ({ default: m.DashboardPage })),
 )
+const AdminDashboardPage = lazy(() =>
+  import('./pages/adminDashboard').then((m) => ({ default: m.AdminDashboardPage })),
+)
+const SubjectsPage = lazy(() =>
+  import('./pages/subjects').then((m) => ({ default: m.SubjectsPage })),
+)
 const TestPage = lazy(() =>
   import('./pages/test').then((m) => ({ default: m.TestPage })),
 )
@@ -35,6 +41,16 @@ createRoot(document.getElementById('root')!).render(
             <Route element={<NavBar />}>
               <Route element={<ProtectedRoute allowedRoles={['student']} />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
+              </Route>
+              <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                <Route
+                  path="/adminDashboard"
+                  element={<AdminDashboardPage />}
+                />
+                <Route
+                  path="/subjects"
+                  element={<SubjectsPage />}
+                />
               </Route>
             </Route>
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>

@@ -385,3 +385,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local Azure provisioning scripts
+infra/
