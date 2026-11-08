@@ -1,4 +1,4 @@
-import type { AuthenticatedUser } from '@shared/api'
+import type { AuthUser } from '@shared/api'
 
 export interface CourseOption {
   course_id: number
@@ -14,7 +14,7 @@ export interface StudentRegistrationRequest {
   courses: number[]
 }
 
-export type RegisteredStudentResponse = AuthenticatedUser
+export type RegisteredStudentResponse = AuthUser
 
 /**
  * Matches valid student numbers / usernames (3-50 alphanumeric characters, dots, underscores, or hyphens).
