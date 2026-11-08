@@ -10,10 +10,22 @@ export {
   CardHeader,
   CardTitle,
 } from './ui/card'
+export { ConfirmDialog } from './ui/confirm-dialog'
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog'
 export { Input } from './ui/input'
 export { Label } from './ui/label'
-export { ConfirmDialog } from './ui/confirm-dialog'
-
+export { NavBar } from './ui/navbar'
 export {
   NavigationMenu,
   NavigationMenuItem,
@@ -21,7 +33,6 @@ export {
   NavigationMenuList,
   navigationMenuTriggerStyle,
 } from './ui/navigation-menu'
-
 export {
   Sheet,
   SheetContent,
@@ -29,9 +40,14 @@ export {
   SheetTitle,
   SheetTrigger,
 } from './ui/sheet'
-
-export { NavBar } from './ui/navbar'
-
+export {
+Progress,
+ProgressTrack,
+ProgressIndicator,
+ProgressLabel,
+ProgressValue,
+} from './ui/progress'
+export { ProtectedRoute } from './protected-route'
 export {  Select,
   SelectContent,
   SelectGroup,
@@ -43,12 +59,3 @@ export {  Select,
   SelectTrigger,
   SelectValue, } from './ui/select'
 
-  export {
-  Progress,
-  ProgressTrack,
-  ProgressIndicator,
-  ProgressLabel,
-  ProgressValue,
-} from './ui/progress'
-
-export { ProtectedRoute } from './protected-route'

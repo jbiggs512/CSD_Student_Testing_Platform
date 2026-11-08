@@ -1,3 +1,3 @@
 // Test page API requests
-export { getTestDetails } from "./testApi";
+export { getTestDetails, createTestAttempt } from "./testApi";
 

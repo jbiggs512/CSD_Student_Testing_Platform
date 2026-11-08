@@ -1,14 +1,15 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 
-from app.db.models import Course, Subject, Test, Question, QuestionOption
-from app.api.v1.test.schemas import QuestionOptionResponse, QuestionResponse, TestResponse
+from app.db.models import Test, User, Subject, Course, TestAttempt
+from app.api.v1.test.schemas import QuestionOptionResponse, QuestionResponse, TestResponse, TestAttemptCreateRequest, TestAttemptResponse
 
 
 def get_test_data(
     db: Session, 
-    target_test_id: int
+    target_test_id: int,
+    current_user: User
 ) -> TestResponse:
     
     # Fetch the test data from the database
@@ -18,6 +19,18 @@ def get_test_data(
 
     if test is None:
         raise HTTPException(status_code=404, detail=f"Test with ID '{target_test_id}' not found.")
+
+    # Check user is allowed to access test
+    test_user_check = db.scalar(
+        select(Test)
+        .join(Subject, Test.subject_id == Subject.subject_id)
+        .join(Course, Subject.course_id == Course.course_id)
+        .join(Course.users)
+        .where(User.user_id == current_user.user_id and Test.test_id == target_test_id)
+        )
+
+    if test_user_check is None:
+            raise HTTPException(status_code=401, detail=f"User not allowed to access test with ID '{target_test_id}'.")
 
     return TestResponse(
         testId=test.test_id,
@@ -45,3 +58,26 @@ def get_test_data(
             for question in test.questions
         ]
     )
+    
+def save_test_attempt(
+    db: Session,
+    request: TestAttemptCreateRequest,
+    current_user: User
+    ) -> TestAttemptResponse:
+    
+    new_test_attempt = TestAttempt(
+        test_id=request.testId,
+        user_id=current_user.user_id,
+        started_at=request.startedAt,
+        completed_at=request.completedAt,
+        score=request.score,
+        total_questions=request.totalQuestions
+    )
+    
+    db.add(new_test_attempt)
+    db.commit()
+    db.refresh(new_test_attempt)
+    
+    return new_test_attempt
+    
+    

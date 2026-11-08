@@ -1,13 +1,26 @@
-import { Button } from "@/shared/components/ui/button";
-import { Card } from "@/shared/components/ui/card";
-import { Progress } from "@/shared/components/ui/progress";
-import { Clock } from "lucide-react";
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Card,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  Progress,
+} from '@shared/components'
+import { Clock, TriangleAlert } from "lucide-react";
 import type { TestPageContentProps } from "../model";
 import logo from '@shared/assets/altius-transparent.png'
 import { useNavigate } from 'react-router';
 
 export function TestPageContent(props: TestPageContentProps) {
   const navigate = useNavigate();
+
   const toMMSS = (secs: number) => {
     const secNum = Number.parseInt(secs.toString(), 10);
     const minutes = Math.floor(secNum / 60) % 60;
@@ -20,13 +33,42 @@ export function TestPageContent(props: TestPageContentProps) {
       .replace(/^0/, "");
   };
 
+
+
   return (
     <main id="dashboard-page" className="min-h-screen p-4">
       {/* Header */}
       <header className="flex items-start justify-between">
         <div className="flex w-full items-center justify-end px-2">
           <img src={logo} alt="Logo" className="h-16 w-auto mr-auto" />
-          <Button onClick={() => navigate('/dashboard')}>Exit Test</Button>
+
+          {/* Exit test button and confirmation dialog */}
+          <Dialog>
+            <DialogTrigger>
+              <Button>Exit Test</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Are you sure you want to exit this test?</DialogTitle>
+                <DialogDescription>
+                  If you exit without submitting, all of your progress will be lost.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <DialogClose>
+                  <Button variant="outline">
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <DialogClose>
+                  <Button onClick={() => navigate('/dashboard')}>
+                    Exit
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
         </div>
       </header>
 
@@ -35,7 +77,7 @@ export function TestPageContent(props: TestPageContentProps) {
         <div className="mb-6 lg:mb-0">
           <p className="mb-2 text-sm font-semibold uppercase text-white/80">{props.testDetails.course} - {props.testDetails.subject}</p>
           <h1 className="mb-2 font-heading text-5xl font-bold text-white">{props.testDetails.testName}</h1>
-          <p className="text-sm text-white/80">{props.testDetails.course} - {props.testDetails.description}</p>
+          <p className="text-sm text-white/80">{props.testDetails.description}</p>
         </div>
 
         {/* Timer Card */}
@@ -69,7 +111,7 @@ export function TestPageContent(props: TestPageContentProps) {
 
             <div className="mb-8 flex flex-col gap-4">
               {props.testDetails.questions[props.testDetails.currentQuestion - 1]?.options.map((option) => (
-                <button 
+                <button
                   key={option.optionId}
                   className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-colors ${option.selected
                     ? 'border-navy bg-slate-50' // Selected option styling
@@ -147,12 +189,43 @@ export function TestPageContent(props: TestPageContentProps) {
               </div>
             </div>
 
-            <Button className="w-full">
-              Submit Test
-            </Button>
+            {/* Submit test button and confirmation dialog */}
+            <Dialog>
+              <DialogTrigger>
+                <Button className="w-full">
+                  Submit Test
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Are you sure you want to submit?</DialogTitle>
+                  <DialogDescription>
+                    Once you submit your test, you can no longer edit your answers and your results will be calculated.
+                    {props.submitError && (
+                      <Alert variant="destructive" aria-live="polite" className="mt-6">
+                        <TriangleAlert aria-hidden="true" />
+                        <AlertDescription>{props.submitError}</AlertDescription>
+                      </Alert>
+                    )}
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <DialogClose>
+                    <Button variant="outline">
+                      Cancel
+                    </Button>
+                  </DialogClose>
+                  <Button
+                    onClick={() => void props.onSubmit?.()}
+                    disabled={props.isSubmitting}
+                  >
+                    {props.isSubmitting ? 'Submitting...' : 'Submit'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </Card>
         </div>
-
       </div>
     </main>
   );

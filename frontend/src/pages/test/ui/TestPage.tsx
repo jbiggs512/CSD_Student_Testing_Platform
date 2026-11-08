@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { TestPageContent } from "./TestPageContent";
 import { useNavigate, useParams } from 'react-router';
 import { type TestDetails } from '../model';
-import { getTestDetails } from '../api';
+import { getTestDetails, createTestAttempt } from '../api';
 
 export function TestPage() {
   const navigate = useNavigate();
@@ -10,6 +10,9 @@ export function TestPage() {
   const { id } = useParams();
   const [testDetails, setTestDetails] = useState<TestDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [startedAt] = useState(() => new Date().toISOString());
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Handle option selection for a question
   const handleSelectOption = (questionId: number, optionId: number) => {
@@ -39,6 +42,45 @@ export function TestPage() {
     const question = testDetails?.questions.find(q => q.questionId === questionId);
     return question ? question.options.some(option => option.selected) : false;
   }
+
+  // Handles submission of the test
+  const handleSubmit = async () => {
+    if (!testDetails || isSubmitting) return;
+
+    // Calculate the score based on the users answers
+    // +30 for a correct answer
+    // -10 for an incorrect answer
+    // 0 for no answer
+    const score = testDetails.questions.reduce((total, question) => {
+      const selectedOption = question.options.find(option => option.selected);
+      if (!selectedOption) return total;
+      return total + (selectedOption.isCorrect ? 30 : -10);
+    }, 0);
+
+    const request = {
+      testId: testDetails.testId ?? Number.parseInt(id ?? '0'),
+      startedAt,
+      completedAt: new Date().toISOString(),
+      score,
+      totalQuestions: testDetails.questionsPerAttempt,
+    };
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      await createTestAttempt(request);
+      navigate('/dashboard');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to submit the test. Please try again.';
+      setSubmitError(message);
+      console.error('Error submitting test:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
 
   useEffect(() => {
     async function loadData() {
@@ -73,6 +115,9 @@ export function TestPage() {
     <TestPageContent testDetails={testDetails!}
       onSelectOption={handleSelectOption}
       onNavigateQuestion={handleNavigateQuestion}
-      isAnswered={isAnswered} />
+      isAnswered={isAnswered}
+      onSubmit={handleSubmit}
+      isSubmitting={isSubmitting}
+      submitError={submitError} />
   );
 }

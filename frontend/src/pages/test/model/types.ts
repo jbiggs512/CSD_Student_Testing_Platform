@@ -12,6 +12,7 @@ export interface Question {
 }
 
 export interface TestDetails {
+  readonly testId?: number;
   readonly course: string; 
   readonly subject: string;
   readonly testName: string;
@@ -28,4 +29,24 @@ export interface TestPageContentProps {
   readonly onSelectOption: (questionId: number, optionId: number) => void;
   readonly onNavigateQuestion: (questionNumber: number) => void;
   readonly isAnswered: (questionId: number) => boolean;
+  readonly onSubmit?: () => void | Promise<void>;
+  readonly isSubmitting?: boolean;
+  readonly submitError?: string | null;
+}
+
+export interface TestAttemptRequest {
+  testId: number;
+  startedAt: string;
+  completedAt: string;
+  score: number;
+  totalQuestions: number;
+}
+
+export interface TestAttempt {
+  attemptId: number;
+  testId: number;
+  startedAt: string;
+  completedAt: string;
+  score: number;
+  totalQuestions: number;
 }
