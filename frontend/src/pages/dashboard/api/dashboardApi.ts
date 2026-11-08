@@ -1,3 +1,4 @@
+import { getAccessToken } from '@shared/api'
 import type { OutstandingTest, CompletedTest, CohortRank } from "../model"
 import { API_BASE_URL } from '@shared/config'
 
@@ -12,12 +13,21 @@ export class DashboardApiError extends Error {
 }
 
 export async function getOutstandingTests(id: number): Promise<OutstandingTest[]> {
+    const token = getAccessToken()
+    
+    if (!token) {
+        throw new DashboardApiError(
+            'Your session has expired. Please sign in again.',
+            401,
+        )
+    }
+        
     let response: Response
-
     try {
         response = await fetch(`${API_BASE_URL}/student/outstandingTests/${id}`, {
             method: 'GET',
             headers: {
+                'Authorization': `Bearer ${token}`,
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
             },

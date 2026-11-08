@@ -8,7 +8,7 @@ import {
   getCompletedTests as getDashboardCompletedTests,
   getCohortRank as getDashboardCohortRank,
 } from '@/pages/dashboard/api'
-import { getCurrentUser } from '@/shared/api'
+import { getCurrentUser, clearAccessToken, setAccessToken } from '@/shared/api'
 
 vi.mock('@/pages/dashboard/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/pages/dashboard/api')>()
@@ -70,7 +70,7 @@ beforeEach(() => {
   vi.mocked(getDashboardCohortRank).mockReturnValue({ rank: 0, size: 0 })
 })
 
-describe('DashboardPage', () => {
+describe('Dashboard Page', () => {
   it('renders the dashboard page with the correct heading', async () => {
     renderDashboardWithRoutes()
 
@@ -203,63 +203,85 @@ it('renders the correct number of test cards', () => {
   expect(startButtons).toHaveLength(2)
 })
 
-it('reports connection failures with a zero status', async () => {
-  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network down'))
 
-  await expect(getOutstandingTests(1)).rejects.toMatchObject({
-    name: 'DashboardApiError',
-    message: 'Unable to connect to the server. Please try again.',
-    status: 0,
+describe('Dashboard API Client', () => {
+  afterEach(() => {
+    clearAccessToken()
+    vi.restoreAllMocks()
   })
-})
 
-it('reports unauthorized responses', async () => {
-  vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-    ok: false,
-    status: 401,
-  } as Response)
+  it('rejects requests when the session token is missing', async () => {
+      await expect(getOutstandingTests(1)).rejects.toEqual(
+        new DashboardApiError(
+          'Your session has expired. Please sign in again.',
+          401,
+        ),
+      )
+    })
 
-  await expect(getOutstandingTests(1)).rejects.toEqual(
-    new DashboardApiError('Incorrect Credentials. Please try again.', 401),
-  )
-})
+  it('reports connection failures with a zero status', async () => {
+    setAccessToken('test-token')
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network down'))
 
-it('returns outstanding tests from a successful response', async () => {
-  vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-    ok: true,
-    status: 200,
-    json: async () => mockOutstandingTests,
-  } as Response)
+    await expect(getOutstandingTests(1)).rejects.toMatchObject({
+      name: 'DashboardApiError',
+      message: 'Unable to connect to the server. Please try again.',
+      status: 0,
+    })
+  })
 
-  await expect(getOutstandingTests(1)).resolves.toEqual(mockOutstandingTests)
-})
+  it('reports unauthorized responses', async () => {
+    setAccessToken('test-token')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 401,
+    } as Response)
 
-it('uses the default forbidden message for missing detail text', async () => {
-  vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-    ok: false,
-    status: 403,
-    json: async () => ({ detail: ' ' }),
-  } as Response)
+    await expect(getOutstandingTests(1)).rejects.toEqual(
+      new DashboardApiError('Incorrect Credentials. Please try again.', 401),
+    )
+  })
 
-  await expect(getOutstandingTests(1)).rejects.toEqual(
-    new DashboardApiError(
-      'Your account is not permitted to access this resource.',
-      403,
-    ),
-  )
-})
+  it('returns outstanding tests from a successful response', async () => {
+    setAccessToken('test-token')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockOutstandingTests,
+    } as Response)
 
-it('uses the server detail message for other error responses', async () => {
-  vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-    ok: false,
-    status: 500,
-    json: async () => ({ detail: 'The test service is unavailable.' }),
-  } as Response)
+    await expect(getOutstandingTests(1)).resolves.toEqual(mockOutstandingTests)
+  })
 
-  await expect(getOutstandingTests(1)).rejects.toEqual(
-    new DashboardApiError(
-      'The test service is unavailable.',
-      500,
-    ),
-  )
+  it('uses the default forbidden message for missing detail text', async () => {
+    setAccessToken('test-token')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ detail: ' ' }),
+    } as Response)
+
+    await expect(getOutstandingTests(1)).rejects.toEqual(
+      new DashboardApiError(
+        'Your account is not permitted to access this resource.',
+        403,
+      ),
+    )
+  })
+
+  it('uses the server detail message for other error responses', async () => {
+    setAccessToken('test-token')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({ detail: 'The test service is unavailable.' }),
+    } as Response)
+
+    await expect(getOutstandingTests(1)).rejects.toEqual(
+      new DashboardApiError(
+        'The test service is unavailable.',
+        500,
+      ),
+    )
+  })
 })
