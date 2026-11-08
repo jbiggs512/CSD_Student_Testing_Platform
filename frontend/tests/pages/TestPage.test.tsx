@@ -10,111 +10,111 @@ function createTestDetails(): TestDetails {
   return {
     "course": "Introduction to Software",
     "subject": "Basic Computing & Software",
-    "testName": "Beginner Software Quiz",
+    "test_name": "Beginner Software Quiz",
     "description": "A quiz to test your basic knowledge of software and computing.",
     "timed": true,
-    "timeLimitMinutes": 600,
-    "currentQuestion": 1,
-    "questionsPerAttempt": 10,
+    "time_limit_minutes": 600,
+    "current_question": 1,
+    "questions_per_attempt": 10,
     "questions": [
       {
-        "questionId": 1,
-        "questionText": "What does HTML stand for?",
+        "question_id": 1,
+        "question_text": "What does HTML stand for?",
         "options": [
-          { "optionId": 1, "optionText": "HyperText Markup Language", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "High Tech Modern Language", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "Hyperlink and Text Markup Language", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "Home Tool Markup Language", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "HyperText Markup Language", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "High Tech Modern Language", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "Hyperlink and Text Markup Language", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "Home Tool Markup Language", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 2,
-        "questionText": "Which of the following is a programming language?",
+        "question_id": 2,
+        "question_text": "Which of the following is a programming language?",
         "options": [
-          { "optionId": 1, "optionText": "Python", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "HTML", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "CSS", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "SQL", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "Python", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "HTML", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "CSS", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "SQL", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 3,
-        "questionText": "What is the primary function of a web browser?",
+        "question_id": 3,
+        "question_text": "What is the primary function of a web browser?",
         "options": [
-          { "optionId": 1, "optionText": "To display web pages", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "To compile code", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "To manage computer hardware", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "To create databases", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "To display web pages", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "To compile code", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "To manage computer hardware", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "To create databases", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 4,
-        "questionText": "Which symbol is commonly used for single-line comments in JavaScript?",
+        "question_id": 4,
+        "question_text": "Which symbol is commonly used for single-line comments in JavaScript?",
         "options": [
-          { "optionId": 1, "optionText": "//", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "#", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "/*", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "<!--", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "//", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "#", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "/*", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "<!--", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 5,
-        "questionText": "What does CSS stand for?",
+        "question_id": 5,
+        "question_text": "What does CSS stand for?",
         "options": [
-          { "optionId": 1, "optionText": "Cascading Style Sheets", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "Computer Style System", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "Creative Style Sheets", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "Colorful Style Sheets", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "Cascading Style Sheets", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "Computer Style System", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "Creative Style Sheets", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "Colorful Style Sheets", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 6,
-        "questionText": "Which data structure operates on a Last-In, First-Out (LIFO) basis?",
+        "question_id": 6,
+        "question_text": "Which data structure operates on a Last-In, First-Out (LIFO) basis?",
         "options": [
-          { "optionId": 1, "optionText": "Stack", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "Queue", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "Array", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "Linked List", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "Stack", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "Queue", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "Array", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "Linked List", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 7,
-        "questionText": "What is Git primarily used for?",
+        "question_id": 7,
+        "question_text": "What is Git primarily used for?",
         "options": [
-          { "optionId": 1, "optionText": "Version control", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "Designing user interfaces", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "Database management", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "Network security", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "Version control", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "Designing user interfaces", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "Database management", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "Network security", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 8,
-        "questionText": "Which of the following is a relational database management system?",
+        "question_id": 8,
+        "question_text": "Which of the following is a relational database management system?",
         "options": [
-          { "optionId": 1, "optionText": "PostgreSQL", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "MongoDB", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "Redis", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "Cassandra", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "PostgreSQL", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "MongoDB", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "Redis", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "Cassandra", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 9,
-        "questionText": "What does API stand for?",
+        "question_id": 9,
+        "question_text": "What does API stand for?",
         "options": [
-          { "optionId": 1, "optionText": "Application Programming Interface", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "Advanced Programming Interaction", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "Automated Program Integration", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "Application Process Integration", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "Application Programming Interface", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "Advanced Programming Interaction", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "Automated Program Integration", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "Application Process Integration", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 10,
-        "questionText": "Which file extension is typically used for Python source code files?",
+        "question_id": 10,
+        "question_text": "Which file extension is typically used for Python source code files?",
         "options": [
-          { "optionId": 1, "optionText": ".py", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": ".js", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": ".html", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": ".java", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": ".py", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": ".js", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": ".html", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": ".java", "is_correct": false, "selected": false }
         ]
       }
     ]

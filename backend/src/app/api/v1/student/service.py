@@ -33,10 +33,10 @@ def get_outstanding_tests(
     return [OutstandingTestResponse(
         
                 id=test.test_id,
-                testName=test.test_name,
-                subjectName=test.subject.subject_name,
+                test_name=test.test_name,
+                subject_name=test.subject.subject_name,
                 description=test.description,
-                questionsPerAttempt=test.questions_per_attempt,
+                questions_per_attempt=test.questions_per_attempt,
         ) for test in outstanding_tests] 
     
     

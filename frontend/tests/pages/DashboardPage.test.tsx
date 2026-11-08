@@ -30,14 +30,14 @@ vi.mock('@/shared/api', async (importOriginal) => {
 
 // Mock data for testing
 const mockCompletedTests = [
-  { id: 1, testName: 'Test 1', scorePercentage: 80, questionsCorrect: 8, questionsTotal: 10, completedDate: '2026-10-01', scorePoints: 280 },
-  { id: 2, testName: 'Test 2', scorePercentage: 90, questionsCorrect: 9, questionsTotal: 10, completedDate: '2026-10-05', scorePoints: 300 },
-  { id: 3, testName: 'Test 3', scorePercentage: 84, questionsCorrect: 42, questionsTotal: 50, completedDate: '2026-10-10', scorePoints: 400 },
+  { id: 1, test_name: 'Test 1', score_percentage: 80, questions_correct: 8, questions_total: 10, completed_date: '2026-10-01', score_points: 280 },
+  { id: 2, test_name: 'Test 2', score_percentage: 90, questions_correct: 9, questions_total: 10, completed_date: '2026-10-05', score_points: 300 },
+  { id: 3, test_name: 'Test 3', score_percentage: 84, questions_correct: 42, questions_total: 50, completed_date: '2026-10-10', score_points: 400 },
 ]
 
 const mockOutstandingTests = [
-  { id: 4, testName: 'Test 4', subjectName: 'Software', description: 'Intro to Software', questionsPerAttempt: 10 },
-  { id: 5, testName: 'Test 5', subjectName: 'Software', description: 'OOP', questionsPerAttempt: 20 },
+  { id: 4, test_name: 'Test 4', subject_name: 'Software', description: 'Intro to Software', questions_per_attempt: 10 },
+  { id: 5, test_name: 'Test 5', subject_name: 'Software', description: 'OOP', questions_per_attempt: 20 },
 ]
 
 // Helper function to render the dashboard page with routing context

@@ -1,52 +1,52 @@
 export interface Option {
-  readonly optionId: number;
-  readonly optionText: string;
-  readonly isCorrect: boolean;
+  readonly option_id: number;
+  readonly option_text: string;
+  readonly is_correct: boolean;
   selected: boolean;
 }
 
 export interface Question {
-  readonly questionId: number;
-  readonly questionText: string;
+  readonly question_id: number;
+  readonly question_text: string;
   readonly options: Option[];
 }
 
 export interface TestDetails {
-  readonly testId?: number;
+  readonly test_id?: number;
   readonly course: string; 
   readonly subject: string;
-  readonly testName: string;
+  readonly test_name: string;
   readonly description: string;
   readonly timed: boolean;
-  readonly timeLimitMinutes: number; 
-  readonly currentQuestion: number;
-  readonly questionsPerAttempt: number;
+  readonly time_limit_minutes: number; 
+  readonly current_question: number;
+  readonly questions_per_attempt: number;
   readonly questions: Question[]; 
 }
 
 export interface TestPageContentProps {
   readonly testDetails: TestDetails;
-  readonly onSelectOption: (questionId: number, optionId: number) => void;
-  readonly onNavigateQuestion: (questionNumber: number) => void;
-  readonly isAnswered: (questionId: number) => boolean;
+  readonly onSelectOption: (question_id: number, option_id: number) => void;
+  readonly onNavigateQuestion: (question_number: number) => void;
+  readonly isAnswered: (question_id: number) => boolean;
   readonly onSubmit?: () => void | Promise<void>;
   readonly isSubmitting?: boolean;
   readonly submitError?: string | null;
 }
 
 export interface TestAttemptRequest {
-  testId: number;
-  startedAt: string;
-  completedAt: string;
+  test_id: number;
+  started_at: string;
+  completed_at: string;
   score: number;
-  totalQuestions: number;
+  total_questions: number;
 }
 
 export interface TestAttempt {
-  attemptId: number;
-  testId: number;
-  startedAt: string;
-  completedAt: string;
+  attempt_id: number;
+  test_id: number;
+  started_at: string;
+  completed_at: string;
   score: number;
-  totalQuestions: number;
+  total_questions: number;
 }

@@ -77,21 +77,21 @@ export function getCompletedTests(): CompletedTest[] {
     return [
         {
             id: 1,
-            testName: 'Test 1',
-            scorePercentage: 50,
-            questionsCorrect: 6,
-            questionsTotal: 12,
-            completedDate: '10th October 2026',
-            scorePoints: 280
+            test_name: 'Test 1',
+            score_percentage: 50,
+            questions_correct: 6,
+            questions_total: 12,
+            completed_date: '10th October 2026',
+            score_points: 280
         },
         {
             id: 2,
-            testName: 'Test 2',
-            scorePercentage: 92,
-            questionsCorrect: 18,
-            questionsTotal: 20,
-            completedDate: '15th October 2026',
-            scorePoints: 360
+            test_name: 'Test 2',
+            score_percentage: 92,
+            questions_correct: 18,
+            questions_total: 20,
+            completed_date: '15th October 2026',
+            score_points: 360
         }
     ]
 }

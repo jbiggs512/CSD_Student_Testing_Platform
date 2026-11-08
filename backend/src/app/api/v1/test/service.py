@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, Response
+from fastapi import HTTPException
 
 from app.db.models import Test, User, Subject, Course, TestAttempt
 from app.api.v1.test.schemas import QuestionOptionResponse, QuestionResponse, TestResponse, TestAttemptCreateRequest, TestAttemptResponse
@@ -33,24 +33,24 @@ def get_test_data(
             raise HTTPException(status_code=401, detail=f"User not allowed to access test with ID '{target_test_id}'.")
 
     return TestResponse(
-        testId=test.test_id,
+        test_id=test.test_id,
         course=test.subject.course.course_title,
         subject=test.subject.subject_name,
-        testName=test.test_name,
+        test_name=test.test_name,
         description=test.description,
         timed=test.time_limit_minutes is not None and test.time_limit_minutes > 0,
-        timeLimitMinutes=test.time_limit_minutes,
-        currentQuestion=1,
-        questionsPerAttempt=test.questions_per_attempt,
+        time_limit_minutes=test.time_limit_minutes,
+        current_question=1,
+        questions_per_attempt=test.questions_per_attempt,
         questions=[
             QuestionResponse(
-                questionId=question.question_id,
-                questionText=question.question_text,
+                question_id=question.question_id,
+                question_text=question.question_text,
                 options=[
                     QuestionOptionResponse(
-                        optionId=option.option_id,
-                        optionText=option.option_text,
-                        isCorrect=option.is_correct
+                        option_id=option.option_id,
+                        option_text=option.option_text,
+                        is_correct=option.is_correct
                     )
                     for option in question.options
                 ]
@@ -66,12 +66,12 @@ def save_test_attempt(
     ) -> TestAttemptResponse:
     
     new_test_attempt = TestAttempt(
-        test_id=request.testId,
+        test_id=request.test_id,
         user_id=current_user.user_id,
-        started_at=request.startedAt,
-        completed_at=request.completedAt,
+        started_at=request.started_at,
+        completed_at=request.completed_at,
         score=request.score,
-        total_questions=request.totalQuestions
+        total_questions=request.total_questions
     )
     
     db.add(new_test_attempt)

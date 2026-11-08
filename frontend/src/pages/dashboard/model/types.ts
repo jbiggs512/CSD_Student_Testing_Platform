@@ -1,19 +1,19 @@
 export interface OutstandingTest {
     id: number
-    testName: string
-    subjectName: string
+    test_name: string
+    subject_name: string
     description: string
-    questionsPerAttempt: number
+    questions_per_attempt: number
 }
 
 export interface CompletedTest {
     id: number
-    testName: string
-    scorePercentage: number
-    questionsCorrect: number
-    questionsTotal: number
-    completedDate: string
-    scorePoints: number
+    test_name: string
+    score_percentage: number
+    questions_correct: number
+    questions_total: number
+    completed_date: string
+    score_points: number
 }
 
 export interface CohortRank {
