@@ -23,6 +23,7 @@ import {
   CardTitle,
 } from '@shared/components/ui/card'
 import { Input } from '@shared/components/ui/input'
+import { Label } from '@shared/components/ui/label'
 import {
   Sheet,
   SheetContent,
@@ -437,11 +438,11 @@ export function StudentsPage() {
           <SheetHeader className="border-b"><SheetTitle>{state.editingStudent ? 'Edit student' : 'Create student'}</SheetTitle><SheetDescription>{state.editingStudent ? 'Update student account details.' : 'Create a pending student account.'}</SheetDescription></SheetHeader>
           <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-5 px-4">
             {state.formError && <Alert variant="destructive"><AlertCircleIcon aria-hidden="true" /><AlertDescription>{state.formError}</AlertDescription></Alert>}
-            {!state.editingStudent && <div className="space-y-2"><label htmlFor="student-username" className="text-sm font-medium">Username</label><Input id="student-username" required value={state.formValues.username} onChange={(event) => updateState({ formValues: { ...state.formValues, username: event.target.value } })} /></div>}
-            <div className="space-y-2"><label htmlFor="student-first-name" className="text-sm font-medium">First name</label><Input id="student-first-name" required value={state.formValues.first_name} onChange={(event) => updateState({ formValues: { ...state.formValues, first_name: event.target.value } })} /></div>
-            <div className="space-y-2"><label htmlFor="student-last-name" className="text-sm font-medium">Last name</label><Input id="student-last-name" required value={state.formValues.last_name} onChange={(event) => updateState({ formValues: { ...state.formValues, last_name: event.target.value } })} /></div>
-            <div className="space-y-2"><label htmlFor="student-email" className="text-sm font-medium">Email</label><Input id="student-email" type="email" required value={state.formValues.email} onChange={(event) => updateState({ formValues: { ...state.formValues, email: event.target.value } })} /></div>
-            {!state.editingStudent && <div className="space-y-2"><label htmlFor="student-password" className="text-sm font-medium">Initial password</label><Input id="student-password" type="password" minLength={8} required value={state.formValues.password} onChange={(event) => updateState({ formValues: { ...state.formValues, password: event.target.value } })} /></div>}
+            {!state.editingStudent && <div className="space-y-2"><Label htmlFor="student-username">Username</Label><Input id="student-username" required value={state.formValues.username} onChange={(event) => updateState({ formValues: { ...state.formValues, username: event.target.value } })} /></div>}
+            <div className="space-y-2"><Label htmlFor="student-first-name">First name</Label><Input id="student-first-name" required value={state.formValues.first_name} onChange={(event) => updateState({ formValues: { ...state.formValues, first_name: event.target.value } })} /></div>
+            <div className="space-y-2"><Label htmlFor="student-last-name">Last name</Label><Input id="student-last-name" required value={state.formValues.last_name} onChange={(event) => updateState({ formValues: { ...state.formValues, last_name: event.target.value } })} /></div>
+            <div className="space-y-2"><Label htmlFor="student-email">Email</Label><Input id="student-email" type="email" required value={state.formValues.email} onChange={(event) => updateState({ formValues: { ...state.formValues, email: event.target.value } })} /></div>
+            {!state.editingStudent && <div className="space-y-2"><Label htmlFor="student-password">Initial password</Label><Input id="student-password" type="password" minLength={8} required value={state.formValues.password} onChange={(event) => updateState({ formValues: { ...state.formValues, password: event.target.value } })} /></div>}
             <SheetFooter className="mt-auto flex-col-reverse border-t px-0 pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={closeForm} disabled={state.isSaving}>Cancel</Button><Button type="submit" disabled={state.isSaving}>{state.isSaving && <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />}{formSubmitLabel}</Button></SheetFooter>
           </form>
         </SheetContent>
@@ -455,8 +456,8 @@ export function StudentsPage() {
           </SheetHeader>
           <form onSubmit={handlePasswordSubmit} className="flex flex-1 flex-col gap-5 px-4">
             {state.formError && <Alert variant="destructive"><AlertCircleIcon aria-hidden="true" /><AlertDescription>{state.formError}</AlertDescription></Alert>}
-            <div className="space-y-2"><label htmlFor="new-student-password" className="text-sm font-medium">New password</label><Input id="new-student-password" type="password" required minLength={8} value={state.passwordValues.password} onChange={(event) => updateState({ passwordValues: { ...state.passwordValues, password: event.target.value } })} /></div>
-            <div className="space-y-2"><label htmlFor="confirm-student-password" className="text-sm font-medium">Confirm new password</label><Input id="confirm-student-password" type="password" required minLength={8} value={state.passwordValues.confirmation} onChange={(event) => updateState({ passwordValues: { ...state.passwordValues, confirmation: event.target.value } })} /></div>
+            <div className="space-y-2"><Label htmlFor="new-student-password">New password</Label><Input id="new-student-password" type="password" required minLength={8} value={state.passwordValues.password} onChange={(event) => updateState({ passwordValues: { ...state.passwordValues, password: event.target.value } })} /></div>
+            <div className="space-y-2"><Label htmlFor="confirm-student-password">Confirm new password</Label><Input id="confirm-student-password" type="password" required minLength={8} value={state.passwordValues.confirmation} onChange={(event) => updateState({ passwordValues: { ...state.passwordValues, confirmation: event.target.value } })} /></div>
             <SheetFooter className="mt-auto flex-col-reverse border-t px-0 pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={closePasswordForm} disabled={state.isSaving}>Cancel</Button><Button type="submit" disabled={state.isSaving}>{state.isSaving ? 'Saving...' : 'Update password'}</Button></SheetFooter>
           </form>
         </SheetContent>
