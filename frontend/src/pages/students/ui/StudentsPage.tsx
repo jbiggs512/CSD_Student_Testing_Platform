@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { SubmitEvent } from 'react'
 import {
   AlertCircleIcon,
   CheckCircle2Icon,
@@ -68,6 +68,42 @@ const EMPTY_PASSWORD: PasswordValues = {
   confirmation: '',
 }
 
+interface StudentsPageState {
+  students: Student[]
+  isLoading: boolean
+  isSaving: boolean
+  pageError: string | null
+  formError: string | null
+  successMessage: string | null
+  searchTerm: string
+  statusFilter: 'all' | Student['account_status']
+  isFormOpen: boolean
+  editingStudent: Student | null
+  passwordStudent: Student | null
+  passwordValues: PasswordValues
+  isPasswordOpen: boolean
+  studentPendingDelete: Student | null
+  formValues: FormValues
+}
+
+const INITIAL_STATE: StudentsPageState = {
+  students: [],
+  isLoading: true,
+  isSaving: false,
+  pageError: null,
+  formError: null,
+  successMessage: null,
+  searchTerm: '',
+  statusFilter: 'all',
+  isFormOpen: false,
+  editingStudent: null,
+  passwordStudent: null,
+  passwordValues: EMPTY_PASSWORD,
+  isPasswordOpen: false,
+  studentPendingDelete: null,
+  formValues: EMPTY_FORM,
+}
+
 function getDisplayError(error: unknown): string {
   if (error instanceof StudentApiError) return error.message
   if (error instanceof Error) return error.message
@@ -88,43 +124,61 @@ function StatusBadge({ status }: Readonly<{ status: Student['account_status'] }>
   )
 }
 
+interface StudentActionsProps {
+  student: Student
+  onApprove: (student: Student) => void
+  onToggleStatus: (student: Student) => void
+  onPassword: (student: Student) => void
+  onEdit: (student: Student) => void
+  onDelete: (student: Student) => void
+}
+
+function StudentActions({
+  student,
+  onApprove,
+  onToggleStatus,
+  onPassword,
+  onEdit,
+  onDelete,
+}: Readonly<StudentActionsProps>) {
+  const statusActionLabel = student.account_status === 'active' ? 'Disable' : 'Enable'
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      {student.account_status === 'pending' && <Button type="button" variant="ghost" size="sm" onClick={() => onApprove(student)} aria-label={`Approve ${student.username}`}><UserCheckIcon aria-hidden="true" /><span className="hidden lg:inline">Approve</span></Button>}
+      {student.account_status !== 'pending' && <Button type="button" variant="ghost" size="sm" onClick={() => onToggleStatus(student)} aria-label={`${statusActionLabel} ${student.username}`}><PowerIcon aria-hidden="true" /><span className="hidden lg:inline">{statusActionLabel}</span></Button>}
+      <Button type="button" variant="ghost" size="sm" onClick={() => onPassword(student)} aria-label={`Reset password for ${student.username}`}><KeyRoundIcon aria-hidden="true" /><span className="hidden lg:inline">Password</span></Button>
+      <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(student)} aria-label={`Edit ${student.username}`}><Edit2Icon aria-hidden="true" /><span className="hidden lg:inline">Edit</span></Button>
+      <Button type="button" variant="ghost" size="icon-sm" onClick={() => onDelete(student)} aria-label={`Delete ${student.username}`} className="text-destructive hover:text-destructive"><Trash2Icon aria-hidden="true" /></Button>
+    </div>
+  )
+}
+
 export function StudentsPage() {
-  const [students, setStudents] = useState<Student[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [pageError, setPageError] = useState<string | null>(null)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | Student['account_status']>('all')
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingStudent, setEditingStudent] = useState<Student | null>(null)
-  const [passwordStudent, setPasswordStudent] = useState<Student | null>(null)
-  const [passwordValues, setPasswordValues] = useState<PasswordValues>(EMPTY_PASSWORD)
-  const [isPasswordOpen, setIsPasswordOpen] = useState(false)
-  const [studentPendingDelete, setStudentPendingDelete] = useState<Student | null>(null)
-  const [formValues, setFormValues] = useState<FormValues>(EMPTY_FORM)
+  const [state, setState] = useState<StudentsPageState>(INITIAL_STATE)
+  const updateState = useCallback((updates: Partial<StudentsPageState>) => {
+    setState((current) => ({ ...current, ...updates }))
+  }, [])
 
   const loadStudents = useCallback(async () => {
-    setIsLoading(true)
-    setPageError(null)
+    updateState({ isLoading: true, pageError: null })
     try {
-      setStudents(await getStudents())
+      updateState({ students: await getStudents() })
     } catch (error) {
-      setPageError(getDisplayError(error))
+      updateState({ pageError: getDisplayError(error) })
     } finally {
-      setIsLoading(false)
+      updateState({ isLoading: false })
     }
-  }, [])
+  }, [updateState])
 
   useEffect(() => {
     void loadStudents()
   }, [loadStudents])
 
   const filteredStudents = useMemo(() => {
-    const search = searchTerm.trim().toLocaleLowerCase()
-    return students.filter((student) => {
-      const matchesStatus = statusFilter === 'all' || student.account_status === statusFilter
+    const search = state.searchTerm.trim().toLocaleLowerCase()
+    return state.students.filter((student) => {
+      const matchesStatus = state.statusFilter === 'all' || student.account_status === state.statusFilter
       const matchesSearch = !search ||
         [student.username, student.first_name, student.last_name, student.email]
           .join(' ')
@@ -132,155 +186,163 @@ export function StudentsPage() {
           .includes(search)
       return matchesStatus && matchesSearch
     })
-  }, [searchTerm, statusFilter, students])
+  }, [state.searchTerm, state.statusFilter, state.students])
 
   function openCreateForm() {
-    setEditingStudent(null)
-    setFormValues(EMPTY_FORM)
-    setFormError(null)
-    setIsFormOpen(true)
+    updateState({
+      editingStudent: null,
+      formValues: EMPTY_FORM,
+      formError: null,
+      isFormOpen: true,
+    })
   }
 
   function openEditForm(student: Student) {
-    setEditingStudent(student)
-    setFormValues({
-      username: student.username,
-      first_name: student.first_name,
-      last_name: student.last_name,
-      email: student.email,
-      password: '',
+    updateState({
+      editingStudent: student,
+      formValues: {
+        username: student.username,
+        first_name: student.first_name,
+        last_name: student.last_name,
+        email: student.email,
+        password: '',
+      },
+      formError: null,
+      isFormOpen: true,
     })
-    setFormError(null)
-    setIsFormOpen(true)
   }
 
-  function closeForm(open: boolean) {
-    setIsFormOpen(open)
-    if (!open) {
-      setEditingStudent(null)
-      setFormValues(EMPTY_FORM)
-      setFormError(null)
-    }
+  function closeForm() {
+    updateState({
+      isFormOpen: false,
+      editingStudent: null,
+      formValues: EMPTY_FORM,
+      formError: null,
+    })
   }
 
   function openPasswordForm(student: Student) {
-    setPasswordStudent(student)
-    setPasswordValues(EMPTY_PASSWORD)
-    setFormError(null)
-    setIsPasswordOpen(true)
+    updateState({
+      passwordStudent: student,
+      passwordValues: EMPTY_PASSWORD,
+      formError: null,
+      isPasswordOpen: true,
+    })
   }
 
-  function closePasswordForm(open: boolean) {
-    setIsPasswordOpen(open)
-    if (!open) {
-      setPasswordStudent(null)
-      setPasswordValues(EMPTY_PASSWORD)
-      setFormError(null)
-    }
+  function closePasswordForm() {
+    updateState({
+      isPasswordOpen: false,
+      passwordStudent: null,
+      passwordValues: EMPTY_PASSWORD,
+      formError: null,
+    })
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
-    setFormError(null)
-    setSuccessMessage(null)
-    setIsSaving(true)
+    updateState({ formError: null, successMessage: null, isSaving: true })
 
     try {
-      if (editingStudent) {
-        await updateStudent(editingStudent.username, {
-          first_name: formValues.first_name.trim(),
-          last_name: formValues.last_name.trim(),
-          email: formValues.email.trim(),
+      if (state.editingStudent) {
+        await updateStudent(state.editingStudent.username, {
+          first_name: state.formValues.first_name.trim(),
+          last_name: state.formValues.last_name.trim(),
+          email: state.formValues.email.trim(),
         })
-        setSuccessMessage('Student updated successfully.')
+        updateState({ successMessage: 'Student updated successfully.' })
       } else {
         await createStudent({
-          username: formValues.username.trim(),
-          first_name: formValues.first_name.trim(),
-          last_name: formValues.last_name.trim(),
-          email: formValues.email.trim(),
-          password: formValues.password,
+          username: state.formValues.username.trim(),
+          first_name: state.formValues.first_name.trim(),
+          last_name: state.formValues.last_name.trim(),
+          email: state.formValues.email.trim(),
+          password: state.formValues.password,
         })
-        setSuccessMessage('Student created successfully.')
+        updateState({ successMessage: 'Student created successfully.' })
       }
-      closeForm(false)
+      closeForm()
       await loadStudents()
     } catch (error) {
-      setFormError(getDisplayError(error))
+      updateState({ formError: getDisplayError(error) })
     } finally {
-      setIsSaving(false)
+      updateState({ isSaving: false })
     }
   }
 
   async function toggleStatus(student: Student) {
-    setPageError(null)
-    setSuccessMessage(null)
+    updateState({ pageError: null, successMessage: null })
     try {
       const nextStatus = student.account_status === 'active' ? 'disabled' : 'active'
       await updateStudent(student.username, { account_status: nextStatus })
-      setSuccessMessage(`Student ${nextStatus === 'active' ? 'enabled' : 'disabled'} successfully.`)
+      const actionLabel = nextStatus === 'active' ? 'enabled' : 'disabled'
+      updateState({ successMessage: `Student ${actionLabel} successfully.` })
       await loadStudents()
     } catch (error) {
-      setPageError(getDisplayError(error))
+      updateState({ pageError: getDisplayError(error) })
     }
-
   }
 
-  async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handlePasswordSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
-    setFormError(null)
-    if (passwordValues.password.length < 8) {
-      setFormError('Password must be at least 8 characters.')
+    updateState({ formError: null })
+    if (state.passwordValues.password.length < 8) {
+      updateState({ formError: 'Password must be at least 8 characters.' })
       return
     }
-    if (passwordValues.password !== passwordValues.confirmation) {
-      setFormError('Passwords do not match.')
+    if (state.passwordValues.password !== state.passwordValues.confirmation) {
+      updateState({ formError: 'Passwords do not match.' })
       return
     }
-    if (!passwordStudent) return
+    if (!state.passwordStudent) return
 
-    setIsSaving(true)
+    updateState({ isSaving: true })
     try {
-      await updateStudent(passwordStudent.username, { password: passwordValues.password })
-      setSuccessMessage('Student password updated successfully.')
-      closePasswordForm(false)
+      await updateStudent(state.passwordStudent.username, { password: state.passwordValues.password })
+      updateState({ successMessage: 'Student password updated successfully.' })
+      closePasswordForm()
       await loadStudents()
     } catch (error) {
-      setFormError(getDisplayError(error))
+      updateState({ formError: getDisplayError(error) })
     } finally {
-      setIsSaving(false)
+      updateState({ isSaving: false })
     }
   }
 
   async function handleApprove(student: Student) {
-    setPageError(null)
-    setSuccessMessage(null)
+    updateState({ pageError: null, successMessage: null })
     try {
       await approveStudent(student.username)
-      setSuccessMessage('Student approved successfully.')
+      updateState({ successMessage: 'Student approved successfully.' })
       await loadStudents()
     } catch (error) {
-      setPageError(getDisplayError(error))
+      updateState({ pageError: getDisplayError(error) })
     }
   }
 
   async function confirmDelete() {
-    if (!studentPendingDelete) return
-    setPageError(null)
-    setSuccessMessage(null)
+    if (!state.studentPendingDelete) return
+    updateState({ pageError: null, successMessage: null })
     try {
-      await deleteStudent(studentPendingDelete.username)
-      setStudentPendingDelete(null)
-      setSuccessMessage('Student deleted successfully.')
+      await deleteStudent(state.studentPendingDelete.username)
+      updateState({
+        studentPendingDelete: null,
+        successMessage: 'Student deleted successfully.',
+      })
       await loadStudents()
     } catch (error) {
-      setPageError(getDisplayError(error))
+      updateState({ pageError: getDisplayError(error) })
     }
   }
 
-  const activeCount = students.filter(({ account_status }) => account_status === 'active').length
-  const pendingCount = students.filter(({ account_status }) => account_status === 'pending').length
-  const disabledCount = students.filter(({ account_status }) => account_status === 'disabled').length
+  const activeCount = state.students.filter(({ account_status }) => account_status === 'active').length
+  const pendingCount = state.students.filter(({ account_status }) => account_status === 'pending').length
+  const disabledCount = state.students.filter(({ account_status }) => account_status === 'disabled').length
+  const showEmptyState = !state.isLoading && filteredStudents.length === 0
+  const showStudentTable = !state.isLoading && filteredStudents.length > 0
+  let formSubmitLabel = 'Create student'
+  if (state.editingStudent) formSubmitLabel = 'Save changes'
+  if (state.isSaving) formSubmitLabel = 'Saving...'
 
   return (
     <main className="flex min-h-screen w-full flex-col gap-8 bg-[#f7f8fb] p-4">
@@ -298,12 +360,12 @@ export function StudentsPage() {
         </Button>
       </section>
 
-      {pageError && <Alert variant="destructive"><AlertCircleIcon aria-hidden="true" /><AlertDescription>{pageError}</AlertDescription></Alert>}
-      {successMessage && <Alert><CheckCircle2Icon aria-hidden="true" /><AlertDescription>{successMessage}</AlertDescription></Alert>}
+      {state.pageError && <Alert variant="destructive"><AlertCircleIcon aria-hidden="true" /><AlertDescription>{state.pageError}</AlertDescription></Alert>}
+      {state.successMessage && <Alert><CheckCircle2Icon aria-hidden="true" /><AlertDescription>{state.successMessage}</AlertDescription></Alert>}
 
       <section aria-label="Student statistics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ['Total students', students.length, 'All student accounts'],
+          ['Total students', state.students.length, 'All student accounts'],
           ['Active students', activeCount, 'Approved and available'],
           ['Pending students', pendingCount, 'Awaiting approval'],
           ['Disabled students', disabledCount, 'Accounts unavailable for sign in'],
@@ -327,26 +389,28 @@ export function StudentsPage() {
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative min-w-0 sm:w-72">
               <SearchIcon aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input aria-label="Search students" placeholder="Search students..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="pl-9" />
+              <Input aria-label="Search students" placeholder="Search students..." value={state.searchTerm} onChange={(event) => updateState({ searchTerm: event.target.value })} className="pl-9" />
             </div>
             <div className="flex rounded-md border p-1" aria-label="Filter students by status">
               {(['all', 'active', 'pending', 'disabled'] as const).map((filter) => (
-                <Button key={filter} type="button" size="sm" variant={statusFilter === filter ? 'secondary' : 'ghost'} aria-pressed={statusFilter === filter} onClick={() => setStatusFilter(filter)} className="capitalize">{filter}</Button>
+                <Button key={filter} type="button" size="sm" variant={state.statusFilter === filter ? 'secondary' : 'ghost'} aria-pressed={state.statusFilter === filter} onClick={() => updateState({ statusFilter: filter })} className="capitalize">{filter}</Button>
               ))}
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {isLoading ? (
+          {state.isLoading && (
             <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-muted-foreground"><LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />Loading students...</div>
-          ) : filteredStudents.length === 0 ? (
+          )}
+          {showEmptyState && (
             <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
               <div className="rounded-full bg-muted p-3"><UsersIcon className="size-6 text-muted-foreground" aria-hidden="true" /></div>
-              <h2 className="font-medium">{students.length === 0 ? 'No students yet' : 'No matching students'}</h2>
-              <p className="max-w-sm text-sm text-muted-foreground">{students.length === 0 ? 'Create the first student account to get started.' : 'Try changing your search or status filter.'}</p>
-              {students.length === 0 && <Button onClick={openCreateForm}>Add your first student</Button>}
+              <h2 className="font-medium">{state.students.length === 0 ? 'No students yet' : 'No matching students'}</h2>
+              <p className="max-w-sm text-sm text-muted-foreground">{state.students.length === 0 ? 'Create the first student account to get started.' : 'Try changing your search or status filter.'}</p>
+              {state.students.length === 0 && <Button onClick={openCreateForm}>Add your first student</Button>}
             </div>
-          ) : (
+          )}
+          {showStudentTable && (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-left text-sm">
                 <thead className="bg-navy text-xs uppercase tracking-wide text-white/80">
@@ -358,15 +422,7 @@ export function StudentsPage() {
                       <td className="px-6 py-4"><div className="font-medium text-foreground">{student.first_name} {student.last_name}</div><div className="mt-1 text-xs text-muted-foreground">{student.username}</div></td>
                       <td className="px-6 py-4 text-muted-foreground">{student.email}</td>
                       <td className="px-6 py-4"><StatusBadge status={student.account_status} /></td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-1">
-                          {student.account_status === 'pending' && <Button type="button" variant="ghost" size="sm" onClick={() => void handleApprove(student)} aria-label={`Approve ${student.username}`}><UserCheckIcon aria-hidden="true" /><span className="hidden lg:inline">Approve</span></Button>}
-                          {student.account_status !== 'pending' && <Button type="button" variant="ghost" size="sm" onClick={() => void toggleStatus(student)} aria-label={`${student.account_status === 'active' ? 'Disable' : 'Enable'} ${student.username}`}><PowerIcon aria-hidden="true" /><span className="hidden lg:inline">{student.account_status === 'active' ? 'Disable' : 'Enable'}</span></Button>}
-                          <Button type="button" variant="ghost" size="sm" onClick={() => openPasswordForm(student)} aria-label={`Reset password for ${student.username}`}><KeyRoundIcon aria-hidden="true" /><span className="hidden lg:inline">Password</span></Button>
-                          <Button type="button" variant="ghost" size="sm" onClick={() => openEditForm(student)} aria-label={`Edit ${student.username}`}><Edit2Icon aria-hidden="true" /><span className="hidden lg:inline">Edit</span></Button>
-                          <Button type="button" variant="ghost" size="icon-sm" onClick={() => setStudentPendingDelete(student)} aria-label={`Delete ${student.username}`} className="text-destructive hover:text-destructive"><Trash2Icon aria-hidden="true" /></Button>
-                        </div>
-                      </td>
+                      <td className="px-6 py-4"><StudentActions student={student} onApprove={handleApprove} onToggleStatus={toggleStatus} onPassword={openPasswordForm} onEdit={openEditForm} onDelete={(studentToDelete) => updateState({ studentPendingDelete: studentToDelete })} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -376,37 +432,37 @@ export function StudentsPage() {
         </CardContent>
       </Card>
 
-      <Sheet open={isFormOpen} onOpenChange={closeForm}>
+      <Sheet open={state.isFormOpen} onOpenChange={closeForm}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
-          <SheetHeader className="border-b"><SheetTitle>{editingStudent ? 'Edit student' : 'Create student'}</SheetTitle><SheetDescription>{editingStudent ? 'Update student account details.' : 'Create a pending student account.'}</SheetDescription></SheetHeader>
+          <SheetHeader className="border-b"><SheetTitle>{state.editingStudent ? 'Edit student' : 'Create student'}</SheetTitle><SheetDescription>{state.editingStudent ? 'Update student account details.' : 'Create a pending student account.'}</SheetDescription></SheetHeader>
           <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-5 px-4">
-            {formError && <Alert variant="destructive"><AlertCircleIcon aria-hidden="true" /><AlertDescription>{formError}</AlertDescription></Alert>}
-            {!editingStudent && <div className="space-y-2"><label htmlFor="student-username" className="text-sm font-medium">Username</label><Input id="student-username" required value={formValues.username} onChange={(event) => setFormValues((current) => ({ ...current, username: event.target.value }))} /></div>}
-            <div className="space-y-2"><label htmlFor="student-first-name" className="text-sm font-medium">First name</label><Input id="student-first-name" required value={formValues.first_name} onChange={(event) => setFormValues((current) => ({ ...current, first_name: event.target.value }))} /></div>
-            <div className="space-y-2"><label htmlFor="student-last-name" className="text-sm font-medium">Last name</label><Input id="student-last-name" required value={formValues.last_name} onChange={(event) => setFormValues((current) => ({ ...current, last_name: event.target.value }))} /></div>
-            <div className="space-y-2"><label htmlFor="student-email" className="text-sm font-medium">Email</label><Input id="student-email" type="email" required value={formValues.email} onChange={(event) => setFormValues((current) => ({ ...current, email: event.target.value }))} /></div>
-            {!editingStudent && <div className="space-y-2"><label htmlFor="student-password" className="text-sm font-medium">Initial password</label><Input id="student-password" type="password" minLength={8} required value={formValues.password} onChange={(event) => setFormValues((current) => ({ ...current, password: event.target.value }))} /></div>}
-            <SheetFooter className="mt-auto flex-col-reverse border-t px-0 pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={() => closeForm(false)} disabled={isSaving}>Cancel</Button><Button type="submit" disabled={isSaving}>{isSaving && <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />}{isSaving ? 'Saving...' : editingStudent ? 'Save changes' : 'Create student'}</Button></SheetFooter>
+            {state.formError && <Alert variant="destructive"><AlertCircleIcon aria-hidden="true" /><AlertDescription>{state.formError}</AlertDescription></Alert>}
+            {!state.editingStudent && <div className="space-y-2"><label htmlFor="student-username" className="text-sm font-medium">Username</label><Input id="student-username" required value={state.formValues.username} onChange={(event) => updateState({ formValues: { ...state.formValues, username: event.target.value } })} /></div>}
+            <div className="space-y-2"><label htmlFor="student-first-name" className="text-sm font-medium">First name</label><Input id="student-first-name" required value={state.formValues.first_name} onChange={(event) => updateState({ formValues: { ...state.formValues, first_name: event.target.value } })} /></div>
+            <div className="space-y-2"><label htmlFor="student-last-name" className="text-sm font-medium">Last name</label><Input id="student-last-name" required value={state.formValues.last_name} onChange={(event) => updateState({ formValues: { ...state.formValues, last_name: event.target.value } })} /></div>
+            <div className="space-y-2"><label htmlFor="student-email" className="text-sm font-medium">Email</label><Input id="student-email" type="email" required value={state.formValues.email} onChange={(event) => updateState({ formValues: { ...state.formValues, email: event.target.value } })} /></div>
+            {!state.editingStudent && <div className="space-y-2"><label htmlFor="student-password" className="text-sm font-medium">Initial password</label><Input id="student-password" type="password" minLength={8} required value={state.formValues.password} onChange={(event) => updateState({ formValues: { ...state.formValues, password: event.target.value } })} /></div>}
+            <SheetFooter className="mt-auto flex-col-reverse border-t px-0 pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={closeForm} disabled={state.isSaving}>Cancel</Button><Button type="submit" disabled={state.isSaving}>{state.isSaving && <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />}{formSubmitLabel}</Button></SheetFooter>
           </form>
         </SheetContent>
       </Sheet>
 
-      <Sheet open={isPasswordOpen} onOpenChange={closePasswordForm}>
+      <Sheet open={state.isPasswordOpen} onOpenChange={closePasswordForm}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader className="border-b">
             <SheetTitle>Reset student password</SheetTitle>
-            <SheetDescription>Set a new password for {passwordStudent?.username}.</SheetDescription>
+            <SheetDescription>Set a new password for {state.passwordStudent?.username}.</SheetDescription>
           </SheetHeader>
           <form onSubmit={handlePasswordSubmit} className="flex flex-1 flex-col gap-5 px-4">
-            {formError && <Alert variant="destructive"><AlertCircleIcon aria-hidden="true" /><AlertDescription>{formError}</AlertDescription></Alert>}
-            <div className="space-y-2"><label htmlFor="new-student-password" className="text-sm font-medium">New password</label><Input id="new-student-password" type="password" required minLength={8} value={passwordValues.password} onChange={(event) => setPasswordValues((current) => ({ ...current, password: event.target.value }))} /></div>
-            <div className="space-y-2"><label htmlFor="confirm-student-password" className="text-sm font-medium">Confirm new password</label><Input id="confirm-student-password" type="password" required minLength={8} value={passwordValues.confirmation} onChange={(event) => setPasswordValues((current) => ({ ...current, confirmation: event.target.value }))} /></div>
-            <SheetFooter className="mt-auto flex-col-reverse border-t px-0 pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={() => closePasswordForm(false)} disabled={isSaving}>Cancel</Button><Button type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Update password'}</Button></SheetFooter>
+            {state.formError && <Alert variant="destructive"><AlertCircleIcon aria-hidden="true" /><AlertDescription>{state.formError}</AlertDescription></Alert>}
+            <div className="space-y-2"><label htmlFor="new-student-password" className="text-sm font-medium">New password</label><Input id="new-student-password" type="password" required minLength={8} value={state.passwordValues.password} onChange={(event) => updateState({ passwordValues: { ...state.passwordValues, password: event.target.value } })} /></div>
+            <div className="space-y-2"><label htmlFor="confirm-student-password" className="text-sm font-medium">Confirm new password</label><Input id="confirm-student-password" type="password" required minLength={8} value={state.passwordValues.confirmation} onChange={(event) => updateState({ passwordValues: { ...state.passwordValues, confirmation: event.target.value } })} /></div>
+            <SheetFooter className="mt-auto flex-col-reverse border-t px-0 pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={closePasswordForm} disabled={state.isSaving}>Cancel</Button><Button type="submit" disabled={state.isSaving}>{state.isSaving ? 'Saving...' : 'Update password'}</Button></SheetFooter>
           </form>
         </SheetContent>
       </Sheet>
 
-      <ConfirmDialog open={studentPendingDelete !== null} onOpenChange={(open) => { if (!open) setStudentPendingDelete(null) }} title="Delete student?" description={studentPendingDelete ? `Delete "${studentPendingDelete.username}"? This action cannot be undone.` : ''} confirmLabel="Delete" onConfirm={() => void confirmDelete()} />
+      <ConfirmDialog open={state.studentPendingDelete !== null} onOpenChange={(open) => { if (!open) updateState({ studentPendingDelete: null }) }} title="Delete student?" description={state.studentPendingDelete ? `Delete "${state.studentPendingDelete.username}"? This action cannot be undone.` : ''} confirmLabel="Delete" onConfirm={confirmDelete} />
     </main>
   )
 }
