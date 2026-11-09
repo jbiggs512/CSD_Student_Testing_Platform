@@ -155,6 +155,83 @@ function StudentActions({
   )
 }
 
+interface StudentListCardProps {
+  state: StudentsPageState
+  filteredStudents: Student[]
+  onSearch: (value: string) => void
+  onStatusFilter: (filter: StudentsPageState['statusFilter']) => void
+  onCreate: () => void
+  onApprove: (student: Student) => void
+  onToggleStatus: (student: Student) => void
+  onPassword: (student: Student) => void
+  onEdit: (student: Student) => void
+  onDelete: (student: Student) => void
+}
+
+function StudentListCard({
+  state,
+  filteredStudents,
+  onSearch,
+  onStatusFilter,
+  onCreate,
+  onApprove,
+  onToggleStatus,
+  onPassword,
+  onEdit,
+  onDelete,
+}: Readonly<StudentListCardProps>) {
+  const showEmptyState = !state.isLoading && filteredStudents.length === 0
+  const showStudentTable = !state.isLoading && filteredStudents.length > 0
+
+  return (
+    <Card className="gap-0 border-0 py-0 shadow-md">
+      <CardHeader className="gap-4 border-b py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <CardTitle className="font-heading text-2xl font-bold text-plum">Students</CardTitle>
+          <CardDescription>Search, approve, edit and manage student accounts.</CardDescription>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative min-w-0 sm:w-72">
+            <SearchIcon aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input aria-label="Search students" placeholder="Search students..." value={state.searchTerm} onChange={(event) => onSearch(event.target.value)} className="pl-9" />
+          </div>
+          <div className="flex rounded-md border p-1" aria-label="Filter students by status">
+            {(['all', 'active', 'pending', 'disabled'] as const).map((filter) => (
+              <Button key={filter} type="button" size="sm" variant={state.statusFilter === filter ? 'secondary' : 'ghost'} aria-pressed={state.statusFilter === filter} onClick={() => onStatusFilter(filter)} className="capitalize">{filter}</Button>
+            ))}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        {state.isLoading && <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-muted-foreground"><LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />Loading students...</div>}
+        {showEmptyState && <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+          <div className="rounded-full bg-muted p-3"><UsersIcon className="size-6 text-muted-foreground" aria-hidden="true" /></div>
+          <h2 className="font-medium">{state.students.length === 0 ? 'No students yet' : 'No matching students'}</h2>
+          <p className="max-w-sm text-sm text-muted-foreground">{state.students.length === 0 ? 'Create the first student account to get started.' : 'Try changing your search or status filter.'}</p>
+          {state.students.length === 0 && <Button onClick={onCreate}>Add your first student</Button>}
+        </div>}
+        {showStudentTable && <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-left text-sm">
+            <thead className="bg-navy text-xs uppercase tracking-wide text-white/80">
+              <tr><th scope="col" className="px-6 py-3 font-medium">Student</th><th scope="col" className="px-6 py-3 font-medium">Email</th><th scope="col" className="px-6 py-3 font-medium">Status</th><th scope="col" className="px-6 py-3 text-right font-medium">Actions</th></tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filteredStudents.map((student) => (
+                <tr key={student.user_id} className="transition-colors hover:bg-pink/5">
+                  <td className="px-6 py-4"><div className="font-medium text-foreground">{student.first_name} {student.last_name}</div><div className="mt-1 text-xs text-muted-foreground">{student.username}</div></td>
+                  <td className="px-6 py-4 text-muted-foreground">{student.email}</td>
+                  <td className="px-6 py-4"><StatusBadge status={student.account_status} /></td>
+                  <td className="px-6 py-4"><StudentActions student={student} onApprove={onApprove} onToggleStatus={onToggleStatus} onPassword={onPassword} onEdit={onEdit} onDelete={onDelete} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>}
+      </CardContent>
+    </Card>
+  )
+}
+
 export function StudentsPage() {
   const [state, setState] = useState<StudentsPageState>(INITIAL_STATE)
   const updateState = useCallback((updates: Partial<StudentsPageState>) => {
@@ -339,8 +416,6 @@ export function StudentsPage() {
   const activeCount = state.students.filter(({ account_status }) => account_status === 'active').length
   const pendingCount = state.students.filter(({ account_status }) => account_status === 'pending').length
   const disabledCount = state.students.filter(({ account_status }) => account_status === 'disabled').length
-  const showEmptyState = !state.isLoading && filteredStudents.length === 0
-  const showStudentTable = !state.isLoading && filteredStudents.length > 0
   let formSubmitLabel = 'Create student'
   if (state.editingStudent) formSubmitLabel = 'Save changes'
   if (state.isSaving) formSubmitLabel = 'Saving...'
@@ -381,57 +456,18 @@ export function StudentsPage() {
         ))}
       </section>
 
-      <Card className="gap-0 border-0 py-0 shadow-md">
-        <CardHeader className="gap-4 border-b py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <CardTitle className="font-heading text-2xl font-bold text-plum">Students</CardTitle>
-            <CardDescription>Search, approve, edit and manage student accounts.</CardDescription>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="relative min-w-0 sm:w-72">
-              <SearchIcon aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input aria-label="Search students" placeholder="Search students..." value={state.searchTerm} onChange={(event) => updateState({ searchTerm: event.target.value })} className="pl-9" />
-            </div>
-            <div className="flex rounded-md border p-1" aria-label="Filter students by status">
-              {(['all', 'active', 'pending', 'disabled'] as const).map((filter) => (
-                <Button key={filter} type="button" size="sm" variant={state.statusFilter === filter ? 'secondary' : 'ghost'} aria-pressed={state.statusFilter === filter} onClick={() => updateState({ statusFilter: filter })} className="capitalize">{filter}</Button>
-              ))}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {state.isLoading && (
-            <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-muted-foreground"><LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />Loading students...</div>
-          )}
-          {showEmptyState && (
-            <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-              <div className="rounded-full bg-muted p-3"><UsersIcon className="size-6 text-muted-foreground" aria-hidden="true" /></div>
-              <h2 className="font-medium">{state.students.length === 0 ? 'No students yet' : 'No matching students'}</h2>
-              <p className="max-w-sm text-sm text-muted-foreground">{state.students.length === 0 ? 'Create the first student account to get started.' : 'Try changing your search or status filter.'}</p>
-              {state.students.length === 0 && <Button onClick={openCreateForm}>Add your first student</Button>}
-            </div>
-          )}
-          {showStudentTable && (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
-                <thead className="bg-navy text-xs uppercase tracking-wide text-white/80">
-                  <tr><th scope="col" className="px-6 py-3 font-medium">Student</th><th scope="col" className="px-6 py-3 font-medium">Email</th><th scope="col" className="px-6 py-3 font-medium">Status</th><th scope="col" className="px-6 py-3 text-right font-medium">Actions</th></tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filteredStudents.map((student) => (
-                    <tr key={student.user_id} className="transition-colors hover:bg-pink/5">
-                      <td className="px-6 py-4"><div className="font-medium text-foreground">{student.first_name} {student.last_name}</div><div className="mt-1 text-xs text-muted-foreground">{student.username}</div></td>
-                      <td className="px-6 py-4 text-muted-foreground">{student.email}</td>
-                      <td className="px-6 py-4"><StatusBadge status={student.account_status} /></td>
-                      <td className="px-6 py-4"><StudentActions student={student} onApprove={handleApprove} onToggleStatus={toggleStatus} onPassword={openPasswordForm} onEdit={openEditForm} onDelete={(studentToDelete) => updateState({ studentPendingDelete: studentToDelete })} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <StudentListCard
+        state={state}
+        filteredStudents={filteredStudents}
+        onSearch={(searchTerm) => updateState({ searchTerm })}
+        onStatusFilter={(statusFilter) => updateState({ statusFilter })}
+        onCreate={openCreateForm}
+        onApprove={handleApprove}
+        onToggleStatus={toggleStatus}
+        onPassword={openPasswordForm}
+        onEdit={openEditForm}
+        onDelete={(student) => updateState({ studentPendingDelete: student })}
+      />
 
       <Sheet open={state.isFormOpen} onOpenChange={closeForm}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
