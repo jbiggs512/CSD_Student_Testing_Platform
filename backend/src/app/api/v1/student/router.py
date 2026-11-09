@@ -14,8 +14,7 @@ router = APIRouter()
 @router.get("/outstandingTests")
 def get_test(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-     _: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
+    current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ) -> list[schemas.OutstandingTestResponse]:
     """Get outstanding tests by current student ID"""
     return service.get_outstanding_tests(db, current_user.user_id)
@@ -23,8 +22,7 @@ def get_test(
 @router.get("/completedTests")
 def get_test(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-     _: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
+    current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ) -> list[schemas.CompletedTestResponse]:
     """Get completed tests by current student ID"""
     return service.get_completed_tests(db, current_user.user_id)
@@ -32,8 +30,7 @@ def get_test(
 @router.get("/cohortRank")
 def get_test(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-     _: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
+    current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ) -> schemas.CohortRankResponse:
     """Get cohort rank for the current student"""
     return service.get_cohort_rank(db, current_user)
