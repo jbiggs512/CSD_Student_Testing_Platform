@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { DashboardContent } from './DashboardContent';
 import { getCompletedTests, getOutstandingTests, getCohortRank } from '../api';
 import type { OutstandingTest, CompletedTest, CohortRank } from "../model"
+import { getCurrentUser } from '@/shared/api';
 
 export function DashboardPage() {
   const [completedTests, setCompletedTests] = useState<CompletedTest[]>([]);
@@ -11,22 +12,30 @@ export function DashboardPage() {
 
 
   useEffect(() => {
-    function loadData() {
+    async function loadData() {
       try {
-        // Fetch all data needed for the dashboard 
-        setCompletedTests(getCompletedTests());
-        setOutstandingTests(getOutstandingTests());
-        setCohortRank(getCohortRank());
-      }
-      catch (error) {
+        // Get authenticated user id
+        const userId = getCurrentUser()?.user_id ?? 0;
+
+        // Fetch all data needed for the dashboard with proper awaits
+        const completed = getCompletedTests();
+        setCompletedTests(completed);
+
+        const outstanding = await getOutstandingTests(userId);
+        setOutstandingTests(outstanding);
+
+        const rank = getCohortRank();
+        setCohortRank(rank);
+      } catch (error) {
         console.error("Error loading dashboard data:", error);
-      }
-      finally {
+      } finally {
         setIsLoading(false);
       }
     }
 
-    loadData();
+    loadData().catch((error) => {
+      console.error("Failed to load test data:", error);
+    });
   }, []);
 
   if (isLoading) {
