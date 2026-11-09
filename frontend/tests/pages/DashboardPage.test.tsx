@@ -89,7 +89,7 @@ describe('Dashboard Page', () => {
 
     // Check that api calls were sent with expected data and the correct number of times
     expect(getDashboardCompletedTests).toHaveBeenCalledTimes(1)
-    expect(getDashboardOutstandingTests).toHaveBeenCalledTimes
+    expect(getDashboardOutstandingTests).toHaveBeenCalledTimes(1)
     expect(getDashboardCohortRank).toHaveBeenCalledTimes(1)
     expect(screen.getByText('You have 2 outstanding tests to complete.')).toBeDefined()
     expect(screen.getByText('12')).toBeDefined()

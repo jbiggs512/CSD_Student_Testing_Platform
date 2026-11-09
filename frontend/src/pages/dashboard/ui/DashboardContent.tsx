@@ -23,6 +23,9 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
     ? Math.round(completedTests.reduce((sum, test) => sum + test.score_percentage, 0) / completedTests.length)
     : null;
 
+  // Plural placeholder for outstanding tests caption
+  const testPlural = outstandingTests.length === 1 ? "" : "s";
+
   return (
     <main id="dashboard-page" className="min-h-screen p-4">
 
@@ -34,8 +37,7 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
           <p className="text-sm text-white/80">
             {outstandingTests.length === 0
               ? "You have no outstanding tests!"
-              : `You have ${outstandingTests.length} outstanding test${outstandingTests.length === 1 ? "" : "s"
-              } to complete.`}
+              : `You have ${outstandingTests.length} outstanding test${testPlural} to complete.`}
           </p>
         </div>
         <div className="flex flex-wrap gap-4">

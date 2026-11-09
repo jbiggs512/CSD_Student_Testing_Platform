@@ -12,7 +12,7 @@ import {
 } from "@/shared/components";
 import type { CompletedTest } from "../model"
 
-export function CompletedTestsDialog({ tests }: { tests: CompletedTest[] }) {
+export function CompletedTestsDialog({ tests }: Readonly<{ tests: CompletedTest[] }>) {
     return (
         <Dialog>
             <DialogTrigger render={
