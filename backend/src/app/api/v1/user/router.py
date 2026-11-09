@@ -54,9 +54,27 @@ def request_delete_lecturer(
 
 
 @router.post("/student", response_model=schemas.UserResponse, status_code=201)
-def request_create_student(student: schemas.StudentCreateRequest,
-                           db: Annotated[Session, Depends(get_db)]):
+def request_create_student(
+    student: schemas.StudentCreateRequest,
+    db: Annotated[Session, Depends(get_db)],
+):
     return service.create_user(db, student)
+
+@router.get("/student", response_model=list[schemas.UserResponse])
+def request_get_students(
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN))],
+):
+    return service.get_students(db)
+
+@router.patch("/student/{username}", response_model=schemas.UserResponse)
+def request_update_student(
+    username: str,
+    changes: schemas.StudentUpdateRequest,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN))],
+):
+    return service.update_student(db, username, changes)
 
 @router.patch("/student/{username}/approve", response_model=schemas.UserResponse)
 def approve_student(
@@ -65,6 +83,14 @@ def approve_student(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
     return service.approve_student(db, username, current_user)
+
+@router.delete("/student/{username}", status_code=204)
+def request_delete_student(
+    username: str,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN))],
+) -> None:
+    service.delete_student(db, username)
 
 @router.delete("/{username}", status_code=204)
 def delete_user(

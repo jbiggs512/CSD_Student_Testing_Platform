@@ -41,6 +41,14 @@ class LecturerUpdateRequest(BaseModel):
     password: str | None = None
     account_status: AccountStatus | None = None
 
+
+class StudentUpdateRequest(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    email: EmailStr | None = None
+    password: str | None = None
+    account_status: AccountStatus | None = None
+
 class StudentCreateRequest(BaseUserCreateRequest):
     @property
     def role(self) -> str:
