@@ -12,7 +12,10 @@ export class DashboardApiError extends Error {
     }
 }
 
-export async function getOutstandingTests(id: number): Promise<OutstandingTest[]> {
+async function dashboardRequest<T>(
+    endpoint: string,
+    options: RequestInit = {},
+): Promise<T> {
     const token = getAccessToken()
     
     if (!token) {
@@ -24,12 +27,12 @@ export async function getOutstandingTests(id: number): Promise<OutstandingTest[]
         
     let response: Response
     try {
-        response = await fetch(`${API_BASE_URL}/student/outstandingTests/${id}`, {
-            method: 'GET',
+       response = await fetch(`${API_BASE_URL}/student${endpoint}`, {
+            ...options,
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+                ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+                ...options.headers,
             },
         })
     } catch {
@@ -67,38 +70,19 @@ export async function getOutstandingTests(id: number): Promise<OutstandingTest[]
         )
     }
 
-    const data = (await response.json()) as OutstandingTest[]
+    const data = (await response.json()) as T
 
     return data
 }
 
-export function getCompletedTests(): CompletedTest[] {
-    // Mock data for completed tests
-    return [
-        {
-            id: 1,
-            test_name: 'Test 1',
-            score_percentage: 50,
-            questions_correct: 6,
-            questions_total: 12,
-            completed_date: '10th October 2026',
-            score_points: 280
-        },
-        {
-            id: 2,
-            test_name: 'Test 2',
-            score_percentage: 92,
-            questions_correct: 18,
-            questions_total: 20,
-            completed_date: '15th October 2026',
-            score_points: 360
-        }
-    ]
+export function getOutstandingTests(): Promise<OutstandingTest[]> {
+    return dashboardRequest<OutstandingTest[]>(`/outstandingTests`)
 }
 
-export function getCohortRank(): CohortRank {
-    return {
-        rank: 12,
-        size: 48
-    }
+export function getCompletedTests(): Promise<CompletedTest[]> {
+    return dashboardRequest<CompletedTest[]>(`/completedTests`)
+}
+
+export function getCohortRank(): Promise<CohortRank> {
+     return dashboardRequest<CohortRank>(`/cohortRank`)
 }

@@ -14,6 +14,7 @@ import {
 } from "@/shared/components";
 import { Link } from 'react-router'
 import { SORT_OPTIONS, FILTER_OPTIONS, COURSE_TITLE, type DashboardContentProps } from "../model";
+import {CompletedTestsDialog} from './CompletedTestsDialog'
 
 export function DashboardContent({ completedTests = [], outstandingTests = [], cohortRank = { rank: 0, size: 0 } }: DashboardContentProps) {
 
@@ -33,7 +34,8 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
           <p className="text-sm text-white/80">
             {outstandingTests.length === 0
               ? "You have no outstanding tests!"
-              : `You have ${outstandingTests.length} outstanding tests to complete.`}
+              : `You have ${outstandingTests.length} outstanding test${outstandingTests.length === 1 ? "" : "s"
+              } to complete.`}
           </p>
         </div>
         <div className="flex flex-wrap gap-4">
@@ -69,8 +71,8 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
 
         {/* Outstanding Tests */}
         <div>
-          <div className="mb-6 flex items-end justify-between">
-            <h3 className="text-3xl font-bold text-navy">Outstanding Tests</h3>
+          <div className="mb-6 flex items-centre justify-between">
+            <h3 className="text-3xl font-bold text-navy py-4">Outstanding Tests</h3>
             {/* Only show dropdowns if there are outstanding tests */}
             {outstandingTests.length > 0 && (
               <div className="flex gap-4">
@@ -110,19 +112,19 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {outstandingTests.map(({ id, test_name, subject_name, description, questions_per_attempt }) => (
-                <Card key={id} className="shadow-sm">
+              {outstandingTests.map((test) => (
+                <Card key={test.id} className="shadow-sm">
                   <CardHeader>
-                    <CardTitle className="font-heading text-2xl font-bold text-navy">{test_name}</CardTitle>
+                    <CardTitle className="font-heading text-2xl font-bold text-navy">{test.test_name}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-xs font-bold uppercase text-navy">{subject_name}</p>
-                    <p className="text-sm text-muted-foreground">{description}</p>
-                    <p className="mt-2 text-sm font-semibold text-navy">{questions_per_attempt} Questions</p>
+                    <p className="text-xs font-bold uppercase text-navy">{test.subject_name}</p>
+                    <p className="text-sm text-muted-foreground">{test.description}</p>
+                    <p className="mt-2 text-sm font-semibold text-navy">{test.questions_per_attempt} Questions</p>
                   </CardContent>
                   <CardFooter>
                     <Button>
-                      <Link to={`/test/${id}`}>Start Test</Link>
+                      <Link to={`/test/${test.id}`}>Start Test</Link>
                     </Button>
                   </CardFooter>
                 </Card>
@@ -132,8 +134,8 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
 
         {/* Completed Tests */}
         <div>
-          <div className="mb-6 flex items-end justify-between">
-            <h3 className="text-3xl font-bold text-navy">Completed Tests</h3>
+          <div className="mb-6 flex items-centre justify-between">
+            <h3 className="text-3xl font-bold text-navy py-4">Completed Tests</h3>
             {/* Only show dropdowns if there are completed tests */}
             {completedTests.length > 0 && (
               <div className="flex gap-4">
@@ -174,20 +176,20 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
           ) : (
             <>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {completedTests.map(({ id, test_name, score_percentage, questions_correct, questions_total, completed_date, score_points }) => (
-                  <Card key={id} className="shadow-sm">
+                {completedTests.slice(0, 4).map((test) => (
+                  <Card key={test.id} className="shadow-sm">
                     <CardHeader className="pb-2">
-                      <CardTitle className="font-heading text-2xl font-bold text-navy">{test_name}</CardTitle>
+                      <CardTitle className="font-heading text-2xl font-bold text-navy">{test.test_name}</CardTitle>
                     </CardHeader>
                     <CardContent className="pb-4">
                       <div className="mb-3 flex items-baseline gap-2">
-                        <span className="font-heading text-3xl font-bold text-navy">{score_percentage}%</span>
-                        <span className="text-xs font-medium text-navy">{questions_correct} of {questions_total} correct</span>
+                        <span className="font-heading text-3xl font-bold text-navy">{test.score_percentage}%</span>
+                        <span className="text-xs font-medium text-navy">{test.questions_correct} of {test.questions_total} correct</span>
                       </div>
-                      <Progress value={score_percentage} className="w-full max-w-sm mb-2" />
+                      <Progress value={test.score_percentage} className="w-full max-w-sm mb-2" />
                       <div className="text-xs font-medium text-muted-foreground">
-                        <p>{completed_date}</p>
-                        <p className="mt-0.5 text-foreground/70">{score_points} points</p>
+                        <p>{test.completed_date}</p>
+                        <p className="mt-0.5 text-foreground/70">{test.score_points} points</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -196,7 +198,7 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
               {/* Only show view all tests link if there are completed tests */}
               {completedTests.length > 0 && (
                 <div className="mt-6 flex justify-end">
-                  <Button variant="link" className="text-sm font-bold text-navy underline decoration-2 underline-offset-4 transition-colors hover:text-primary"> View All Completed Tests...</Button>
+                  <CompletedTestsDialog tests={completedTests} />
                 </div>
               )}
             </>)}
