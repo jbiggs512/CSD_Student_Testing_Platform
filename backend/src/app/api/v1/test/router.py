@@ -14,8 +14,7 @@ router = APIRouter()
 def get_test(
     test_id: int,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-     _: Annotated[User, Depends(require_roles(UserRole.STUDENT))]
+    current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))]
 ) -> schemas.TestResponse:
     """Get test details by test ID."""
     return service.get_test_data(db, test_id, current_user)
@@ -24,8 +23,7 @@ def get_test(
 def create_test_attempt(
     db: Annotated[Session, Depends(get_db)],
     request: schemas.TestAttemptCreateRequest,
-     current_user: Annotated[User, Depends(get_current_user)],
-    _: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
+    current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ) -> schemas.TestAttemptResponse:
     """Create new test attempt record."""
     return service.save_test_attempt(db, request, current_user)
