@@ -15,9 +15,12 @@ import type { CompletedTest } from "../model"
 export function CompletedTestsDialog({ tests }: { tests: CompletedTest[] }) {
     return (
         <Dialog>
-            <DialogTrigger render={<Button variant="link" className="text-sm font-bold text-navy underline decoration-2 underline-offset-4 transition-colors hover:text-primary"> View All Completed Tests...</Button>}>
+            <DialogTrigger render={
+                <Button variant="link" className="text-sm font-bold text-navy underline decoration-2 underline-offset-4 transition-colors hover:text-primary">
+                    View All Completed Tests...
+                </Button>
+            }>
             </DialogTrigger>
-
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>
