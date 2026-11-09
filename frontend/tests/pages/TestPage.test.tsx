@@ -4,117 +4,119 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TestPage, TestPageContent } from '@/pages/test'
 import type { TestDetails } from '@/pages/test/model'
 import { API_BASE_URL } from '@/shared/config/env'
-import { getTestDetails, TestApiError } from '@/pages/test/api/testApi'
+import { createTestAttempt, getTestDetails, TestApiError } from '@/pages/test/api/testApi'
+import { clearAccessToken, setAccessToken } from '@/shared/api'
+import { Toaster } from '@/shared/components'
 
 function createTestDetails(): TestDetails {
   return {
     "course": "Introduction to Software",
     "subject": "Basic Computing & Software",
-    "testName": "Beginner Software Quiz",
+    "test_name": "Beginner Software Quiz",
     "description": "A quiz to test your basic knowledge of software and computing.",
     "timed": true,
-    "timeLimitMinutes": 600,
-    "currentQuestion": 1,
-    "questionsPerAttempt": 10,
+    "time_limit_minutes": 600,
+    "current_question": 1,
+    "questions_per_attempt": 10,
     "questions": [
       {
-        "questionId": 1,
-        "questionText": "What does HTML stand for?",
+        "question_id": 1,
+        "question_text": "What does HTML stand for?",
         "options": [
-          { "optionId": 1, "optionText": "HyperText Markup Language", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "High Tech Modern Language", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "Hyperlink and Text Markup Language", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "Home Tool Markup Language", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "HyperText Markup Language", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "High Tech Modern Language", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "Hyperlink and Text Markup Language", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "Home Tool Markup Language", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 2,
-        "questionText": "Which of the following is a programming language?",
+        "question_id": 2,
+        "question_text": "Which of the following is a programming language?",
         "options": [
-          { "optionId": 1, "optionText": "Python", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "HTML", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "CSS", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "SQL", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "Python", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "HTML", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "CSS", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "SQL", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 3,
-        "questionText": "What is the primary function of a web browser?",
+        "question_id": 3,
+        "question_text": "What is the primary function of a web browser?",
         "options": [
-          { "optionId": 1, "optionText": "To display web pages", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "To compile code", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "To manage computer hardware", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "To create databases", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "To display web pages", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "To compile code", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "To manage computer hardware", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "To create databases", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 4,
-        "questionText": "Which symbol is commonly used for single-line comments in JavaScript?",
+        "question_id": 4,
+        "question_text": "Which symbol is commonly used for single-line comments in JavaScript?",
         "options": [
-          { "optionId": 1, "optionText": "//", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "#", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "/*", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "<!--", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "//", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "#", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "/*", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "<!--", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 5,
-        "questionText": "What does CSS stand for?",
+        "question_id": 5,
+        "question_text": "What does CSS stand for?",
         "options": [
-          { "optionId": 1, "optionText": "Cascading Style Sheets", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "Computer Style System", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "Creative Style Sheets", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "Colorful Style Sheets", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "Cascading Style Sheets", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "Computer Style System", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "Creative Style Sheets", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "Colorful Style Sheets", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 6,
-        "questionText": "Which data structure operates on a Last-In, First-Out (LIFO) basis?",
+        "question_id": 6,
+        "question_text": "Which data structure operates on a Last-In, First-Out (LIFO) basis?",
         "options": [
-          { "optionId": 1, "optionText": "Stack", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "Queue", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "Array", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "Linked List", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "Stack", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "Queue", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "Array", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "Linked List", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 7,
-        "questionText": "What is Git primarily used for?",
+        "question_id": 7,
+        "question_text": "What is Git primarily used for?",
         "options": [
-          { "optionId": 1, "optionText": "Version control", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "Designing user interfaces", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "Database management", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "Network security", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "Version control", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "Designing user interfaces", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "Database management", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "Network security", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 8,
-        "questionText": "Which of the following is a relational database management system?",
+        "question_id": 8,
+        "question_text": "Which of the following is a relational database management system?",
         "options": [
-          { "optionId": 1, "optionText": "PostgreSQL", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "MongoDB", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "Redis", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "Cassandra", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "PostgreSQL", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "MongoDB", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "Redis", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "Cassandra", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 9,
-        "questionText": "What does API stand for?",
+        "question_id": 9,
+        "question_text": "What does API stand for?",
         "options": [
-          { "optionId": 1, "optionText": "Application Programming Interface", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": "Advanced Programming Interaction", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": "Automated Program Integration", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": "Application Process Integration", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": "Application Programming Interface", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": "Advanced Programming Interaction", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": "Automated Program Integration", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": "Application Process Integration", "is_correct": false, "selected": false }
         ]
       },
       {
-        "questionId": 10,
-        "questionText": "Which file extension is typically used for Python source code files?",
+        "question_id": 10,
+        "question_text": "Which file extension is typically used for Python source code files?",
         "options": [
-          { "optionId": 1, "optionText": ".py", "isCorrect": true, "selected": false },
-          { "optionId": 2, "optionText": ".js", "isCorrect": false, "selected": false },
-          { "optionId": 3, "optionText": ".html", "isCorrect": false, "selected": false },
-          { "optionId": 4, "optionText": ".java", "isCorrect": false, "selected": false }
+          { "option_id": 1, "option_text": ".py", "is_correct": true, "selected": false },
+          { "option_id": 2, "option_text": ".js", "is_correct": false, "selected": false },
+          { "option_id": 3, "option_text": ".html", "is_correct": false, "selected": false },
+          { "option_id": 4, "option_text": ".java", "is_correct": false, "selected": false }
         ]
       }
     ]
@@ -149,8 +151,44 @@ function renderTestWithRoutes(initialEntry = '/test/1') {
         <Route path="/test/:id" element={<TestPage />} />
         <Route path="/dashboard" element={<div>Student Dashboard</div>} />
       </Routes>
+      <Toaster />
     </MemoryRouter>,
   )
+}
+
+function renderDashboardNav(initialEntry = '/test/1') {
+  render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <Routes>
+        <Route path="/test/:id" element={<TestPageContent
+          testDetails={createTestDetails()}
+          onSelectOption={vi.fn()}
+          onNavigateQuestion={vi.fn()}
+          isAnswered={vi.fn(() => false)}
+        />} />
+        <Route path="/dashboard" element={<div>Student Dashboard</div>} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+// Helper function for POST requests
+function mockFetchResponses({ postOk = true, postStatus = 200, postData = {} } = {}) {
+  return vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+    if (init?.method === 'POST') {
+      return {
+        ok: postOk,
+        status: postStatus,
+        json: async () => postData,
+      } as Response;
+    }
+
+    return {
+      ok: true,
+      status: 200,
+      json: async () => createTestDetails(),
+    } as Response;
+  });
 }
 
 describe('Test Page Content', () => {
@@ -188,30 +226,48 @@ describe('Test Page Content', () => {
   })
 
   it('navigates to the dashboard when Exit Test is clicked', () => {
+    renderDashboardNav()
+
+    fireEvent.click(screen.getByTestId('exit-test'))
+    fireEvent.click(screen.getByTestId('continue-exit-test'))
+    expect(screen.getByText('Student Dashboard')).toBeDefined()
+  })
+
+  it('calls onSubmit when submission is confirmed', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
     render(
-      <MemoryRouter initialEntries={['/test/1']}>
-        <Routes>
-          <Route path="/test/:id" element={<TestPageContent
-            testDetails={createTestDetails()}
-            onSelectOption={vi.fn()}
-            onNavigateQuestion={vi.fn()}
-            isAnswered={vi.fn(() => false)}
-          />} />
-          <Route path="/dashboard" element={<div>Student Dashboard</div>} />
-        </Routes>
+      <MemoryRouter>
+        <TestPageContent
+          testDetails={createTestDetails()}
+          onSelectOption={vi.fn()}
+          onNavigateQuestion={vi.fn()}
+          isAnswered={vi.fn(() => false)}
+          onSubmit={onSubmit}
+        />
       </MemoryRouter>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Exit Test' }))
-    expect(screen.getByText('Student Dashboard')).toBeDefined()
+    fireEvent.click(screen.getByTestId('submit-test'))
+    fireEvent.click(screen.getByTestId('continue-submit-test'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1)
+    })
   })
+
 })
 
-describe('Test data loading', () => {
+describe('Test data API client', () => {
   beforeEach(() => vi.restoreAllMocks())
-  afterEach(cleanup)
+  afterEach(() => {
+    clearAccessToken()
+    vi.restoreAllMocks()
+    cleanup()
+  })
+
 
   it('shows loading state and requests details for the route test ID', async () => {
+    setAccessToken('test-token')
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
@@ -227,11 +283,16 @@ describe('Test data loading', () => {
 
     expect(fetchSpy).toHaveBeenCalledWith(
       expect.stringContaining('/test/1'),
-      expect.objectContaining({ method: 'GET' }),
-    )
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-token',
+        }),
+      })
+    );
   })
 
   it('selects only one option and updates the rendered question grid state', async () => {
+    setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
@@ -250,6 +311,7 @@ describe('Test data loading', () => {
   })
 
   it('navigates between questions and respects the previous/next boundaries', async () => {
+    setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
@@ -271,8 +333,66 @@ describe('Test data loading', () => {
     expect(screen.getByText('Question 2 of 10')).toBeDefined()
   })
 
+  it('submits the selected answers and navigates to the dashboard', async () => {
+    setAccessToken('test-token')
+    const fetchSpy = mockFetchResponses({
+      postData: {
+        attempt_id: 42,
+        test_id: 1,
+        started_at: '2026-11-08T00:00:00.000Z',
+        completed_at: '2026-11-08T00:01:00.000Z',
+        score: 30,
+        total_questions: 10,
+      }
+    })
+
+    renderTestWithRoutes()
+    await screen.findByRole('heading', { name: 'Beginner Software Quiz' })
+
+    fireEvent.click(screen.getByText('HyperText Markup Language'))
+    fireEvent.click(screen.getByTestId('submit-test'))
+    fireEvent.click(screen.getByTestId('continue-submit-test'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Student Dashboard')).toBeDefined()
+      expect(screen.getByText('Test results saved!')).toBeDefined()
+      expect(screen.getByText('You achieved 30 points')).toBeDefined()
+    })
+
+    const postCall = fetchSpy.mock.calls.find(([, init]) => init?.method === 'POST')
+    expect(postCall?.[0]).toEqual(expect.stringContaining('/test/attempt'))
+    expect(JSON.parse(String(postCall?.[1]?.body))).toMatchObject({
+      test_id: 1,
+      score: 30,
+      total_questions: 10,
+    })
+  })
+
+  it('shows a submission error without leaving the test page', async () => {
+    setAccessToken('test-token')
+    mockFetchResponses({
+    postOk: false,
+    postStatus: 500,
+    postData: { detail: 'Submission failed' },
+  });
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    renderTestWithRoutes()
+    await screen.findByRole('heading', { name: 'Beginner Software Quiz' })
+
+    fireEvent.click(screen.getByTestId('submit-test'))
+    fireEvent.click(screen.getByTestId('continue-submit-test'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Submission failed')).toBeDefined()
+    })
+    expect(screen.queryByText('Student Dashboard')).toBeNull()
+  })
+
   it('requests and returns test details successfully', async () => {
+    setAccessToken('test-token')
     const details = createTestDetails()
+
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
@@ -283,16 +403,48 @@ describe('Test data loading', () => {
     expect(fetchSpy).toHaveBeenCalledWith(
       `${API_BASE_URL}/test/10`,
       {
-        method: 'GET',
         headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-token',
         },
-      },
+      }
+    );
+  })
+
+  it('posts test attempt details successfully', async () => {
+    setAccessToken('test-token')
+    const request = {
+      test_id: 1,
+      started_at: '2026-11-08T00:00:00.000Z',
+      completed_at: '2026-11-08T00:01:00.000Z',
+      score: 30,
+      total_questions: 10,
+      correct_questions: 1
+    }
+    const response = {
+      attempt_id: 42,
+      ...request,
+    }
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => response,
+    } as Response)
+
+    await expect(createTestAttempt(request)).resolves.toEqual(response)
+    expect(fetchSpy).toHaveBeenCalledWith(
+      `${API_BASE_URL}/test/attempt`,
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(request),
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+        }),
+      }),
     )
   })
 
   it('redirects to the dashboard when the API request fails', async () => {
+    setAccessToken('test-token')
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
@@ -308,6 +460,7 @@ describe('Test data loading', () => {
   })
 
   it('reports connection failures with a zero status', async () => {
+    setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network down'))
 
     await expect(getTestDetails(1)).rejects.toMatchObject({
@@ -318,6 +471,7 @@ describe('Test data loading', () => {
   })
 
   it('reports unauthorized responses', async () => {
+    setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
       status: 401,
@@ -329,6 +483,7 @@ describe('Test data loading', () => {
   })
 
   it('uses the default forbidden message for missing detail text', async () => {
+    setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
       status: 403,
@@ -344,6 +499,7 @@ describe('Test data loading', () => {
   })
 
   it('uses the server detail message for other error responses', async () => {
+    setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
       status: 500,
@@ -358,4 +514,3 @@ describe('Test data loading', () => {
     )
   })
 })
-

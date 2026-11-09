@@ -2,7 +2,7 @@ import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { App } from './App'
-import { NavBar, ProtectedRoute } from './shared/components'
+import { NavBar, ProtectedRoute, Toaster } from './shared/components'
 import './index.css'
 
 const LandingPage = lazy(() =>
@@ -82,6 +82,7 @@ createRoot(document.getElementById('root')!).render(
         </Routes>
       </Suspense>
       <App />
+      <Toaster />
     </StrictMode>
   </BrowserRouter>,
 )

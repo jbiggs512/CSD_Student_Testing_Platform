@@ -23,11 +23,6 @@ class TestAttempt(Base):
             name="ck_test_attempts_total_questions_positive",
         ),
         CheckConstraint(
-            "score IS NULL OR total_questions IS NULL "
-            "OR score <= total_questions",
-            name="ck_test_attempts_score_within_total",
-        ),
-        CheckConstraint(
             "(score IS NULL AND total_questions IS NULL) "
             "OR (score IS NOT NULL AND total_questions IS NOT NULL)",
             name="ck_test_attempts_result_fields_together",
@@ -70,6 +65,11 @@ class TestAttempt(Base):
     )
 
     total_questions: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    
+    correct_questions: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
     )

@@ -2,8 +2,8 @@ from pydantic import BaseModel
 
 class OutstandingTestResponse(BaseModel):
     id: int
-    testName: str
-    subjectName: str
+    test_name: str
+    subject_name: str
     description: str
-    questionsPerAttempt: int
+    questions_per_attempt: int
     
