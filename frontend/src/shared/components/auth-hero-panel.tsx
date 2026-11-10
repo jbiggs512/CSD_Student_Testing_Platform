@@ -17,7 +17,7 @@ const TRIVIUM_CROP = {
   height: 370,
 } as const
 
-export function LoginHeroPanel() {
+export function AuthHeroPanel() {
   const backgroundStyle = { '--login-bg': `url(${background})` } as CSSProperties
 
   return (
@@ -69,3 +69,4 @@ export function LoginHeroPanel() {
     </div>
   )
 }
+

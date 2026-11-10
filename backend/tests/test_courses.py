@@ -31,10 +31,14 @@ def test_get_courses_returns_titles_in_alphabetical_order(
     assert set(data[0]) == {"course_id", "course_title"}
 
 
-def test_get_courses_requires_authentication(client):
+def test_get_courses_allows_public_access_for_registration(client):
     response = client.get(COURSES_URL)
 
-    assert response.status_code == 401
+    assert response.status_code == 200
+    assert any(
+        course["course_title"] == "BSc Software Engineering"
+        for course in response.json()
+    )
 
 
 def test_admin_cannot_create_duplicate_course(client, db_session, auth_headers):

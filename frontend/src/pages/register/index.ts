@@ -1,2 +1,16 @@
+export {
+  getAvailableCourses,
+  RegisterApiError,
+  registerStudent,
+} from './api'
+export {
+  EMAIL_REGEX,
+  PASSWORD_COMPLEXITY_REGEX,
+  STUDENT_NUMBER_REGEX,
+  validateRegistrationInput,
+  type CourseOption,
+  type RegisteredStudentResponse,
+  type RegistrationFormInput,
+  type StudentRegistrationRequest,
+} from './model'
 export { RegisterPage } from './ui/RegisterPage'
-

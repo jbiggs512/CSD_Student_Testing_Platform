@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db, require_roles
+from app.api.deps import get_db, require_roles
 from app.api.v1.course import schemas, service
 from app.db.models import User
 from app.enums import UserRole
@@ -43,6 +43,5 @@ def update_course(
 @router.get("")
 def get_courses(
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
 ) -> list[schemas.CourseResponse]:
     return service.get_courses(db)

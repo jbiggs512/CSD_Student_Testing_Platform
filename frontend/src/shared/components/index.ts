@@ -1,4 +1,6 @@
 // Shared reusable UI and shadcn components
+export { AuthHeroPanel } from './auth-hero-panel'
+export { AuthSplitLayout } from './auth-split-layout'
 export { Alert, AlertDescription } from './ui/alert'
 export { Button, buttonVariants } from './ui/button'
 export {
@@ -25,6 +27,8 @@ export {
 } from './ui/dialog'
 export { Input } from './ui/input'
 export { Label } from './ui/label'
+export { PasswordInput } from './ui/password-input'
+
 export { NavBar } from './ui/navbar'
 export {
   NavigationMenu,

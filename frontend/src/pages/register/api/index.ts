@@ -1,3 +1,5 @@
-// Register page API requests
-export {}
-
+export {
+  getAvailableCourses,
+  RegisterApiError,
+  registerStudent,
+} from './registerApi'
