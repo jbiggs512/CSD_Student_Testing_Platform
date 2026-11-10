@@ -1,5 +1,6 @@
 // Shared reusable UI and shadcn components
 export { Alert, AlertDescription } from './ui/alert'
+export { Badge, badgeVariants } from './ui/badge'
 export { Button, buttonVariants } from './ui/button'
 export {
   Card,
@@ -10,6 +11,15 @@ export {
   CardHeader,
   CardTitle,
 } from './ui/card'
+export {
+  type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  ChartStyle,
+} from './ui/chart'
 export { ConfirmDialog } from './ui/confirm-dialog'
 export {
   Dialog,
