@@ -1,4 +1,5 @@
-import type { TestDetails } from "../model"
+import { getAccessToken } from '@shared/api'
+import type { TestDetails, TestAttempt, TestAttemptRequest } from "../model"
 import { API_BASE_URL } from '@shared/config'
 
 export class TestApiError extends Error {
@@ -11,15 +12,27 @@ export class TestApiError extends Error {
     }
 }
 
-export async function getTestDetails(id: number): Promise<TestDetails> {
-    let response: Response
+async function testRequest<T>(
+    endpoint: string,
+    options: RequestInit = {},
+): Promise<T> {
+    const token = getAccessToken()
 
+    if (!token) {
+        throw new TestApiError(
+            'Your session has expired. Please sign in again.',
+            401,
+        )
+    }
+
+    let response: Response
     try {
-        response = await fetch(`${API_BASE_URL}/test/${id}`, {
-            method: 'GET',
+        response = await fetch(`${API_BASE_URL}/test${endpoint}`, {
+            ...options,
             headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+                ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+                ...options.headers,
             },
         })
     } catch {
@@ -57,7 +70,20 @@ export async function getTestDetails(id: number): Promise<TestDetails> {
         )
     }
 
-    const data = (await response.json()) as TestDetails
+    const data = (await response.json()) as T
 
     return data
+}
+
+export function getTestDetails(id: number): Promise<TestDetails> {
+    return testRequest<TestDetails>(`/${id}`)
+}
+
+export function createTestAttempt(
+  request: TestAttemptRequest,
+): Promise<TestAttempt> {
+  return testRequest<TestAttempt>('/attempt', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
 }

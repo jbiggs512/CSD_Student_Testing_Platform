@@ -19,7 +19,7 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
 
   // Calculate the average score percentage, rounding to the nearest whole number
   const averageScore = completedTests.length > 0
-    ? Math.round(completedTests.reduce((sum, test) => sum + test.scorePercentage, 0) / completedTests.length)
+    ? Math.round(completedTests.reduce((sum, test) => sum + test.score_percentage, 0) / completedTests.length)
     : null;
 
   return (
@@ -110,15 +110,15 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {outstandingTests.map(({ id, testName, subjectName, description, questionsPerAttempt }) => (
+              {outstandingTests.map(({ id, test_name, subject_name, description, questions_per_attempt }) => (
                 <Card key={id} className="shadow-sm">
                   <CardHeader>
-                    <CardTitle className="font-heading text-2xl font-bold text-navy">{testName}</CardTitle>
+                    <CardTitle className="font-heading text-2xl font-bold text-navy">{test_name}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-xs font-bold uppercase text-navy">{subjectName}</p>
+                    <p className="text-xs font-bold uppercase text-navy">{subject_name}</p>
                     <p className="text-sm text-muted-foreground">{description}</p>
-                    <p className="mt-2 text-sm font-semibold text-navy">{questionsPerAttempt} Questions</p>
+                    <p className="mt-2 text-sm font-semibold text-navy">{questions_per_attempt} Questions</p>
                   </CardContent>
                   <CardFooter>
                     <Button>
@@ -174,20 +174,20 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
           ) : (
             <>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {completedTests.map(({ id, testName, scorePercentage, questionsCorrect, questionsTotal, completedDate, scorePoints }) => (
+                {completedTests.map(({ id, test_name, score_percentage, questions_correct, questions_total, completed_date, score_points }) => (
                   <Card key={id} className="shadow-sm">
                     <CardHeader className="pb-2">
-                      <CardTitle className="font-heading text-2xl font-bold text-navy">{testName}</CardTitle>
+                      <CardTitle className="font-heading text-2xl font-bold text-navy">{test_name}</CardTitle>
                     </CardHeader>
                     <CardContent className="pb-4">
                       <div className="mb-3 flex items-baseline gap-2">
-                        <span className="font-heading text-3xl font-bold text-navy">{scorePercentage}%</span>
-                        <span className="text-xs font-medium text-navy">{questionsCorrect} of {questionsTotal} correct</span>
+                        <span className="font-heading text-3xl font-bold text-navy">{score_percentage}%</span>
+                        <span className="text-xs font-medium text-navy">{questions_correct} of {questions_total} correct</span>
                       </div>
-                      <Progress value={scorePercentage} className="w-full max-w-sm mb-2" />
+                      <Progress value={score_percentage} className="w-full max-w-sm mb-2" />
                       <div className="text-xs font-medium text-muted-foreground">
-                        <p>{completedDate}</p>
-                        <p className="mt-0.5 text-foreground/70">{scorePoints} points</p>
+                        <p>{completed_date}</p>
+                        <p className="mt-0.5 text-foreground/70">{score_points} points</p>
                       </div>
                     </CardContent>
                   </Card>

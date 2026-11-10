@@ -26,6 +26,8 @@ def seed_courses(db: Session) -> None:
         else:
             print(f"Course already exists: {course_title}")
 
+    db.flush()
+
 
 if __name__ == "__main__":
     with SessionLocal.begin() as db:

@@ -1,24 +1,47 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 class QuestionOptionResponse(BaseModel):
-    optionId: int
-    optionText: str
-    isCorrect: bool
+    option_id: int
+    option_text: str
+    is_correct: bool
 
 class QuestionResponse(BaseModel):
-    questionId: int
-    questionText: str
+    question_id: int
+    question_text: str
     options: list[QuestionOptionResponse]
 
 class TestResponse(BaseModel):
-    testId: int
+    test_id: int
     course: str
     subject: str
-    testName: str
+    test_name: str
     description: str
     timed: bool
-    timeLimitMinutes: int | None 
-    currentQuestion: int
-    questionsPerAttempt: int
+    time_limit_minutes: int | None 
+    current_question: int
+    questions_per_attempt: int
     questions: list[QuestionResponse]
+    
+class TestAttemptCreateRequest(BaseModel):
+    test_id: int
+    started_at: datetime
+    completed_at: datetime
+    score: int
+    total_questions: int
+    correct_questions: int
+    
+class TestAttemptResponse(BaseModel):
+    attempt_id: int
+    user_id: int
+    test_id: int
+    started_at: datetime
+    completed_at: datetime
+    score: int
+    total_questions: int
+    correct_questions: int
+
+    model_config = {"from_attributes": True}
+    
+
 

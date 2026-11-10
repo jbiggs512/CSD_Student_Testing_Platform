@@ -9,6 +9,7 @@ from app.enums import AccountStatus, UserRole
 from app.api.v1.user.schemas import (
     LecturerCreateRequest,
     LecturerUpdateRequest,
+    StudentUpdateRequest,
     StudentCreateRequest,
 )
 from app.core.security import hash_password
@@ -17,6 +18,7 @@ ROLE_NOT_FOUND_DETAIL = "Role does not exist."
 USERNAME_EXISTS_DETAIL = "Username is already in use."
 EMAIL_EXISTS_DETAIL = "Email is already registered."
 LECTURER_NOT_FOUND_DETAIL = "Lecturer not found."
+STUDENT_NOT_FOUND_DETAIL = "Student not found."
 
 UserCreateRequest: TypeAlias = (
     LecturerCreateRequest | StudentCreateRequest
@@ -39,6 +41,24 @@ def _get_lecturer_or_404(db: Session, username: str) -> User:
             detail=LECTURER_NOT_FOUND_DETAIL,
         )
     return lecturer
+
+
+def _get_student_or_404(db: Session, username: str) -> User:
+    student = db.scalar(
+        select(User)
+        .options(joinedload(User.role))
+        .join(User.role)
+        .where(
+            User.username == username,
+            Role.role_name == UserRole.STUDENT.value,
+        )
+    )
+    if student is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=STUDENT_NOT_FOUND_DETAIL,
+        )
+    return student
 
 def create_user(
     db: Session,
@@ -164,6 +184,59 @@ def update_lecturer(
 def delete_lecturer(db: Session, username: str) -> None:
     lecturer = _get_lecturer_or_404(db, username)
     db.delete(lecturer)
+    db.commit()
+
+
+def get_students(db: Session) -> list[User]:
+    return list(
+        db.scalars(
+            select(User)
+            .options(joinedload(User.role))
+            .join(User.role)
+            .where(Role.role_name == UserRole.STUDENT.value)
+            .order_by(User.last_name, User.first_name, User.username)
+        ).all()
+    )
+
+
+def update_student(
+    db: Session,
+    username: str,
+    changes: StudentUpdateRequest,
+) -> User:
+    student = _get_student_or_404(db, username)
+
+    if changes.email is not None:
+        existing_email = db.scalar(
+            select(User).where(
+                User.email == changes.email,
+                User.user_id != student.user_id,
+            )
+        )
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=EMAIL_EXISTS_DETAIL,
+            )
+        student.email = changes.email
+
+    if changes.first_name is not None:
+        student.first_name = changes.first_name
+    if changes.last_name is not None:
+        student.last_name = changes.last_name
+    if changes.password is not None:
+        student.password_hash = hash_password(changes.password)
+    if changes.account_status is not None:
+        student.account_status = changes.account_status
+
+    db.commit()
+    db.refresh(student)
+    return student
+
+
+def delete_student(db: Session, username: str) -> None:
+    student = _get_student_or_404(db, username)
+    db.delete(student)
     db.commit()
 
 
