@@ -14,9 +14,9 @@ import {
 } from "@/shared/components";
 import { Link } from 'react-router'
 import { SORT_OPTIONS, FILTER_OPTIONS, type DashboardContentProps } from "../model";
-import {CompletedTestsDialog} from './CompletedTestsDialog'
+import { CompletedTestsDialog } from './CompletedTestsDialog'
 
-export function DashboardContent({ completedTests = [], outstandingTests = [], cohortRank = { rank: 0, size: 0 } }: DashboardContentProps) {
+export function DashboardContent({ completedTests = [], outstandingTests = [], cohortRank = { rank: 0, size: 0 }, courseTitle = "" }: DashboardContentProps) {
 
   // Calculate the average score percentage, rounding to the nearest whole number
   const averageScore = completedTests.length > 0
@@ -27,12 +27,12 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
   const testPlural = outstandingTests.length === 1 ? "" : "s";
 
   return (
-    <main id="dashboard-page" className="min-h-screen p-4">
+    <main id="dashboard-page" className="p-4">
 
       {/* Hero Section */}
       <section className="mb-8 flex flex-col justify-between rounded-2xl bg-navy p-10 text-white shadow-md lg:flex-row">
         <div className="mb-6 flex flex-col justify-center lg:mb-0">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">COURSE TITLE</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">{courseTitle}</p>
           <h1 className="mb-2 font-heading text-4xl font-bold tracking-tight text-white">Welcome back, Student!</h1>
           <p className="text-sm text-white/80">
             {outstandingTests.length === 0

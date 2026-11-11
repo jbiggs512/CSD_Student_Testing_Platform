@@ -71,7 +71,7 @@ def get_cohort_rank(
             course_id = current_user.courses[0].course_id
     else:
         raise HTTPException(
-            status_code=404,
+            status_code=412,
             detail="You are not enrolled in any courses.",
         )
     
@@ -130,8 +130,20 @@ def get_cohort_rank(
 
     if row is None:
         raise HTTPException(
-            status_code=404,
-            detail="Could not locate data within cohort.",
+            status_code=412,
+            detail="Could not locate your rank within the cohort.",
         )
 
     return CohortRankResponse(rank=row.rank, size=row.size)
+
+def get_course_title(
+    current_user: User,
+) -> str:
+    # Users first / default course
+    if len(current_user.courses) >= 1:
+        return current_user.courses[0].course_title
+    else:
+        raise HTTPException(
+            status_code=412,
+            detail="You are not enrolled in any courses.",
+        )

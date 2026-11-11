@@ -1,25 +1,39 @@
+import { LeaderboardContent } from "./LeaderboardContent";
 import {
-    type LeaderboardProps,
+    type LeaderboardEntry,
+    type SubjectFilter
 } from "../model"
 
-export function LeaderboardPage({
-    courseTitle = "Course title",
+const DEFAULT_TOP_FIVE: LeaderboardEntry[] = [
+    { rank: 1, name: "John D.", avgScore: 96, points: 1860 },
+    { rank: 2, name: "Jane D.", avgScore: 93, points: 1820 },
+    { rank: 3, name: "Bob S.", avgScore: 92, points: 1780 },
+    { rank: 4, name: "Joe B.", avgScore: 89, points: 1640 },
+    { rank: 5, name: "Dave A.", avgScore: 88, points: 1600 },
+];
 
-}: LeaderboardProps) {
+const DEFAULT_CURRENT_USER: LeaderboardEntry = {
+    rank: 12,
+    name: "You",
+    avgScore: 83,
+    points: 1410,
+};
 
+export const DEFAULT_SUBJECT: SubjectFilter[] = [
+    { label: "Software", value: 0 },
+    { label: "Mathematics", value: 1 },
+    { label: "Science", value: 2 },
+]
+
+
+export function LeaderboardPage() {
     return (
-        <main id="leaderboard-page" className="min-h-screen p-4">
-
-            {/* Hero Section */}
-            <section className="mb-8 flex flex-col justify-between rounded-2xl bg-navy p-10 text-white shadow-md lg:flex-row">
-                <div className="mb-6 flex flex-col justify-center lg:mb-0">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">{courseTitle}</p>
-                    <h1 className="mb-2 font-heading text-4xl font-bold tracking-tight text-white">Leaderboards</h1>
-                    <p className="text-sm text-white/80">See how you rank against other students in your cohort.</p>
-                </div>
-            </section>
-
-           
-        </main>
-    );
+        <LeaderboardContent
+        courseTitle=""
+        subjects={DEFAULT_SUBJECT}
+        initialSubject="Software"
+        topFive={DEFAULT_TOP_FIVE}
+        currentUser={DEFAULT_CURRENT_USER}
+        />
+    )
 }

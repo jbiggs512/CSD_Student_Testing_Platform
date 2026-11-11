@@ -12,7 +12,7 @@ from app.enums import UserRole
 router = APIRouter()
 
 @router.get("/outstandingTests")
-def get_test(
+def get_outstanding_tests(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ) -> list[schemas.OutstandingTestResponse]:
@@ -20,7 +20,7 @@ def get_test(
     return service.get_outstanding_tests(db, current_user.user_id)
 
 @router.get("/completedTests")
-def get_test(
+def get_completed_tests(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ) -> list[schemas.CompletedTestResponse]:
@@ -28,9 +28,17 @@ def get_test(
     return service.get_completed_tests(db, current_user.user_id)
 
 @router.get("/cohortRank")
-def get_test(
+def get_cohort_rank(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ) -> schemas.CohortRankResponse:
     """Get cohort rank for the current student"""
     return service.get_cohort_rank(db, current_user)
+
+@router.get("/courseTitle")
+def get_course_title(
+    current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
+) -> str:
+    """Get course title for the current student"""
+    return service.get_course_title(current_user)
+

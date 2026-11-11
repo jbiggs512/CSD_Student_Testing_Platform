@@ -2,4 +2,5 @@
 export {
     type LeaderboardEntry,
     type LeaderboardProps,
+    type SubjectFilter,
 } from "./types"
