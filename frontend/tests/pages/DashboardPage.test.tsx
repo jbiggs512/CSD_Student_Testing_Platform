@@ -2,13 +2,13 @@ import { cleanup, render, screen, waitFor, fireEvent } from '@testing-library/re
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DashboardPage, DashboardContent } from '@/pages/dashboard'
-import { getOutstandingTests, DashboardApiError } from '@/pages/dashboard/api/dashboardApi'
+import { getOutstandingTests, DashboardApiError, getCompletedTests, getCohortRank } from '@/pages/dashboard/api/dashboardApi'
 import {
   getOutstandingTests as getDashboardOutstandingTests,
   getCompletedTests as getDashboardCompletedTests,
   getCohortRank as getDashboardCohortRank,
 } from '@/pages/dashboard/api'
-import { getCurrentUser, clearAccessToken, setAccessToken } from '@/shared/api'
+import { clearAccessToken, setAccessToken } from '@/shared/api'
 
 vi.mock('@/pages/dashboard/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/pages/dashboard/api')>()
@@ -17,14 +17,6 @@ vi.mock('@/pages/dashboard/api', async (importOriginal) => {
     getOutstandingTests: vi.fn(),
     getCompletedTests: vi.fn(),
     getCohortRank: vi.fn(),
-  }
-})
-
-vi.mock('@/shared/api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/shared/api')>()
-  return {
-    ...actual,
-    getCurrentUser: vi.fn(),
   }
 })
 
@@ -39,6 +31,8 @@ const mockOutstandingTests = [
   { id: 4, test_name: 'Test 4', subject_name: 'Software', description: 'Intro to Software', questions_per_attempt: 10 },
   { id: 5, test_name: 'Test 5', subject_name: 'Software', description: 'OOP', questions_per_attempt: 20 },
 ]
+
+const mockCohortRank = { rank: 12, size: 48 }
 
 // Helper function to render the dashboard page with routing context
 function renderDashboardWithRoutes() {
@@ -64,10 +58,9 @@ afterEach(() => {
 })
 
 beforeEach(() => {
-  vi.mocked(getCurrentUser).mockReturnValue(null)
-  vi.mocked(getDashboardCompletedTests).mockReturnValue([])
+  vi.mocked(getDashboardCompletedTests).mockResolvedValue([])
   vi.mocked(getDashboardOutstandingTests).mockResolvedValue([])
-  vi.mocked(getDashboardCohortRank).mockReturnValue({ rank: 0, size: 0 })
+  vi.mocked(getDashboardCohortRank).mockResolvedValue({ rank: 0, size: 0 })
 })
 
 describe('Dashboard Page', () => {
@@ -81,10 +74,9 @@ describe('Dashboard Page', () => {
   })
 
   it('loads the authenticated user dashboard data and finishes loading', async () => {
-    vi.mocked(getCurrentUser).mockReturnValue({ user_id: 12 } as ReturnType<typeof getCurrentUser>)
-    vi.mocked(getDashboardCompletedTests).mockReturnValue(mockCompletedTests)
+    vi.mocked(getDashboardCompletedTests).mockResolvedValue(mockCompletedTests)
     vi.mocked(getDashboardOutstandingTests).mockResolvedValue(mockOutstandingTests)
-    vi.mocked(getDashboardCohortRank).mockReturnValue({ rank: 12, size: 48 })
+    vi.mocked(getDashboardCohortRank).mockResolvedValue(mockCohortRank)
 
     renderDashboardWithRoutes()
 
@@ -96,9 +88,8 @@ describe('Dashboard Page', () => {
     })
 
     // Check that api calls were sent with expected data and the correct number of times
-    expect(getCurrentUser).toHaveBeenCalledTimes(1)
     expect(getDashboardCompletedTests).toHaveBeenCalledTimes(1)
-    expect(getDashboardOutstandingTests).toHaveBeenCalledWith(12)
+    expect(getDashboardOutstandingTests).toHaveBeenCalledTimes(1)
     expect(getDashboardCohortRank).toHaveBeenCalledTimes(1)
     expect(screen.getByText('You have 2 outstanding tests to complete.')).toBeDefined()
     expect(screen.getByText('12')).toBeDefined()
@@ -180,7 +171,7 @@ describe('Dashboard Page', () => {
   it('displays the cohort rank when completed tests are available', () => {
     renderDashboardContentWithRoutes({
       completedTests: mockCompletedTests,
-      cohortRank: { rank: 12, size: 48 },
+      cohortRank: mockCohortRank,
     })
 
     expect(screen.getByText("Cohort Rank")).toBeDefined()
@@ -203,6 +194,15 @@ it('renders the correct number of test cards', () => {
   expect(startButtons).toHaveLength(2)
 })
 
+it('renders the completed tests dialog', async () => {
+  renderDashboardContentWithRoutes({ completedTests: mockCompletedTests })
+
+  fireEvent.click(screen.getByRole('button', { name: 'View All Completed Tests...' }))
+
+  expect(await screen.findByRole('dialog')).toBeDefined()
+  expect(screen.getByText('3 tests completed')).toBeDefined()
+})
+
 
 describe('Dashboard API Client', () => {
   afterEach(() => {
@@ -211,19 +211,19 @@ describe('Dashboard API Client', () => {
   })
 
   it('rejects requests when the session token is missing', async () => {
-      await expect(getOutstandingTests(1)).rejects.toEqual(
-        new DashboardApiError(
-          'Your session has expired. Please sign in again.',
-          401,
-        ),
-      )
-    })
+    await expect(getOutstandingTests()).rejects.toEqual(
+      new DashboardApiError(
+        'Your session has expired. Please sign in again.',
+        401,
+      ),
+    )
+  })
 
   it('reports connection failures with a zero status', async () => {
     setAccessToken('test-token')
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network down'))
 
-    await expect(getOutstandingTests(1)).rejects.toMatchObject({
+    await expect(getOutstandingTests()).rejects.toMatchObject({
       name: 'DashboardApiError',
       message: 'Unable to connect to the server. Please try again.',
       status: 0,
@@ -237,7 +237,7 @@ describe('Dashboard API Client', () => {
       status: 401,
     } as Response)
 
-    await expect(getOutstandingTests(1)).rejects.toEqual(
+    await expect(getOutstandingTests()).rejects.toEqual(
       new DashboardApiError('Incorrect Credentials. Please try again.', 401),
     )
   })
@@ -250,7 +250,29 @@ describe('Dashboard API Client', () => {
       json: async () => mockOutstandingTests,
     } as Response)
 
-    await expect(getOutstandingTests(1)).resolves.toEqual(mockOutstandingTests)
+    await expect(getOutstandingTests()).resolves.toEqual(mockOutstandingTests)
+  })
+
+  it('returns completed tests from a successful response', async () => {
+    setAccessToken('test-token')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockCompletedTests,
+    } as Response)
+
+    await expect(getCompletedTests()).resolves.toEqual(mockCompletedTests)
+  })
+
+  it('returns cohort rank from a successful response', async () => {
+    setAccessToken('test-token')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockCohortRank,
+    } as Response)
+
+    await expect(getCohortRank()).resolves.toEqual(mockCohortRank)
   })
 
   it('uses the default forbidden message for missing detail text', async () => {
@@ -261,7 +283,7 @@ describe('Dashboard API Client', () => {
       json: async () => ({ detail: ' ' }),
     } as Response)
 
-    await expect(getOutstandingTests(1)).rejects.toEqual(
+    await expect(getOutstandingTests()).rejects.toEqual(
       new DashboardApiError(
         'Your account is not permitted to access this resource.',
         403,
@@ -277,7 +299,7 @@ describe('Dashboard API Client', () => {
       json: async () => ({ detail: 'The test service is unavailable.' }),
     } as Response)
 
-    await expect(getOutstandingTests(1)).rejects.toEqual(
+    await expect(getOutstandingTests()).rejects.toEqual(
       new DashboardApiError(
         'The test service is unavailable.',
         500,

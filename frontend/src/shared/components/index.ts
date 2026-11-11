@@ -52,6 +52,7 @@ ProgressLabel,
 ProgressValue,
 } from './ui/progress'
 export { ProtectedRoute } from './protected-route'
+export { ScrollArea, ScrollBar } from './ui/scroll-area'
 export {  Select,
   SelectContent,
   SelectGroup,
