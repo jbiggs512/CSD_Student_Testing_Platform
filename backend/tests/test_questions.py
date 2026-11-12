@@ -157,3 +157,42 @@ def test_delete_question_as_lecturer(client, db_session, test_subject, auth_head
         select(Question).where(Question.question_id == question_id)
     )
     assert stored is None
+
+
+def test_question_codes_are_unique_across_subjects_with_same_prefix(
+    client, db_session, test_subject, auth_headers
+):
+    headers = auth_headers(UserRole.LECTURER)
+
+    subject_a = Subject(
+        subject_name=f"Software Engineering {uuid.uuid4().hex[:4]}",
+        course_id=test_subject.course_id,
+        status=SubjectStatus.ACTIVE,
+    )
+    subject_b = Subject(
+        subject_name=f"Software Testing {uuid.uuid4().hex[:4]}",
+        course_id=test_subject.course_id,
+        status=SubjectStatus.ACTIVE,
+    )
+    db_session.add_all([subject_a, subject_b])
+    db_session.commit()
+
+    res_a = client.post(
+        QUESTIONS_URL,
+        json=valid_question_payload(subject_a.subject_id),
+        headers=headers,
+    )
+    res_b = client.post(
+        QUESTIONS_URL,
+        json=valid_question_payload(subject_b.subject_id),
+        headers=headers,
+    )
+    assert res_a.status_code == 201
+    assert res_b.status_code == 201
+
+    code_a = res_a.json()["question_code"]
+    code_b = res_b.json()["question_code"]
+    assert code_a != code_b
+    assert code_a.endswith(f"-{res_a.json()['question_id']:03d}")
+    assert code_b.endswith(f"-{res_b.json()['question_id']:03d}")
+

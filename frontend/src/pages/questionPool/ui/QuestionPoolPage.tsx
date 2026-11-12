@@ -79,14 +79,13 @@ function getSubjectPrefix(subjectName: string | undefined): string {
 
 function formatQuestionCode(
   question: Question,
-  sequenceNumber: number,
   subjectName: string | undefined,
 ): string {
   if (question.question_code) {
     return question.question_code
   }
   const prefix = getSubjectPrefix(subjectName)
-  return `${prefix}-${String(sequenceNumber).padStart(3, '0')}`
+  return `${prefix}-${String(question.question_id).padStart(3, '0')}`
 }
 
 function getDisplayError(error: unknown): string {
@@ -211,13 +210,9 @@ export function QuestionPoolPage() {
 
   const codedQuestions = useMemo<QuestionRowItem[]>(
     () =>
-      questions.map((question, index) => ({
+      questions.map((question) => ({
         question,
-        code: formatQuestionCode(
-          question,
-          index + 1,
-          selectedSubject?.subject_name,
-        ),
+        code: formatQuestionCode(question, selectedSubject?.subject_name),
       })),
     [questions, selectedSubject?.subject_name],
   )
