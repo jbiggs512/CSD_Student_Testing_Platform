@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
+  RadioIndicator,
 } from '@shared/components'
 import type { QuestionFormValues } from '../model'
 
@@ -79,8 +80,8 @@ export function QuestionFormDialog({
             />
           </div>
 
-          <fieldset className="space-y-2.5">
-            <legend className="text-xs font-semibold text-navy">
+          <fieldset className="flex flex-col gap-2.5">
+            <legend className="mb-1 text-xs font-semibold text-navy">
               Multiple-choice options (select the correct answer)
             </legend>
             {formValues.options.map((optionText, index) => {
@@ -90,10 +91,11 @@ export function QuestionFormDialog({
               return (
                 <div
                   key={optionNumber}
-                  className={`flex items-center gap-3 rounded-lg border p-2.5 transition-colors ${
+                  onClick={() => onCorrectIndexChange(index)}
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-2.5 transition-colors ${
                     isCorrect
                       ? 'border-emerald-600/40 bg-emerald-50/40'
-                      : 'border-border bg-background'
+                      : 'border-border bg-background hover:border-muted-foreground/40'
                   }`}
                 >
                   <input
@@ -103,9 +105,10 @@ export function QuestionFormDialog({
                     checked={isCorrect}
                     onChange={() => onCorrectIndexChange(index)}
                     aria-label={`Mark Option ${optionNumber} as correct`}
-                    className="size-4 cursor-pointer accent-pink"
+                    className="sr-only"
                   />
-                  <div className="flex-1">
+                  <RadioIndicator selected={isCorrect} />
+                  <div className="flex-1" onClick={(e) => e.stopPropagation()}>
                     <Input
                       id={`option-text-${optionNumber}`}
                       aria-label={`Option ${optionNumber}`}
@@ -117,14 +120,13 @@ export function QuestionFormDialog({
                       }
                     />
                   </div>
-                  <label
-                    htmlFor={`correct-option-${optionNumber}`}
-                    className={`cursor-pointer text-xs font-medium ${
+                  <span
+                    className={`text-xs font-medium ${
                       isCorrect ? 'text-emerald-700' : 'text-muted-foreground'
                     }`}
                   >
                     {isCorrect ? 'Correct' : 'Select'}
-                  </label>
+                  </span>
                 </div>
               )
             })}

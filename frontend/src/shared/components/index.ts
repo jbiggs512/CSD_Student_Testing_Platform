@@ -89,3 +89,4 @@ export {
   toast,
   useToastManager,
 } from './ui/toast'
+export { RadioIndicator } from './ui/radio-indicator'
