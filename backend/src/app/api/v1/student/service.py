@@ -4,6 +4,8 @@ from fastapi import HTTPException
 from app.api.v1.student.schemas import OutstandingTestResponse, CompletedTestResponse, CohortRankResponse, SubjectResponse, LeaderboardEntry, LeaderboardResponse
 from app.db.models import TestAttempt, Test, Subject, Course, User, Role
 
+not_enrolled_error = "You are not enrolled in any courses."
+
 def get_outstanding_tests(
     db: Session, 
     student_id: int
@@ -74,7 +76,7 @@ def get_cohort_rank(
         # Return 412 if user is not enrolled on any courses
         raise HTTPException(
             status_code=412,
-            detail="You are not enrolled in any courses.",
+            detail=not_enrolled_error,
         )
     
     # Find the best score for each user, per test, within the subject
@@ -151,7 +153,7 @@ def get_course_title(
         # Return 412 error if the user is not enrolled in any courses
         raise HTTPException(
             status_code=412,
-            detail="You are not enrolled in any courses.",
+            detail=not_enrolled_error,
         )
 
 def get_subjects(
@@ -165,7 +167,7 @@ def get_subjects(
         # Return 412 if user is not enrolled on any courses
         raise HTTPException(
             status_code=412,
-            detail="You are not enrolled in any courses.",
+            detail=not_enrolled_error,
         )
     
     subjects = db.scalars(
@@ -183,7 +185,7 @@ def get_leaderboard(
     db: Session,
     current_user: User,
     subject_id: int
-) -> list[LeaderboardResponse]:
+) -> LeaderboardResponse:
     # Get the course id linked to the subject
     course_id = db.scalar(
         select(Subject.course_id)

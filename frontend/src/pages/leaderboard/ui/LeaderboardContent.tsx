@@ -20,13 +20,7 @@ const PODIUM: Record<number, { row: string; badge: string }> = {
     3: { row: "bg-[#E37C67]/35", badge: "bg-[#E37C67]/60 text-navy" },
 };
 
-function RankBadge({
-    rank,
-    className,
-}: {
-    rank: number;
-    className: string;
-}) {
+function RankBadge({ rank, className }: Readonly<{ rank: number; className: string; }>) {
     return (
         <span className={`flex size-8 items-center justify-center rounded-full text-sm font-semibold ${className}`} >
             {rank}
@@ -34,7 +28,7 @@ function RankBadge({
     );
 }
 
-function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
+function LeaderboardRow({ entry }: Readonly<{ entry: LeaderboardEntry }>) {
     const podium = PODIUM[entry.rank];
     const currentUser = getCurrentUser();
     return (
@@ -58,7 +52,7 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
     );
 }
 
-function CurrentUserRow({ user }: { user: LeaderboardEntry }) {
+function CurrentUserRow({ user }: Readonly<{ user: LeaderboardEntry }>) {
     return (
         <li className="grid grid-cols-[3rem_1fr_4.5rem_4.5rem] items-center rounded-lg border border-navy bg-white px-3 py-3 text-sm text-navy">
             <RankBadge rank={user.rank} className="bg-navy text-white" />
@@ -74,7 +68,7 @@ function CurrentUserRow({ user }: { user: LeaderboardEntry }) {
     );
 }
 
-export function LeaderboardContent(props: LeaderboardProps) {
+export function LeaderboardContent(props: Readonly<LeaderboardProps>) {
     const subject = props.subjects[0];
 
     return (
@@ -123,7 +117,7 @@ export function LeaderboardContent(props: LeaderboardProps) {
                             <span className="text-right">POINTS</span>
                         </div>
 
-                        <ol className="space-y-2" aria-label={`Top 5 students in ${subject}`}>
+                        <ol className="space-y-2" aria-label={`Top 5 students in ${subject.label}`}>
                             {props.topFive.map((entry) => (
                                 <LeaderboardRow key={entry.rank} entry={entry} />
                             ))}
