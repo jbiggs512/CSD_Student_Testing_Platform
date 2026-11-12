@@ -24,20 +24,25 @@ import {
   CardTitle,
   ConfirmDialog,
   DataTable,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Input,
 } from '@shared/components'
+import {
+  downloadJsonFile,
+  getErrorMessage,
+  sanitizeInputText,
+} from '@shared/lib/utils'
+import {
+  EMPTY_FORM,
+  SAMPLE_BULK_JSON,
+  formatQuestionCode,
+  getSubjectPrefix,
+  parseBulkQuestionsJson,
+} from '../model'
 import type {
   Question,
-  QuestionBulkItemInput,
-  QuestionCreateRequest,
+  QuestionFormValues,
   QuestionOptionInput,
-  QuestionUpdateRequest,
+  QuestionRowItem,
   Subject,
 } from '../model'
 import {
@@ -46,239 +51,12 @@ import {
   deleteQuestion,
   getQuestions,
   getSubjects,
-  QuestionPoolApiError,
   updateQuestion,
 } from '../api'
+import { QuestionFormDialog } from './QuestionFormDialog'
+import { BulkUploadQuestionsDialog } from './BulkUploadQuestionsDialog'
 
 const QUESTIONS_PER_PAGE = 5
-
-const SAMPLE_BULK_JSON = JSON.stringify(
-  [
-    {
-      question_text: 'Which HTTP method is idempotent and used to replace a resource?',
-      options: [
-        { option_text: 'POST', is_correct: false },
-        { option_text: 'PUT', is_correct: true },
-        { option_text: 'PATCH', is_correct: false },
-        { option_text: 'CONNECT', is_correct: false },
-      ],
-    },
-  ],
-  null,
-  2,
-)
-
-function sanitizeInputText(value: string): string {
-  return value
-    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(
-      /<\/?(?:iframe|object|embed|style|svg|math|link|meta|base)\b[^>]*>/gi,
-      '',
-    )
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function downloadJsonFile(filename: string, data: unknown): void {
-  const json = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
-  const blob = new Blob([json], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(url)
-}
-
-function parseBulkQuestionsJson(
-  rawJson: string,
-  existingQuestions: Question[] = [],
-): {
-  items: QuestionBulkItemInput[] | null
-  error: string | null
-} {
-  const trimmed = rawJson.trim()
-  if (!trimmed) {
-    return { items: null, error: 'Upload a JSON file or paste JSON content.' }
-  }
-
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(trimmed)
-  } catch {
-    return { items: null, error: 'Invalid JSON syntax.' }
-  }
-
-  const rawItems = Array.isArray(parsed)
-    ? parsed
-    : typeof parsed === 'object' &&
-        parsed !== null &&
-        Array.isArray((parsed as { questions?: unknown }).questions)
-      ? (parsed as { questions: unknown[] }).questions
-      : null
-
-  if (!rawItems) {
-    return {
-      items: null,
-      error:
-        'JSON must be an array of questions or an object with a "questions" array.',
-    }
-  }
-
-  if (rawItems.length === 0) {
-    return { items: null, error: 'At least one question is required.' }
-  }
-
-  const existingKeys = new Set(
-    existingQuestions.map((q) => sanitizeInputText(q.question_text).toLowerCase()),
-  )
-  const seenInBatch = new Set<string>()
-  const normalized: QuestionBulkItemInput[] = []
-
-  for (let i = 0; i < rawItems.length; i += 1) {
-    const label = `Question ${i + 1}`
-    const entry = rawItems[i]
-    if (typeof entry !== 'object' || entry === null) {
-      return { items: null, error: `${label}: must be an object.` }
-    }
-
-    const questionText = (entry as { question_text?: unknown }).question_text
-    const cleanedQuestionText =
-      typeof questionText === 'string' ? sanitizeInputText(questionText) : ''
-    if (!cleanedQuestionText) {
-      return {
-        items: null,
-        error: `${label}: "question_text" must be a non-empty string.`,
-      }
-    }
-
-    const normalizedKey = cleanedQuestionText.toLowerCase()
-    if (seenInBatch.has(normalizedKey)) {
-      return {
-        items: null,
-        error: `${label}: Duplicate question in upload.`,
-      }
-    }
-    if (existingKeys.has(normalizedKey)) {
-      return {
-        items: null,
-        error: `${label}: Question already exists in this subject.`,
-      }
-    }
-    seenInBatch.add(normalizedKey)
-
-    const options = (entry as { options?: unknown }).options
-    if (!Array.isArray(options) || options.length !== 4) {
-      return {
-        items: null,
-        error: `${label}: "options" must be an array of exactly 4 items.`,
-      }
-    }
-
-    const normalizedOptions: QuestionOptionInput[] = []
-    let correctCount = 0
-
-    for (let j = 0; j < options.length; j += 1) {
-      const opt = options[j]
-      if (typeof opt !== 'object' || opt === null) {
-        return {
-          items: null,
-          error: `${label}, Option ${j + 1}: must be an object.`,
-        }
-      }
-
-      const optionText = (opt as { option_text?: unknown }).option_text
-      const isCorrect = (opt as { is_correct?: unknown }).is_correct
-
-      const cleanedOptionText =
-        typeof optionText === 'string' ? sanitizeInputText(optionText) : ''
-      if (!cleanedOptionText) {
-        return {
-          items: null,
-          error: `${label}, Option ${j + 1}: "option_text" is required.`,
-        }
-      }
-      if (typeof isCorrect !== 'boolean') {
-        return {
-          items: null,
-          error: `${label}, Option ${j + 1}: "is_correct" must be a boolean.`,
-        }
-      }
-
-      if (isCorrect) correctCount += 1
-      normalizedOptions.push({
-        option_text: cleanedOptionText,
-        is_correct: isCorrect,
-      })
-    }
-
-    if (correctCount !== 1) {
-      return {
-        items: null,
-        error: `${label}: exactly one option must have "is_correct": true.`,
-      }
-    }
-
-    normalized.push({
-      question_text: cleanedQuestionText,
-      options: normalizedOptions,
-    })
-  }
-
-  return { items: normalized, error: null }
-}
-
-interface QuestionFormValues {
-  question_text: string
-  options: [string, string, string, string]
-  correctIndex: number
-}
-
-const EMPTY_FORM: QuestionFormValues = {
-  question_text: '',
-  options: ['', '', '', ''],
-  correctIndex: 0,
-}
-
-function getSubjectPrefix(subjectName: string | undefined): string {
-  if (!subjectName) return 'QUE'
-  const words = subjectName
-    .trim()
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-  if (words.length >= 3) {
-    return words
-      .slice(0, 3)
-      .map((word) => word[0])
-      .join('')
-      .toUpperCase()
-  }
-  const cleaned = subjectName.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
-  return (cleaned.slice(0, 3) || 'QUE').padEnd(3, 'X')
-}
-
-function formatQuestionCode(
-  question: Question,
-  subjectName: string | undefined,
-): string {
-  if (question.question_code) {
-    return question.question_code
-  }
-  const prefix = getSubjectPrefix(subjectName)
-  return `${prefix}-${String(question.question_id).padStart(3, '0')}`
-}
-
-function getDisplayError(error: unknown): string {
-  if (error instanceof QuestionPoolApiError) return error.message
-  if (error instanceof Error) return error.message
-  return 'Something went wrong. Please try again.'
-}
-
-interface QuestionRowItem {
-  question: Question
-  code: string
-}
 
 export function QuestionPoolPage() {
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -308,7 +86,6 @@ export function QuestionPoolPage() {
   const loadSubjects = useCallback(async () => {
     setIsLoadingSubjects(true)
     setPageError(null)
-
     try {
       const subjectList = await getSubjects()
       const activeSubjects = subjectList.filter(
@@ -326,7 +103,7 @@ export function QuestionPoolPage() {
         return available[0]?.subject_id ?? null
       })
     } catch (error) {
-      setPageError(getDisplayError(error))
+      setPageError(getErrorMessage(error))
     } finally {
       setIsLoadingSubjects(false)
     }
@@ -337,15 +114,12 @@ export function QuestionPoolPage() {
       setQuestions([])
       return
     }
-
     setIsLoadingQuestions(true)
     setPageError(null)
-
     try {
-      const result = await getQuestions(subjectId)
-      setQuestions(result)
+      setQuestions(await getQuestions(subjectId))
     } catch (error) {
-      setPageError(getDisplayError(error))
+      setPageError(getErrorMessage(error))
     } finally {
       setIsLoadingQuestions(false)
     }
@@ -373,10 +147,7 @@ export function QuestionPoolPage() {
       question.options[2]?.option_text ?? '',
       question.options[3]?.option_text ?? '',
     ]
-    const foundCorrectIndex = question.options.findIndex(
-      (option) => option.is_correct,
-    )
-
+    const foundCorrectIndex = question.options.findIndex((opt) => opt.is_correct)
     setEditingQuestion(question)
     setFormValues({
       question_text: question.question_text,
@@ -406,11 +177,8 @@ export function QuestionPoolPage() {
   const filteredQuestions = useMemo(() => {
     const search = searchTerm.trim().toLocaleLowerCase()
     if (!search) return codedQuestions
-
     return codedQuestions.filter(({ question, code }) => {
-      const optionTexts = question.options
-        .map((opt) => opt.option_text)
-        .join(' ')
+      const optionTexts = question.options.map((opt) => opt.option_text).join(' ')
       return [code, question.question_text, optionTexts]
         .join(' ')
         .toLocaleLowerCase()
@@ -434,7 +202,6 @@ export function QuestionPoolPage() {
         cell: ({ row }) => {
           const { question } = row.original
           const correctOption = question.options.find((opt) => opt.is_correct)
-
           return (
             <div>
               <div className="font-medium text-foreground">
@@ -452,12 +219,9 @@ export function QuestionPoolPage() {
       {
         id: 'actions',
         header: 'Actions',
-        meta: {
-          headClassName: 'w-44 text-right',
-        },
+        meta: { headClassName: 'w-44 text-right' },
         cell: ({ row }) => {
           const { question, code } = row.original
-
           return (
             <div className="flex items-center justify-end gap-1">
               <Button
@@ -499,17 +263,9 @@ export function QuestionPoolPage() {
 
   function handleOptionTextChange(index: number, value: string) {
     setFormValues((current) => {
-      const nextOptions = [...current.options] as [
-        string,
-        string,
-        string,
-        string,
-      ]
+      const nextOptions = [...current.options] as [string, string, string, string]
       nextOptions[index] = value
-      return {
-        ...current,
-        options: nextOptions,
-      }
+      return { ...current, options: nextOptions }
     })
   }
 
@@ -553,33 +309,25 @@ export function QuestionPoolPage() {
       }),
     )
 
-    setIsSaving(true)
+    const payload = {
+      subject_id: selectedSubjectId,
+      question_text: questionText,
+      options: optionsPayload,
+    }
 
+    setIsSaving(true)
     try {
       if (editingQuestion) {
-        const updatePayload: QuestionUpdateRequest = {
-          subject_id: selectedSubjectId,
-          question_text: questionText,
-          options: optionsPayload,
-        }
-        await updateQuestion(editingQuestion.question_id, updatePayload)
+        await updateQuestion(editingQuestion.question_id, payload)
         setSuccessMessage('Question updated successfully.')
       } else {
-        const createPayload: QuestionCreateRequest = {
-          subject_id: selectedSubjectId,
-          question_text: questionText,
-          options: optionsPayload,
-        }
-        await createQuestion(createPayload)
+        await createQuestion(payload)
         setSuccessMessage('Question created successfully.')
       }
-
-      setIsModalOpen(false)
-      setEditingQuestion(null)
-      setFormValues(EMPTY_FORM)
+      closeModal(false)
       await loadQuestions(selectedSubjectId)
     } catch (error) {
-      setFormError(getDisplayError(error))
+      setFormError(getErrorMessage(error))
     } finally {
       setIsSaving(false)
     }
@@ -587,25 +335,17 @@ export function QuestionPoolPage() {
 
   async function confirmDelete() {
     if (!questionPendingDelete) return
-
     setPageError(null)
     setSuccessMessage(null)
-
     try {
       await deleteQuestion(questionPendingDelete.question_id)
       setSuccessMessage('Question deleted successfully.')
       setQuestionPendingDelete(null)
       await loadQuestions(selectedSubjectId)
     } catch (error) {
-      setPageError(getDisplayError(error))
+      setPageError(getErrorMessage(error))
     }
   }
-
-  const openBulkModal = useCallback(() => {
-    setBulkJsonText('')
-    setBulkError(null)
-    setIsBulkModalOpen(true)
-  }, [])
 
   function closeBulkModal(open: boolean) {
     setIsBulkModalOpen(open)
@@ -620,15 +360,10 @@ export function QuestionPoolPage() {
     if (!file) return
     setBulkError(null)
     try {
-      const text = await file.text()
-      setBulkJsonText(text)
+      setBulkJsonText(await file.text())
     } catch {
       setBulkError('Unable to read the selected JSON file.')
     }
-  }
-
-  function handleDownloadSample() {
-    downloadJsonFile('question-pool-template.json', SAMPLE_BULK_JSON)
   }
 
   function handleDownloadPool() {
@@ -669,11 +404,10 @@ export function QuestionPoolPage() {
       setSuccessMessage(
         `Uploaded ${response.created_count} ${response.created_count === 1 ? 'question' : 'questions'} successfully.`,
       )
-      setIsBulkModalOpen(false)
-      setBulkJsonText('')
+      closeBulkModal(false)
       await loadQuestions(selectedSubjectId)
     } catch (err) {
-      setBulkError(getDisplayError(err))
+      setBulkError(getErrorMessage(err))
     } finally {
       setIsBulkSaving(false)
     }
@@ -707,7 +441,7 @@ export function QuestionPoolPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={openBulkModal}
+            onClick={() => closeBulkModal(true)}
             disabled={selectedSubjectId === null}
             className="w-full border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white sm:w-auto"
           >
@@ -764,10 +498,7 @@ export function QuestionPoolPage() {
                   <option value="">No subjects available</option>
                 ) : (
                   subjects.map((subject) => (
-                    <option
-                      key={subject.subject_id}
-                      value={subject.subject_id}
-                    >
+                    <option key={subject.subject_id} value={subject.subject_id}>
                       {subject.subject_name}
                     </option>
                   ))
@@ -871,238 +602,41 @@ export function QuestionPoolPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isModalOpen} onOpenChange={closeModal}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-heading text-lg font-bold text-plum">
-              {editingQuestion ? 'Edit Question' : 'Add Question'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingQuestion
-                ? 'Update the multiple-choice question, its answer options, or the correct answer.'
-                : 'Enter the question and four multiple-choice options, then select the correct answer.'}
-            </DialogDescription>
-          </DialogHeader>
+      <QuestionFormDialog
+        open={isModalOpen}
+        isEditing={editingQuestion !== null}
+        isSaving={isSaving}
+        formError={formError}
+        formValues={formValues}
+        onOpenChange={closeModal}
+        onSubmit={handleSubmit}
+        onQuestionTextChange={(value) =>
+          setFormValues((current) => ({ ...current, question_text: value }))
+        }
+        onOptionTextChange={handleOptionTextChange}
+        onCorrectIndexChange={(index) =>
+          setFormValues((current) => ({ ...current, correctIndex: index }))
+        }
+      />
 
-          <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-4">
-            {formError && (
-              <Alert variant="destructive">
-                <AlertCircleIcon aria-hidden="true" />
-                <AlertDescription>{formError}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="question-text"
-                className="text-xs font-semibold text-navy"
-              >
-                Question
-              </label>
-              <Input
-                id="question-text"
-                name="question_text"
-                autoFocus
-                required
-                placeholder="Enter the question prompt..."
-                value={formValues.question_text}
-                onChange={(event) =>
-                  setFormValues((current) => ({
-                    ...current,
-                    question_text: event.target.value,
-                  }))
-                }
-              />
-            </div>
-
-            <fieldset className="space-y-2.5">
-              <legend className="text-xs font-semibold text-navy">
-                Multiple-choice options (select the correct answer)
-              </legend>
-              {formValues.options.map((optionText, index) => {
-                const optionNumber = index + 1
-                const isCorrect = formValues.correctIndex === index
-
-                return (
-                  <div
-                    key={optionNumber}
-                    className={`flex items-center gap-3 rounded-lg border p-2.5 transition-colors ${
-                      isCorrect
-                        ? 'border-emerald-600/40 bg-emerald-50/40'
-                        : 'border-border bg-background'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      id={`correct-option-${optionNumber}`}
-                      name="correct_option"
-                      checked={isCorrect}
-                      onChange={() =>
-                        setFormValues((current) => ({
-                          ...current,
-                          correctIndex: index,
-                        }))
-                      }
-                      aria-label={`Mark Option ${optionNumber} as correct`}
-                      className="size-4 cursor-pointer accent-pink"
-                    />
-                    <div className="flex-1">
-                      <Input
-                        id={`option-text-${optionNumber}`}
-                        aria-label={`Option ${optionNumber}`}
-                        required
-                        placeholder={`Option ${optionNumber}`}
-                        value={optionText}
-                        onChange={(event) =>
-                          handleOptionTextChange(index, event.target.value)
-                        }
-                      />
-                    </div>
-                    <label
-                      htmlFor={`correct-option-${optionNumber}`}
-                      className={`cursor-pointer text-xs font-medium ${
-                        isCorrect ? 'text-emerald-700' : 'text-muted-foreground'
-                      }`}
-                    >
-                      {isCorrect ? 'Correct' : 'Select'}
-                    </label>
-                  </div>
-                )
-              })}
-            </fieldset>
-
-            <DialogFooter className="mt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => closeModal(false)}
-                disabled={isSaving}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSaving}>
-                {isSaving && (
-                  <LoaderCircleIcon
-                    className="size-4 animate-spin"
-                    aria-hidden="true"
-                  />
-                )}
-                {isSaving
-                  ? 'Saving...'
-                  : editingQuestion
-                    ? 'Save changes'
-                    : 'Create question'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isBulkModalOpen} onOpenChange={closeBulkModal}>
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle className="font-heading text-lg font-bold text-plum">
-              Bulk Upload Questions (JSON)
-            </DialogTitle>
-            <DialogDescription>
-              Upload a JSON file or paste a JSON array of multiple-choice
-              questions for{' '}
-              <span className="font-medium text-foreground">
-                {selectedSubject?.subject_name ?? 'the selected subject'}
-              </span>
-              .
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleBulkSubmit} className="mt-2 flex flex-col gap-4">
-            {bulkError && (
-              <Alert variant="destructive">
-                <AlertCircleIcon aria-hidden="true" />
-                <AlertDescription>{bulkError}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="space-y-1">
-                <label
-                  htmlFor="bulk-json-file"
-                  className="text-xs font-semibold text-navy"
-                >
-                  JSON file
-                </label>
-                <Input
-                  id="bulk-json-file"
-                  type="file"
-                  accept=".json,application/json"
-                  onChange={(event) => void handleBulkFileChange(event)}
-                  className="cursor-pointer"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadSample}
-                className="sm:mt-5"
-              >
-                <DownloadIcon aria-hidden="true" />
-                Download template
-              </Button>
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="bulk-json-textarea"
-                className="text-xs font-semibold text-navy"
-              >
-                JSON content
-              </label>
-              <textarea
-                id="bulk-json-textarea"
-                rows={8}
-                placeholder={SAMPLE_BULK_JSON}
-                value={bulkJsonText}
-                onChange={(event) => {
-                  setBulkJsonText(event.target.value)
-                  setBulkError(null)
-                }}
-                className="w-full rounded-md border border-input bg-background p-3 font-mono text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-              {bulkPreview?.items && (
-                <p className="text-xs font-medium text-emerald-700">
-                  Ready to upload {bulkPreview.items.length}{' '}
-                  {bulkPreview.items.length === 1 ? 'question' : 'questions'}.
-                </p>
-              )}
-              {bulkPreview?.error && !bulkError && (
-                <p className="text-xs text-muted-foreground">
-                  {bulkPreview.error}
-                </p>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => closeBulkModal(false)}
-                disabled={isBulkSaving}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isBulkSaving}>
-                {isBulkSaving && (
-                  <LoaderCircleIcon
-                    className="size-4 animate-spin"
-                    aria-hidden="true"
-                  />
-                )}
-                {isBulkSaving ? 'Uploading...' : 'Upload questions'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <BulkUploadQuestionsDialog
+        open={isBulkModalOpen}
+        subjectName={selectedSubject?.subject_name}
+        bulkJsonText={bulkJsonText}
+        bulkError={bulkError}
+        isBulkSaving={isBulkSaving}
+        bulkPreview={bulkPreview}
+        onOpenChange={closeBulkModal}
+        onSubmit={handleBulkSubmit}
+        onFileChange={(event) => void handleBulkFileChange(event)}
+        onJsonTextChange={(value) => {
+          setBulkJsonText(value)
+          setBulkError(null)
+        }}
+        onDownloadSample={() =>
+          downloadJsonFile('question-pool-template.json', SAMPLE_BULK_JSON)
+        }
+      />
 
       <ConfirmDialog
         open={questionPendingDelete !== null}

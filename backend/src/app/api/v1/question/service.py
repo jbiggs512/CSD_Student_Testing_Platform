@@ -25,9 +25,6 @@ CORRECT_OPTION_COUNT_DETAIL = "Exactly one option must be marked as the correct 
 BULK_EMPTY_DETAIL = "At least one question is required."
 MAX_QUESTION_LENGTH = 2000
 MAX_OPTION_LENGTH = 500
-BULK_EMPTY_DETAIL = "At least one question is required."
-MAX_QUESTION_LENGTH = 2000
-MAX_OPTION_LENGTH = 500
 
 _CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _SCRIPT_BLOCK_RE = re.compile(r"<script\b[^>]*>[\s\S]*?</script>", re.IGNORECASE)
@@ -42,8 +39,7 @@ def sanitize_text(value: str) -> str:
     cleaned = _CONTROL_CHARS_RE.sub("", value)
     cleaned = _SCRIPT_BLOCK_RE.sub("", cleaned)
     cleaned = _DANGEROUS_TAG_RE.sub("", cleaned)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    return cleaned
+    return re.sub(r"\s+", " ", cleaned).strip()
 
 
 def get_subject_prefix(subject_name: str | None) -> str:
@@ -57,8 +53,14 @@ def get_subject_prefix(subject_name: str | None) -> str:
 
 
 def format_question_code(subject_name: str | None, question_id: int) -> str:
-    prefix = get_subject_prefix(subject_name)
-    return f"{prefix}-{question_id:03d}"
+    return f"{get_subject_prefix(subject_name)}-{question_id:03d}"
+
+
+def _subject_question_filter(subject_id: int):
+    return or_(
+        Question.subject_id == subject_id,
+        Question.test.has(Test.subject_id == subject_id),
+    )
 
 
 def get_subject_or_404(db: Session, subject_id: int) -> Subject:
@@ -108,6 +110,18 @@ def to_question_response(
     )
 
 
+def validate_question_text(raw_text: str) -> str:
+    cleaned = sanitize_text(raw_text)
+    if not cleaned:
+        raise HTTPException(status_code=400, detail=QUESTION_TEXT_REQUIRED_DETAIL)
+    if len(cleaned) > MAX_QUESTION_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Question text must be {MAX_QUESTION_LENGTH} characters or fewer.",
+        )
+    return cleaned
+
+
 def validate_options(options: list[QuestionOptionCreateRequest]) -> list[tuple[str, bool]]:
     if len(options) != 4:
         raise HTTPException(status_code=400, detail=OPTIONS_COUNT_DETAIL)
@@ -124,8 +138,7 @@ def validate_options(options: list[QuestionOptionCreateRequest]) -> list[tuple[s
             )
         sanitized_options.append((cleaned_option, option.is_correct))
 
-    correct_count = sum(1 for _, is_correct in sanitized_options if is_correct)
-    if correct_count != 1:
+    if sum(1 for _, is_correct in sanitized_options if is_correct) != 1:
         raise HTTPException(status_code=400, detail=CORRECT_OPTION_COUNT_DETAIL)
 
     return sanitized_options
@@ -138,10 +151,7 @@ def ensure_unique_question_in_subject(
     exclude_question_id: int | None = None,
 ) -> None:
     stmt = select(Question).where(
-        or_(
-            Question.subject_id == subject_id,
-            Question.test.has(Test.subject_id == subject_id),
-        ),
+        _subject_question_filter(subject_id),
         func.lower(Question.question_text) == question_text.lower(),
     )
     if exclude_question_id is not None:
@@ -151,18 +161,24 @@ def ensure_unique_question_in_subject(
         raise HTTPException(status_code=400, detail=QUESTION_ALREADY_EXISTS_DETAIL)
 
 
-def create_question(db: Session, request: QuestionCreateRequest) -> QuestionResponse:
-    subject = get_subject_or_404(db, request.subject_id)
-
-    question_text = sanitize_text(request.question_text)
-    if not question_text:
-        raise HTTPException(status_code=400, detail=QUESTION_TEXT_REQUIRED_DETAIL)
-    if len(question_text) > MAX_QUESTION_LENGTH:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Question text must be {MAX_QUESTION_LENGTH} characters or fewer.",
+def _add_options(
+    db: Session,
+    question_id: int,
+    sanitized_options: list[tuple[str, bool]],
+) -> None:
+    for option_text, is_correct in sanitized_options:
+        db.add(
+            QuestionOption(
+                question_id=question_id,
+                option_text=option_text,
+                is_correct=is_correct,
+            )
         )
 
+
+def create_question(db: Session, request: QuestionCreateRequest) -> QuestionResponse:
+    subject = get_subject_or_404(db, request.subject_id)
+    question_text = validate_question_text(request.question_text)
     ensure_unique_question_in_subject(db, request.subject_id, question_text)
     sanitized_options = validate_options(request.options)
 
@@ -172,18 +188,8 @@ def create_question(db: Session, request: QuestionCreateRequest) -> QuestionResp
     )
     db.add(new_question)
     db.flush()
-
-    for option_text, is_correct in sanitized_options:
-        db.add(
-            QuestionOption(
-                question_id=new_question.question_id,
-                option_text=option_text,
-                is_correct=is_correct,
-            )
-        )
-
+    _add_options(db, new_question.question_id, sanitized_options)
     db.commit()
-    db.refresh(new_question)
 
     loaded = get_question_or_404(db, new_question.question_id)
     return to_question_response(loaded, subject.subject_name)
@@ -194,7 +200,6 @@ def bulk_create_questions(
     request: QuestionBulkCreateRequest,
 ) -> QuestionBulkCreateResponse:
     subject = get_subject_or_404(db, request.subject_id)
-
     if not request.questions:
         raise HTTPException(status_code=400, detail=BULK_EMPTY_DETAIL)
 
@@ -202,49 +207,29 @@ def bulk_create_questions(
         text.lower()
         for text in db.scalars(
             select(Question.question_text).where(
-                or_(
-                    Question.subject_id == request.subject_id,
-                    Question.test.has(Test.subject_id == request.subject_id),
-                )
+                _subject_question_filter(request.subject_id)
             )
         ).all()
     }
     seen_in_batch: set[str] = set()
-
     validated_items: list[tuple[str, list[tuple[str, bool]]]] = []
+
     for index, item in enumerate(request.questions, start=1):
-        cleaned_text = sanitize_text(item.question_text)
-        if not cleaned_text:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Question {index}: {QUESTION_TEXT_REQUIRED_DETAIL}",
-            )
-        if len(cleaned_text) > MAX_QUESTION_LENGTH:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Question {index}: Question text must be {MAX_QUESTION_LENGTH} characters or fewer.",
-            )
-
-        normalized_key = cleaned_text.lower()
-        if normalized_key in seen_in_batch:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Question {index}: {DUPLICATE_IN_BULK_DETAIL}",
-            )
-        if normalized_key in existing_texts:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Question {index}: {QUESTION_ALREADY_EXISTS_DETAIL}",
-            )
-        seen_in_batch.add(normalized_key)
-
         try:
+            cleaned_text = validate_question_text(item.question_text)
+            normalized_key = cleaned_text.lower()
+            if normalized_key in seen_in_batch:
+                raise HTTPException(status_code=400, detail=DUPLICATE_IN_BULK_DETAIL)
+            if normalized_key in existing_texts:
+                raise HTTPException(status_code=400, detail=QUESTION_ALREADY_EXISTS_DETAIL)
+            seen_in_batch.add(normalized_key)
             sanitized_options = validate_options(item.options)
         except HTTPException as exc:
             raise HTTPException(
                 status_code=exc.status_code,
                 detail=f"Question {index}: {exc.detail}",
             ) from exc
+
         validated_items.append((cleaned_text, sanitized_options))
 
     created_ids: list[int] = []
@@ -256,15 +241,7 @@ def bulk_create_questions(
         db.add(new_question)
         db.flush()
         created_ids.append(new_question.question_id)
-
-        for option_text, is_correct in sanitized_options:
-            db.add(
-                QuestionOption(
-                    question_id=new_question.question_id,
-                    option_text=option_text,
-                    is_correct=is_correct,
-                )
-            )
+        _add_options(db, new_question.question_id, sanitized_options)
 
     db.commit()
 
@@ -276,105 +253,6 @@ def bulk_create_questions(
             .order_by(Question.question_id.asc())
         ).all()
     )
-
-    responses = [
-        to_question_response(q, subject.subject_name)
-        for q in created_questions
-    ]
-    return QuestionBulkCreateResponse(
-        created_count=len(responses),
-        questions=responses,
-    )
-
-
-def bulk_create_questions(
-    db: Session,
-    request: QuestionBulkCreateRequest,
-) -> QuestionBulkCreateResponse:
-    subject = get_subject_or_404(db, request.subject_id)
-
-    if not request.questions:
-        raise HTTPException(status_code=400, detail=BULK_EMPTY_DETAIL)
-
-    existing_texts = {
-        text.lower()
-        for text in db.scalars(
-            select(Question.question_text).where(
-                or_(
-                    Question.subject_id == request.subject_id,
-                    Question.test.has(Test.subject_id == request.subject_id),
-                )
-            )
-        ).all()
-    }
-    seen_in_batch: set[str] = set()
-
-    validated_items: list[tuple[str, list[tuple[str, bool]]]] = []
-    for index, item in enumerate(request.questions, start=1):
-        cleaned_text = sanitize_text(item.question_text)
-        if not cleaned_text:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Question {index}: {QUESTION_TEXT_REQUIRED_DETAIL}",
-            )
-        if len(cleaned_text) > MAX_QUESTION_LENGTH:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Question {index}: Question text must be {MAX_QUESTION_LENGTH} characters or fewer.",
-            )
-
-        normalized_key = cleaned_text.lower()
-        if normalized_key in seen_in_batch:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Question {index}: {DUPLICATE_IN_BULK_DETAIL}",
-            )
-        if normalized_key in existing_texts:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Question {index}: {QUESTION_ALREADY_EXISTS_DETAIL}",
-            )
-        seen_in_batch.add(normalized_key)
-
-        try:
-            sanitized_options = validate_options(item.options)
-        except HTTPException as exc:
-            raise HTTPException(
-                status_code=exc.status_code,
-                detail=f"Question {index}: {exc.detail}",
-            ) from exc
-        validated_items.append((cleaned_text, sanitized_options))
-
-    created_ids: list[int] = []
-    for cleaned_text, sanitized_options in validated_items:
-        new_question = Question(
-            subject_id=request.subject_id,
-            question_text=cleaned_text,
-        )
-        db.add(new_question)
-        db.flush()
-        created_ids.append(new_question.question_id)
-
-        for option_text, is_correct in sanitized_options:
-            db.add(
-                QuestionOption(
-                    question_id=new_question.question_id,
-                    option_text=option_text,
-                    is_correct=is_correct,
-                )
-            )
-
-    db.commit()
-
-    created_questions = list(
-        db.scalars(
-            select(Question)
-            .options(selectinload(Question.options))
-            .where(Question.question_id.in_(created_ids))
-            .order_by(Question.question_id.asc())
-        ).all()
-    )
-
     responses = [
         to_question_response(q, subject.subject_name)
         for q in created_questions
@@ -399,31 +277,18 @@ def get_questions(db: Session, subject_id: int | None = None) -> list[QuestionRe
     target_subject: Subject | None = None
     if subject_id is not None:
         target_subject = get_subject_or_404(db, subject_id)
-        stmt = stmt.where(
-            or_(
-                Question.subject_id == subject_id,
-                Question.test.has(Test.subject_id == subject_id),
-            )
-        )
+        stmt = stmt.where(_subject_question_filter(subject_id))
 
     questions = list(db.scalars(stmt).all())
-
-    if target_subject is not None:
-        return [
-            to_question_response(q, target_subject.subject_name)
-            for q in questions
-        ]
-
-    responses: list[QuestionResponse] = []
-    for q in questions:
-        subj = resolve_question_subject(q)
-        responses.append(
-            to_question_response(
-                q,
-                subj.subject_name if subj else None,
-            )
+    return [
+        to_question_response(
+            q,
+            target_subject.subject_name
+            if target_subject is not None
+            else (subj.subject_name if (subj := resolve_question_subject(q)) else None),
         )
-    return responses
+        for q in questions
+    ]
 
 
 def get_question(db: Session, question_id: int) -> QuestionResponse:
@@ -438,29 +303,21 @@ def update_question(
     request: QuestionUpdateRequest,
 ) -> QuestionResponse:
     question = get_question_or_404(db, question_id)
-
-    next_subject = resolve_question_subject(question)
+    current_subject = resolve_question_subject(question)
     next_subject_id = (
         request.subject_id
         if request.subject_id is not None
-        else (next_subject.subject_id if next_subject is not None else None)
+        else (current_subject.subject_id if current_subject is not None else None)
     )
-    next_question_text = question.question_text
+    next_question_text = (
+        validate_question_text(request.question_text)
+        if request.question_text is not None
+        else question.question_text
+    )
 
     if request.subject_id is not None:
         get_subject_or_404(db, request.subject_id)
         question.subject_id = request.subject_id
-
-    if request.question_text is not None:
-        cleaned_text = sanitize_text(request.question_text)
-        if not cleaned_text:
-            raise HTTPException(status_code=400, detail=QUESTION_TEXT_REQUIRED_DETAIL)
-        if len(cleaned_text) > MAX_QUESTION_LENGTH:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Question text must be {MAX_QUESTION_LENGTH} characters or fewer.",
-            )
-        next_question_text = cleaned_text
 
     if next_subject_id is not None and (
         request.question_text is not None or request.subject_id is not None
@@ -479,15 +336,7 @@ def update_question(
         for existing_option in list(question.options):
             db.delete(existing_option)
         db.flush()
-
-        for option_text, is_correct in sanitized_options:
-            db.add(
-                QuestionOption(
-                    question_id=question.question_id,
-                    option_text=option_text,
-                    is_correct=is_correct,
-                )
-            )
+        _add_options(db, question.question_id, sanitized_options)
 
     db.commit()
     db.expire(question)
