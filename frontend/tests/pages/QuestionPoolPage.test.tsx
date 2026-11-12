@@ -7,12 +7,14 @@ const {
   getSubjects,
   getQuestions,
   createQuestion,
+  bulkCreateQuestions,
   updateQuestion,
   deleteQuestion,
 } = vi.hoisted(() => ({
   getSubjects: vi.fn(),
   getQuestions: vi.fn(),
   createQuestion: vi.fn(),
+  bulkCreateQuestions: vi.fn(),
   updateQuestion: vi.fn(),
   deleteQuestion: vi.fn(),
 }))
@@ -21,6 +23,7 @@ vi.mock('@/pages/questionPool/api', () => ({
   getSubjects,
   getQuestions,
   createQuestion,
+  bulkCreateQuestions,
   updateQuestion,
   deleteQuestion,
   QuestionPoolApiError: class QuestionPoolApiError extends Error {},
@@ -239,5 +242,145 @@ describe('QuestionPoolPage', () => {
     await waitFor(() => {
       expect(deleteQuestion).toHaveBeenCalledWith(1)
     })
+  })
+
+  it('opens the Bulk Upload JSON modal and uploads valid JSON questions', async () => {
+    getSubjects.mockResolvedValue(mockSubjects)
+    getQuestions.mockResolvedValue(mockQuestions)
+    bulkCreateQuestions.mockResolvedValue({
+      created_count: 1,
+      questions: [],
+    })
+
+    renderQuestionPoolPage()
+    await screen.findByText('What is encapsulation in OOP?')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bulk Upload JSON' }))
+
+    const validJson = JSON.stringify([
+      {
+        question_text: 'What is SOLID?',
+        options: [
+          { option_text: 'Five OOP design principles', is_correct: true },
+          { option_text: 'A database engine', is_correct: false },
+          { option_text: 'A CSS framework', is_correct: false },
+          { option_text: 'A build tool', is_correct: false },
+        ],
+      },
+    ])
+
+    fireEvent.change(screen.getByLabelText('JSON content'), {
+      target: { value: validJson },
+    })
+
+    expect(screen.getByText('Ready to upload 1 question.')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Upload questions' }))
+
+    await waitFor(() => {
+      expect(bulkCreateQuestions).toHaveBeenCalledWith({
+        subject_id: 1,
+        questions: JSON.parse(validJson),
+      })
+    })
+  })
+
+  it('shows a validation error for invalid JSON in Bulk Upload modal', async () => {
+    getSubjects.mockResolvedValue(mockSubjects)
+    getQuestions.mockResolvedValue(mockQuestions)
+
+    renderQuestionPoolPage()
+    await screen.findByText('What is encapsulation in OOP?')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bulk Upload JSON' }))
+    fireEvent.change(screen.getByLabelText('JSON content'), {
+      target: { value: '{ invalid json' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Upload questions' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Invalid JSON syntax.',
+    )
+    expect(bulkCreateQuestions).not.toHaveBeenCalled()
+  })
+
+  it('sanitizes script tags and control characters during bulk upload', async () => {
+    getSubjects.mockResolvedValue(mockSubjects)
+    getQuestions.mockResolvedValue(mockQuestions)
+    bulkCreateQuestions.mockResolvedValue({
+      created_count: 1,
+      questions: [],
+    })
+
+    renderQuestionPoolPage()
+    await screen.findByText('What is encapsulation in OOP?')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bulk Upload JSON' }))
+
+    const dirtyJson = JSON.stringify([
+      {
+        question_text: '  What is <script>alert(1)</script> XSS?  ',
+        options: [
+          { option_text: 'Cross-Site Scripting<iframe src="x"></iframe>', is_correct: true },
+          { option_text: 'Option B', is_correct: false },
+          { option_text: 'Option C', is_correct: false },
+          { option_text: 'Option D', is_correct: false },
+        ],
+      },
+    ])
+
+    fireEvent.change(screen.getByLabelText('JSON content'), {
+      target: { value: dirtyJson },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Upload questions' }))
+
+    await waitFor(() => {
+      expect(bulkCreateQuestions).toHaveBeenCalledWith({
+        subject_id: 1,
+        questions: [
+          {
+            question_text: 'What is XSS?',
+            options: [
+              { option_text: 'Cross-Site Scripting', is_correct: true },
+              { option_text: 'Option B', is_correct: false },
+              { option_text: 'Option C', is_correct: false },
+              { option_text: 'Option D', is_correct: false },
+            ],
+          },
+        ],
+      })
+    })
+  })
+
+  it('downloads the subject question pool and JSON template', async () => {
+    getSubjects.mockResolvedValue(mockSubjects)
+    getQuestions.mockResolvedValue(mockQuestions)
+
+    const createObjectUrlSpy = vi
+      .spyOn(URL, 'createObjectURL')
+      .mockReturnValue('blob:mock-url')
+    const revokeObjectUrlSpy = vi
+      .spyOn(URL, 'revokeObjectURL')
+      .mockImplementation(() => {})
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {})
+
+    renderQuestionPoolPage()
+    await screen.findByText('What is encapsulation in OOP?')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download JSON' }))
+    expect(createObjectUrlSpy).toHaveBeenCalledTimes(1)
+    expect(clickSpy).toHaveBeenCalledTimes(1)
+    expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:mock-url')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bulk Upload JSON' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Download template' }))
+    expect(createObjectUrlSpy).toHaveBeenCalledTimes(2)
+    expect(clickSpy).toHaveBeenCalledTimes(2)
+
+    createObjectUrlSpy.mockRestore()
+    revokeObjectUrlSpy.mockRestore()
+    clickSpy.mockRestore()
   })
 })

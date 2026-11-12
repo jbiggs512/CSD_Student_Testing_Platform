@@ -26,6 +26,16 @@ class QuestionUpdateRequest(BaseModel):
     options: list[QuestionOptionCreateRequest] | None = None
 
 
+class QuestionBulkItemRequest(BaseModel):
+    question_text: str
+    options: list[QuestionOptionCreateRequest]
+
+
+class QuestionBulkCreateRequest(BaseModel):
+    subject_id: int
+    questions: list[QuestionBulkItemRequest]
+
+
 class QuestionResponse(BaseModel):
     question_id: int
     question_code: str | None = None
@@ -35,3 +45,8 @@ class QuestionResponse(BaseModel):
     options: list[QuestionOptionResponse]
 
     model_config = {"from_attributes": True}
+
+
+class QuestionBulkCreateResponse(BaseModel):
+    created_count: int
+    questions: list[QuestionResponse]

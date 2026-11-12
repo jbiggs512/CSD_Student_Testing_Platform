@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearAccessToken, setAccessToken } from '@/shared/api'
 import {
+  bulkCreateQuestions,
   createQuestion,
   deleteQuestion,
   getQuestions,
@@ -87,5 +88,36 @@ describe('questionPoolApi', () => {
     await deleteQuestion(1)
 
     expect(fetchSpy).toHaveBeenCalledTimes(3)
+  })
+
+  it('bulk creates questions via POST /question/bulk', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ created_count: 1, questions: [] }), {
+          status: 201,
+        }),
+      )
+
+    const result = await bulkCreateQuestions({
+      subject_id: 1,
+      questions: [
+        {
+          question_text: 'Bulk Q1?',
+          options: [
+            { option_text: 'A', is_correct: true },
+            { option_text: 'B', is_correct: false },
+            { option_text: 'C', is_correct: false },
+            { option_text: 'D', is_correct: false },
+          ],
+        },
+      ],
+    })
+
+    expect(result.created_count).toBe(1)
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/question/bulk'),
+      expect.objectContaining({ method: 'POST' }),
+    )
   })
 })

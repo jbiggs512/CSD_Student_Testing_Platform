@@ -6,4 +6,7 @@ export type {
   Question,
   QuestionCreateRequest,
   QuestionUpdateRequest,
+  QuestionBulkItemInput,
+  QuestionBulkCreateRequest,
+  QuestionBulkCreateResponse,
 } from './types'

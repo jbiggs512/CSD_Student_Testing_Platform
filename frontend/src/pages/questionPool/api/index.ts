@@ -3,6 +3,7 @@ export {
   getSubjects,
   getQuestions,
   createQuestion,
+  bulkCreateQuestions,
   updateQuestion,
   deleteQuestion,
 } from './questionPoolApi'

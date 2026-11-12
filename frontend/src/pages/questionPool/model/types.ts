@@ -39,3 +39,18 @@ export interface QuestionUpdateRequest {
   question_text?: string
   options?: QuestionOptionInput[]
 }
+
+export interface QuestionBulkItemInput {
+  question_text: string
+  options: QuestionOptionInput[]
+}
+
+export interface QuestionBulkCreateRequest {
+  subject_id: number
+  questions: QuestionBulkItemInput[]
+}
+
+export interface QuestionBulkCreateResponse {
+  created_count: number
+  questions: Question[]
+}

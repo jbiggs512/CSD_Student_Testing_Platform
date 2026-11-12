@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
   AlertCircleIcon,
   CheckCircle2Icon,
+  DownloadIcon,
   Edit2Icon,
   HelpCircleIcon,
   LoaderCircleIcon,
   PlusIcon,
   SearchIcon,
   Trash2Icon,
+  UploadIcon,
 } from 'lucide-react'
 import {
   Alert,
@@ -32,12 +34,14 @@ import {
 } from '@shared/components'
 import type {
   Question,
+  QuestionBulkItemInput,
   QuestionCreateRequest,
   QuestionOptionInput,
   QuestionUpdateRequest,
   Subject,
 } from '../model'
 import {
+  bulkCreateQuestions,
   createQuestion,
   deleteQuestion,
   getQuestions,
@@ -47,6 +51,161 @@ import {
 } from '../api'
 
 const QUESTIONS_PER_PAGE = 5
+
+const SAMPLE_BULK_JSON = JSON.stringify(
+  [
+    {
+      question_text: 'Which HTTP method is idempotent and used to replace a resource?',
+      options: [
+        { option_text: 'POST', is_correct: false },
+        { option_text: 'PUT', is_correct: true },
+        { option_text: 'PATCH', is_correct: false },
+        { option_text: 'CONNECT', is_correct: false },
+      ],
+    },
+  ],
+  null,
+  2,
+)
+
+function sanitizeInputText(value: string): string {
+  return value
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(
+      /<\/?(?:iframe|object|embed|style|svg|math|link|meta|base)\b[^>]*>/gi,
+      '',
+    )
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function downloadJsonFile(filename: string, data: unknown): void {
+  const json = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function parseBulkQuestionsJson(rawJson: string): {
+  items: QuestionBulkItemInput[] | null
+  error: string | null
+} {
+  const trimmed = rawJson.trim()
+  if (!trimmed) {
+    return { items: null, error: 'Upload a JSON file or paste JSON content.' }
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(trimmed)
+  } catch {
+    return { items: null, error: 'Invalid JSON syntax.' }
+  }
+
+  const rawItems = Array.isArray(parsed)
+    ? parsed
+    : typeof parsed === 'object' &&
+        parsed !== null &&
+        Array.isArray((parsed as { questions?: unknown }).questions)
+      ? (parsed as { questions: unknown[] }).questions
+      : null
+
+  if (!rawItems) {
+    return {
+      items: null,
+      error:
+        'JSON must be an array of questions or an object with a "questions" array.',
+    }
+  }
+
+  if (rawItems.length === 0) {
+    return { items: null, error: 'At least one question is required.' }
+  }
+
+  const normalized: QuestionBulkItemInput[] = []
+
+  for (let i = 0; i < rawItems.length; i += 1) {
+    const label = `Question ${i + 1}`
+    const entry = rawItems[i]
+    if (typeof entry !== 'object' || entry === null) {
+      return { items: null, error: `${label}: must be an object.` }
+    }
+
+    const questionText = (entry as { question_text?: unknown }).question_text
+    const cleanedQuestionText =
+      typeof questionText === 'string' ? sanitizeInputText(questionText) : ''
+    if (!cleanedQuestionText) {
+      return {
+        items: null,
+        error: `${label}: "question_text" must be a non-empty string.`,
+      }
+    }
+
+    const options = (entry as { options?: unknown }).options
+    if (!Array.isArray(options) || options.length !== 4) {
+      return {
+        items: null,
+        error: `${label}: "options" must be an array of exactly 4 items.`,
+      }
+    }
+
+    const normalizedOptions: QuestionOptionInput[] = []
+    let correctCount = 0
+
+    for (let j = 0; j < options.length; j += 1) {
+      const opt = options[j]
+      if (typeof opt !== 'object' || opt === null) {
+        return {
+          items: null,
+          error: `${label}, Option ${j + 1}: must be an object.`,
+        }
+      }
+
+      const optionText = (opt as { option_text?: unknown }).option_text
+      const isCorrect = (opt as { is_correct?: unknown }).is_correct
+
+      const cleanedOptionText =
+        typeof optionText === 'string' ? sanitizeInputText(optionText) : ''
+      if (!cleanedOptionText) {
+        return {
+          items: null,
+          error: `${label}, Option ${j + 1}: "option_text" is required.`,
+        }
+      }
+      if (typeof isCorrect !== 'boolean') {
+        return {
+          items: null,
+          error: `${label}, Option ${j + 1}: "is_correct" must be a boolean.`,
+        }
+      }
+
+      if (isCorrect) correctCount += 1
+      normalizedOptions.push({
+        option_text: cleanedOptionText,
+        is_correct: isCorrect,
+      })
+    }
+
+    if (correctCount !== 1) {
+      return {
+        items: null,
+        error: `${label}: exactly one option must have "is_correct": true.`,
+      }
+    }
+
+    normalized.push({
+      question_text: cleanedQuestionText,
+      options: normalizedOptions,
+    })
+  }
+
+  return { items: normalized, error: null }
+}
 
 interface QuestionFormValues {
   question_text: string
@@ -118,6 +277,11 @@ export function QuestionPoolPage() {
   const [questionPendingDelete, setQuestionPendingDelete] =
     useState<Question | null>(null)
   const [formValues, setFormValues] = useState<QuestionFormValues>(EMPTY_FORM)
+
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false)
+  const [bulkJsonText, setBulkJsonText] = useState('')
+  const [bulkError, setBulkError] = useState<string | null>(null)
+  const [isBulkSaving, setIsBulkSaving] = useState(false)
 
   const loadSubjects = useCallback(async () => {
     setIsLoadingSubjects(true)
@@ -337,13 +501,13 @@ export function QuestionPoolPage() {
       return
     }
 
-    const questionText = formValues.question_text.trim()
+    const questionText = sanitizeInputText(formValues.question_text)
     if (!questionText) {
       setFormError('Enter a question.')
       return
     }
 
-    const trimmedOptions = formValues.options.map((opt) => opt.trim())
+    const trimmedOptions = formValues.options.map((opt) => sanitizeInputText(opt))
     if (trimmedOptions.some((opt) => opt.length === 0)) {
       setFormError('All four answer options are required.')
       return
@@ -404,6 +568,89 @@ export function QuestionPoolPage() {
     }
   }
 
+  const openBulkModal = useCallback(() => {
+    setBulkJsonText('')
+    setBulkError(null)
+    setIsBulkModalOpen(true)
+  }, [])
+
+  function closeBulkModal(open: boolean) {
+    setIsBulkModalOpen(open)
+    if (!open) {
+      setBulkJsonText('')
+      setBulkError(null)
+    }
+  }
+
+  async function handleBulkFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setBulkError(null)
+    try {
+      const text = await file.text()
+      setBulkJsonText(text)
+    } catch {
+      setBulkError('Unable to read the selected JSON file.')
+    }
+  }
+
+  function handleDownloadSample() {
+    downloadJsonFile('question-pool-template.json', SAMPLE_BULK_JSON)
+  }
+
+  function handleDownloadPool() {
+    if (questions.length === 0) return
+    const prefix = getSubjectPrefix(selectedSubject?.subject_name).toLowerCase()
+    const exportPayload = questions.map((q) => ({
+      question_text: q.question_text,
+      options: q.options.map((opt) => ({
+        option_text: opt.option_text,
+        is_correct: opt.is_correct,
+      })),
+    }))
+    downloadJsonFile(`${prefix}-questions.json`, exportPayload)
+  }
+
+  async function handleBulkSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setBulkError(null)
+    setSuccessMessage(null)
+
+    if (selectedSubjectId === null) {
+      setBulkError('Please select a subject first.')
+      return
+    }
+
+    const { items, error } = parseBulkQuestionsJson(bulkJsonText)
+    if (error || !items) {
+      setBulkError(error ?? 'Invalid JSON payload.')
+      return
+    }
+
+    setIsBulkSaving(true)
+    try {
+      const response = await bulkCreateQuestions({
+        subject_id: selectedSubjectId,
+        questions: items,
+      })
+      setSuccessMessage(
+        `Uploaded ${response.created_count} ${response.created_count === 1 ? 'question' : 'questions'} successfully.`,
+      )
+      setIsBulkModalOpen(false)
+      setBulkJsonText('')
+      await loadQuestions(selectedSubjectId)
+    } catch (err) {
+      setBulkError(getDisplayError(err))
+    } finally {
+      setIsBulkSaving(false)
+    }
+  }
+
+  const bulkPreview = useMemo(() => {
+    if (!bulkJsonText.trim()) return null
+    return parseBulkQuestionsJson(bulkJsonText)
+  }, [bulkJsonText])
+
   const isLoading = isLoadingSubjects || isLoadingQuestions
   const showEmptyState = !isLoading && filteredQuestions.length === 0
   const showQuestionTable = !isLoading && filteredQuestions.length > 0
@@ -423,15 +670,27 @@ export function QuestionPoolPage() {
             existing pool up to date.
           </p>
         </div>
-        <Button
-          type="button"
-          onClick={openCreateModal}
-          disabled={selectedSubjectId === null}
-          className="w-full bg-white text-navy hover:bg-white/90 sm:w-auto"
-        >
-          <PlusIcon aria-hidden="true" />
-          Add Question
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={openBulkModal}
+            disabled={selectedSubjectId === null}
+            className="w-full border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white sm:w-auto"
+          >
+            <UploadIcon aria-hidden="true" />
+            Bulk Upload JSON
+          </Button>
+          <Button
+            type="button"
+            onClick={openCreateModal}
+            disabled={selectedSubjectId === null}
+            className="w-full bg-white text-navy hover:bg-white/90 sm:w-auto"
+          >
+            <PlusIcon aria-hidden="true" />
+            Add Question
+          </Button>
+        </div>
       </section>
 
       {pageError && (
@@ -502,6 +761,16 @@ export function QuestionPoolPage() {
             </CardDescription>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDownloadPool}
+              disabled={questions.length === 0}
+              className="w-full sm:w-auto"
+            >
+              <DownloadIcon aria-hidden="true" />
+              Download JSON
+            </Button>
             <div className="relative min-w-0 sm:w-72">
               <SearchIcon
                 aria-hidden="true"
@@ -690,6 +959,112 @@ export function QuestionPoolPage() {
                   : editingQuestion
                     ? 'Save changes'
                     : 'Create question'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isBulkModalOpen} onOpenChange={closeBulkModal}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-lg font-bold text-plum">
+              Bulk Upload Questions (JSON)
+            </DialogTitle>
+            <DialogDescription>
+              Upload a JSON file or paste a JSON array of multiple-choice
+              questions for{' '}
+              <span className="font-medium text-foreground">
+                {selectedSubject?.subject_name ?? 'the selected subject'}
+              </span>
+              .
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleBulkSubmit} className="mt-2 flex flex-col gap-4">
+            {bulkError && (
+              <Alert variant="destructive">
+                <AlertCircleIcon aria-hidden="true" />
+                <AlertDescription>{bulkError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <label
+                  htmlFor="bulk-json-file"
+                  className="text-xs font-semibold text-navy"
+                >
+                  JSON file
+                </label>
+                <Input
+                  id="bulk-json-file"
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={(event) => void handleBulkFileChange(event)}
+                  className="cursor-pointer"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadSample}
+                className="sm:mt-5"
+              >
+                <DownloadIcon aria-hidden="true" />
+                Download template
+              </Button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="bulk-json-textarea"
+                className="text-xs font-semibold text-navy"
+              >
+                JSON content
+              </label>
+              <textarea
+                id="bulk-json-textarea"
+                rows={8}
+                placeholder={SAMPLE_BULK_JSON}
+                value={bulkJsonText}
+                onChange={(event) => {
+                  setBulkJsonText(event.target.value)
+                  setBulkError(null)
+                }}
+                className="w-full rounded-md border border-input bg-background p-3 font-mono text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              {bulkPreview?.items && (
+                <p className="text-xs font-medium text-emerald-700">
+                  Ready to upload {bulkPreview.items.length}{' '}
+                  {bulkPreview.items.length === 1 ? 'question' : 'questions'}.
+                </p>
+              )}
+              {bulkPreview?.error && !bulkError && (
+                <p className="text-xs text-muted-foreground">
+                  {bulkPreview.error}
+                </p>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => closeBulkModal(false)}
+                disabled={isBulkSaving}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isBulkSaving}>
+                {isBulkSaving && (
+                  <LoaderCircleIcon
+                    className="size-4 animate-spin"
+                    aria-hidden="true"
+                  />
+                )}
+                {isBulkSaving ? 'Uploading...' : 'Upload questions'}
               </Button>
             </DialogFooter>
           </form>

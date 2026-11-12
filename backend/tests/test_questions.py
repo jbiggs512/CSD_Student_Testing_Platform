@@ -196,3 +196,101 @@ def test_question_codes_are_unique_across_subjects_with_same_prefix(
     assert code_a.endswith(f"-{res_a.json()['question_id']:03d}")
     assert code_b.endswith(f"-{res_b.json()['question_id']:03d}")
 
+
+def test_bulk_create_questions_as_lecturer(client, db_session, test_subject, auth_headers):
+    headers = auth_headers(UserRole.LECTURER)
+    payload = {
+        "subject_id": test_subject.subject_id,
+        "questions": [
+            {
+                "question_text": "Bulk Question 1?",
+                "options": [
+                    {"option_text": "A1", "is_correct": True},
+                    {"option_text": "B1", "is_correct": False},
+                    {"option_text": "C1", "is_correct": False},
+                    {"option_text": "D1", "is_correct": False},
+                ],
+            },
+            {
+                "question_text": "Bulk Question 2?",
+                "options": [
+                    {"option_text": "A2", "is_correct": False},
+                    {"option_text": "B2", "is_correct": True},
+                    {"option_text": "C2", "is_correct": False},
+                    {"option_text": "D2", "is_correct": False},
+                ],
+            },
+        ],
+    }
+
+    response = client.post(f"{QUESTIONS_URL}/bulk", json=payload, headers=headers)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["created_count"] == 2
+    assert len(data["questions"]) == 2
+    assert data["questions"][0]["question_text"] == "Bulk Question 1?"
+    assert data["questions"][1]["question_text"] == "Bulk Question 2?"
+
+
+def test_bulk_create_questions_atomic_validation(client, db_session, test_subject, auth_headers):
+    headers = auth_headers(UserRole.LECTURER)
+    payload = {
+        "subject_id": test_subject.subject_id,
+        "questions": [
+            {
+                "question_text": "Valid Question 1?",
+                "options": [
+                    {"option_text": "A1", "is_correct": True},
+                    {"option_text": "B1", "is_correct": False},
+                    {"option_text": "C1", "is_correct": False},
+                    {"option_text": "D1", "is_correct": False},
+                ],
+            },
+            {
+                "question_text": "Invalid Question 2?",
+                "options": [
+                    {"option_text": "A2", "is_correct": False},
+                    {"option_text": "B2", "is_correct": False},
+                    {"option_text": "C2", "is_correct": False},
+                    {"option_text": "D2", "is_correct": False},
+                ],
+            },
+        ],
+    }
+
+    response = client.post(f"{QUESTIONS_URL}/bulk", json=payload, headers=headers)
+    assert response.status_code == 400
+    assert response.json()["detail"].startswith("Question 2:")
+
+    stored = list(
+        db_session.scalars(
+            select(Question).where(Question.subject_id == test_subject.subject_id)
+        ).all()
+    )
+    assert len(stored) == 0
+
+
+def test_bulk_create_questions_sanitizes_input(client, test_subject, auth_headers):
+    headers = auth_headers(UserRole.LECTURER)
+    payload = {
+        "subject_id": test_subject.subject_id,
+        "questions": [
+            {
+                "question_text": "  What is <script>alert(1)</script> XSS?\x00  ",
+                "options": [
+                    {"option_text": "  Cross-Site Scripting<iframe src='x'></iframe>  ", "is_correct": True},
+                    {"option_text": "Option\x07 B", "is_correct": False},
+                    {"option_text": "Option C", "is_correct": False},
+                    {"option_text": "Option D", "is_correct": False},
+                ],
+            }
+        ],
+    }
+
+    response = client.post(f"{QUESTIONS_URL}/bulk", json=payload, headers=headers)
+    assert response.status_code == 201
+    created = response.json()["questions"][0]
+    assert created["question_text"] == "What is XSS?"
+    assert created["options"][0]["option_text"] == "Cross-Site Scripting"
+    assert created["options"][1]["option_text"] == "Option B"
+

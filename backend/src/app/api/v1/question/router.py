@@ -20,6 +20,15 @@ def create_question(
     return service.create_question(db, request)
 
 
+@router.post("/bulk", status_code=201)
+def bulk_create_questions(
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN))],
+    request: schemas.QuestionBulkCreateRequest,
+) -> schemas.QuestionBulkCreateResponse:
+    return service.bulk_create_questions(db, request)
+
+
 @router.get("")
 def get_questions(
     db: Annotated[Session, Depends(get_db)],

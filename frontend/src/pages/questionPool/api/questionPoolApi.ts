@@ -2,6 +2,8 @@ import { getAccessToken } from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type {
   Question,
+  QuestionBulkCreateRequest,
+  QuestionBulkCreateResponse,
   QuestionCreateRequest,
   QuestionUpdateRequest,
   Subject,
@@ -89,6 +91,15 @@ export function createQuestion(
   request: QuestionCreateRequest,
 ): Promise<Question> {
   return apiRequest<Question>(QUESTIONS_URL, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function bulkCreateQuestions(
+  request: QuestionBulkCreateRequest,
+): Promise<QuestionBulkCreateResponse> {
+  return apiRequest<QuestionBulkCreateResponse>(`${QUESTIONS_URL}/bulk`, {
     method: 'POST',
     body: JSON.stringify(request),
   })
