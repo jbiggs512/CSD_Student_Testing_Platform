@@ -23,6 +23,10 @@ import {
 import type { QuestionFormValues, QuestionRowItem } from './questionHelpers'
 import type { Question, QuestionOptionInput, Subject } from './types'
 
+function handleDownloadSample() {
+  downloadJsonFile('question-pool-template.json', SAMPLE_BULK_JSON)
+}
+
 export function useQuestionPool() {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null)
@@ -281,10 +285,6 @@ export function useQuestionPool() {
       })),
     }))
     downloadJsonFile(`${prefix}-questions.json`, exportPayload)
-  }
-
-  function handleDownloadSample() {
-    downloadJsonFile('question-pool-template.json', SAMPLE_BULK_JSON)
   }
 
   async function handleBulkSubmit(event: FormEvent<HTMLFormElement>) {
