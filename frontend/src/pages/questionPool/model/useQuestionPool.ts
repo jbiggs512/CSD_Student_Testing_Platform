@@ -150,7 +150,7 @@ export function useQuestionPool() {
     setFormValues({
       question_text: question.question_text,
       options: paddedOptions,
-      correctIndex: foundCorrectIndex >= 0 ? foundCorrectIndex : 0,
+      correctIndex: Math.max(0, foundCorrectIndex),
     })
     setFormError(null)
     setIsModalOpen(true)

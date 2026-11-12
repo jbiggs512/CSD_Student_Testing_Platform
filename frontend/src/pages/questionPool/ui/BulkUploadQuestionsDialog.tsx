@@ -44,7 +44,7 @@ export function BulkUploadQuestionsDialog({
   onFileChange,
   onJsonTextChange,
   onDownloadSample,
-}: BulkUploadQuestionsDialogProps) {
+}: Readonly<BulkUploadQuestionsDialogProps>) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">

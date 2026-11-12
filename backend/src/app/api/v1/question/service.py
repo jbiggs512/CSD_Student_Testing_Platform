@@ -93,6 +93,16 @@ def resolve_question_subject(question: Question) -> Subject | None:
     return None
 
 
+def _resolve_subject_name(
+    question: Question,
+    target_subject: Subject | None = None,
+) -> str | None:
+    if target_subject is not None:
+        return target_subject.subject_name
+    subj = resolve_question_subject(question)
+    return subj.subject_name if subj is not None else None
+
+
 def to_question_response(
     question: Question,
     subject_name: str | None,
@@ -245,14 +255,12 @@ def bulk_create_questions(
 
     db.commit()
 
-    created_questions = list(
-        db.scalars(
-            select(Question)
-            .options(selectinload(Question.options))
-            .where(Question.question_id.in_(created_ids))
-            .order_by(Question.question_id.asc())
-        ).all()
-    )
+    created_questions = db.scalars(
+        select(Question)
+        .options(selectinload(Question.options))
+        .where(Question.question_id.in_(created_ids))
+        .order_by(Question.question_id.asc())
+    ).all()
     responses = [
         to_question_response(q, subject.subject_name)
         for q in created_questions
@@ -279,22 +287,16 @@ def get_questions(db: Session, subject_id: int | None = None) -> list[QuestionRe
         target_subject = get_subject_or_404(db, subject_id)
         stmt = stmt.where(_subject_question_filter(subject_id))
 
-    questions = list(db.scalars(stmt).all())
+    questions = db.scalars(stmt).all()
     return [
-        to_question_response(
-            q,
-            target_subject.subject_name
-            if target_subject is not None
-            else (subj.subject_name if (subj := resolve_question_subject(q)) else None),
-        )
+        to_question_response(q, _resolve_subject_name(q, target_subject))
         for q in questions
     ]
 
 
 def get_question(db: Session, question_id: int) -> QuestionResponse:
     question = get_question_or_404(db, question_id)
-    subj = resolve_question_subject(question)
-    return to_question_response(question, subj.subject_name if subj else None)
+    return to_question_response(question, _resolve_subject_name(question))
 
 
 def update_question(
@@ -304,10 +306,13 @@ def update_question(
 ) -> QuestionResponse:
     question = get_question_or_404(db, question_id)
     current_subject = resolve_question_subject(question)
+    default_subject_id = (
+        current_subject.subject_id if current_subject is not None else None
+    )
     next_subject_id = (
         request.subject_id
         if request.subject_id is not None
-        else (current_subject.subject_id if current_subject is not None else None)
+        else default_subject_id
     )
     next_question_text = (
         validate_question_text(request.question_text)
@@ -333,7 +338,7 @@ def update_question(
 
     if request.options is not None:
         sanitized_options = validate_options(request.options)
-        for existing_option in list(question.options):
+        for existing_option in question.options:
             db.delete(existing_option)
         db.flush()
         _add_options(db, question.question_id, sanitized_options)
@@ -341,13 +346,12 @@ def update_question(
     db.commit()
     db.expire(question)
     loaded = get_question_or_404(db, question_id)
-    subj = resolve_question_subject(loaded)
-    return to_question_response(loaded, subj.subject_name if subj else None)
+    return to_question_response(loaded, _resolve_subject_name(loaded))
 
 
 def delete_question(db: Session, question_id: int) -> None:
     question = get_question_or_404(db, question_id)
-    for existing_option in list(question.options):
+    for existing_option in question.options:
         db.delete(existing_option)
     db.delete(question)
     db.commit()

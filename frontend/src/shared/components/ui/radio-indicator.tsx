@@ -5,7 +5,10 @@ interface RadioIndicatorProps {
   className?: string
 }
 
-export function RadioIndicator({ selected, className }: RadioIndicatorProps) {
+export function RadioIndicator({
+  selected,
+  className,
+}: Readonly<RadioIndicatorProps>) {
   return (
     <span
       aria-hidden="true"

@@ -19,7 +19,7 @@ import type { TestPageContentProps } from "../model";
 import logo from '@shared/assets/altius-transparent.png'
 import { useNavigate } from 'react-router';
 
-export function TestPageContent(props: TestPageContentProps) {
+export function TestPageContent(props: Readonly<TestPageContentProps>) {
   const navigate = useNavigate();
 
   const toMMSS = (secs: number) => {

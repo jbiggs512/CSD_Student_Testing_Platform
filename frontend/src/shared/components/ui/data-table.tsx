@@ -31,7 +31,7 @@ export function DataTable<TData, TValue>({
   pageSize = 5,
   itemLabel = "items",
   className,
-}: DataTableProps<TData, TValue>) {
+}: Readonly<DataTableProps<TData, TValue>>) {
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize,

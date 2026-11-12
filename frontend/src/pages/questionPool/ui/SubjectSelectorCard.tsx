@@ -13,7 +13,7 @@ export function SubjectSelectorCard({
   selectedSubjectId,
   isLoadingSubjects,
   onSelectSubject,
-}: SubjectSelectorCardProps) {
+}: Readonly<SubjectSelectorCardProps>) {
   return (
     <Card className="border-0 py-5 shadow-sm">
       <CardContent className="px-6">

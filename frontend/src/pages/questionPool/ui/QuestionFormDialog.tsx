@@ -39,7 +39,15 @@ export function QuestionFormDialog({
   onQuestionTextChange,
   onOptionTextChange,
   onCorrectIndexChange,
-}: QuestionFormDialogProps) {
+}: Readonly<QuestionFormDialogProps>) {
+  let submitLabel = 'Create question'
+  if (isEditing) {
+    submitLabel = 'Save changes'
+  }
+  if (isSaving) {
+    submitLabel = 'Saving...'
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -91,24 +99,28 @@ export function QuestionFormDialog({
               return (
                 <div
                   key={optionNumber}
-                  onClick={() => onCorrectIndexChange(index)}
-                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-2.5 transition-colors ${
+                  className={`relative flex items-center gap-3 rounded-lg border p-2.5 transition-colors ${
                     isCorrect
                       ? 'border-emerald-600/40 bg-emerald-50/40'
                       : 'border-border bg-background hover:border-muted-foreground/40'
                   }`}
                 >
-                  <input
-                    type="radio"
-                    id={`correct-option-${optionNumber}`}
-                    name="correct_option"
-                    checked={isCorrect}
-                    onChange={() => onCorrectIndexChange(index)}
-                    aria-label={`Mark Option ${optionNumber} as correct`}
-                    className="sr-only"
-                  />
-                  <RadioIndicator selected={isCorrect} />
-                  <div className="flex-1" onClick={(e) => e.stopPropagation()}>
+                  <label
+                    htmlFor={`correct-option-${optionNumber}`}
+                    className="flex cursor-pointer items-center after:absolute after:inset-0 after:rounded-lg"
+                  >
+                    <input
+                      type="radio"
+                      id={`correct-option-${optionNumber}`}
+                      name="correct_option"
+                      checked={isCorrect}
+                      onChange={() => onCorrectIndexChange(index)}
+                      aria-label={`Mark Option ${optionNumber} as correct`}
+                      className="sr-only"
+                    />
+                    <RadioIndicator selected={isCorrect} />
+                  </label>
+                  <div className="relative z-10 flex-1">
                     <Input
                       id={`option-text-${optionNumber}`}
                       aria-label={`Option ${optionNumber}`}
@@ -121,7 +133,7 @@ export function QuestionFormDialog({
                     />
                   </div>
                   <span
-                    className={`text-xs font-medium ${
+                    className={`pointer-events-none text-xs font-medium ${
                       isCorrect ? 'text-emerald-700' : 'text-muted-foreground'
                     }`}
                   >
@@ -148,11 +160,7 @@ export function QuestionFormDialog({
                   aria-hidden="true"
                 />
               )}
-              {isSaving
-                ? 'Saving...'
-                : isEditing
-                  ? 'Save changes'
-                  : 'Create question'}
+              {submitLabel}
             </Button>
           </DialogFooter>
         </form>

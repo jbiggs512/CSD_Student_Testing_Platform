@@ -11,7 +11,7 @@ export function QuestionPoolHero({
   disabled,
   onBulkUploadClick,
   onAddQuestionClick,
-}: QuestionPoolHeroProps) {
+}: Readonly<QuestionPoolHeroProps>) {
   return (
     <section className="flex flex-col gap-6 rounded-2xl bg-navy p-10 text-white shadow-md sm:flex-row sm:items-end sm:justify-between sm:p-14">
       <div className="max-w-2xl space-y-2">

@@ -157,6 +157,64 @@ function StudentActions({
   )
 }
 
+function StudentIdentityCell({ student }: Readonly<{ student: Student }>) {
+  return (
+    <div>
+      <div className="font-medium text-foreground">
+        {student.first_name} {student.last_name}
+      </div>
+      <div className="mt-1 text-xs text-muted-foreground">
+        {student.username}
+      </div>
+    </div>
+  )
+}
+
+function createStudentColumns(
+  onApprove: (student: Student) => void,
+  onToggleStatus: (student: Student) => void,
+  onPassword: (student: Student) => void,
+  onEdit: (student: Student) => void,
+  onDelete: (student: Student) => void,
+): ColumnDef<Student>[] {
+  return [
+    {
+      accessorKey: 'username',
+      header: 'Student',
+      cell: ({ row }) => <StudentIdentityCell student={row.original} />,
+    },
+    {
+      accessorKey: 'email',
+      header: 'Email',
+      meta: {
+        cellClassName: 'text-muted-foreground',
+      },
+    },
+    {
+      accessorKey: 'account_status',
+      header: 'Status',
+      cell: ({ row }) => <StatusBadge status={row.original.account_status} />,
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      meta: {
+        headClassName: 'text-right',
+      },
+      cell: ({ row }) => (
+        <StudentActions
+          student={row.original}
+          onApprove={onApprove}
+          onToggleStatus={onToggleStatus}
+          onPassword={onPassword}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      ),
+    },
+  ]
+}
+
 interface StudentListCardProps {
   state: StudentsPageState
   filteredStudents: Student[]
@@ -185,55 +243,15 @@ function StudentListCard({
   const showEmptyState = !state.isLoading && filteredStudents.length === 0
   const showStudentTable = !state.isLoading && filteredStudents.length > 0
 
-  const columns = useMemo<ColumnDef<Student>[]>(
-    () => [
-      {
-        accessorKey: 'username',
-        header: 'Student',
-        cell: ({ row }) => {
-          const student = row.original
-          return (
-            <div>
-              <div className="font-medium text-foreground">
-                {student.first_name} {student.last_name}
-              </div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                {student.username}
-              </div>
-            </div>
-          )
-        },
-      },
-      {
-        accessorKey: 'email',
-        header: 'Email',
-        meta: {
-          cellClassName: 'text-muted-foreground',
-        },
-      },
-      {
-        accessorKey: 'account_status',
-        header: 'Status',
-        cell: ({ row }) => <StatusBadge status={row.original.account_status} />,
-      },
-      {
-        id: 'actions',
-        header: 'Actions',
-        meta: {
-          headClassName: 'text-right',
-        },
-        cell: ({ row }) => (
-          <StudentActions
-            student={row.original}
-            onApprove={onApprove}
-            onToggleStatus={onToggleStatus}
-            onPassword={onPassword}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
-        ),
-      },
-    ],
+  const columns = useMemo(
+    () =>
+      createStudentColumns(
+        onApprove,
+        onToggleStatus,
+        onPassword,
+        onEdit,
+        onDelete,
+      ),
     [onApprove, onDelete, onEdit, onPassword, onToggleStatus],
   )
 

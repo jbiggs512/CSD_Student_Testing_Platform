@@ -64,6 +64,136 @@ function failBulkParse(error: string) {
   return { items: null, error }
 }
 
+function extractRawQuestionsArray(parsed: unknown): unknown[] | null {
+  if (Array.isArray(parsed)) {
+    return parsed
+  }
+  if (typeof parsed === 'object' && parsed !== null) {
+    const candidate = (parsed as { questions?: unknown }).questions
+    if (Array.isArray(candidate)) {
+      return candidate
+    }
+  }
+  return null
+}
+
+function parseSingleBulkOption(
+  opt: unknown,
+  label: string,
+  optionNumber: number,
+): { option: QuestionOptionInput | null; error: string | null } {
+  if (typeof opt !== 'object' || opt === null) {
+    return { option: null, error: `${label}, Option ${optionNumber}: must be an object.` }
+  }
+
+  const optionText = (opt as { option_text?: unknown }).option_text
+  const isCorrect = (opt as { is_correct?: unknown }).is_correct
+  const cleanedOptionText =
+    typeof optionText === 'string' ? sanitizeInputText(optionText) : ''
+
+  if (!cleanedOptionText) {
+    return {
+      option: null,
+      error: `${label}, Option ${optionNumber}: "option_text" is required.`,
+    }
+  }
+  if (typeof isCorrect !== 'boolean') {
+    return {
+      option: null,
+      error: `${label}, Option ${optionNumber}: "is_correct" must be a boolean.`,
+    }
+  }
+
+  return {
+    option: { option_text: cleanedOptionText, is_correct: isCorrect },
+    error: null,
+  }
+}
+
+function parseBulkOptions(
+  options: unknown,
+  label: string,
+): { options: QuestionOptionInput[] | null; error: string | null } {
+  if (!Array.isArray(options) || options.length !== 4) {
+    return {
+      options: null,
+      error: `${label}: "options" must be an array of exactly 4 items.`,
+    }
+  }
+
+  const normalizedOptions: QuestionOptionInput[] = []
+  let correctCount = 0
+
+  for (let j = 0; j < options.length; j += 1) {
+    const parsedOption = parseSingleBulkOption(options[j], label, j + 1)
+    if (parsedOption.error || !parsedOption.option) {
+      return { options: null, error: parsedOption.error }
+    }
+    if (parsedOption.option.is_correct) {
+      correctCount += 1
+    }
+    normalizedOptions.push(parsedOption.option)
+  }
+
+  if (correctCount !== 1) {
+    return {
+      options: null,
+      error: `${label}: exactly one option must have "is_correct": true.`,
+    }
+  }
+
+  return { options: normalizedOptions, error: null }
+}
+
+function parseSingleBulkQuestion(
+  entry: unknown,
+  label: string,
+  existingKeys: Set<string>,
+  seenInBatch: Set<string>,
+): { item: QuestionBulkItemInput | null; error: string | null } {
+  if (typeof entry !== 'object' || entry === null) {
+    return { item: null, error: `${label}: must be an object.` }
+  }
+
+  const questionText = (entry as { question_text?: unknown }).question_text
+  const cleanedQuestionText =
+    typeof questionText === 'string' ? sanitizeInputText(questionText) : ''
+  if (!cleanedQuestionText) {
+    return {
+      item: null,
+      error: `${label}: "question_text" must be a non-empty string.`,
+    }
+  }
+
+  const normalizedKey = cleanedQuestionText.toLowerCase()
+  if (seenInBatch.has(normalizedKey)) {
+    return { item: null, error: `${label}: Duplicate question in upload.` }
+  }
+  if (existingKeys.has(normalizedKey)) {
+    return {
+      item: null,
+      error: `${label}: Question already exists in this subject.`,
+    }
+  }
+  seenInBatch.add(normalizedKey)
+
+  const parsedOptions = parseBulkOptions(
+    (entry as { options?: unknown }).options,
+    label,
+  )
+  if (parsedOptions.error || !parsedOptions.options) {
+    return { item: null, error: parsedOptions.error }
+  }
+
+  return {
+    item: {
+      question_text: cleanedQuestionText,
+      options: parsedOptions.options,
+    },
+    error: null,
+  }
+}
+
 export function parseBulkQuestionsJson(
   rawJson: string,
   existingQuestions: Question[] = [],
@@ -83,14 +213,7 @@ export function parseBulkQuestionsJson(
     return failBulkParse('Invalid JSON syntax.')
   }
 
-  const rawItems = Array.isArray(parsed)
-    ? parsed
-    : typeof parsed === 'object' &&
-        parsed !== null &&
-        Array.isArray((parsed as { questions?: unknown }).questions)
-      ? (parsed as { questions: unknown[] }).questions
-      : null
-
+  const rawItems = extractRawQuestionsArray(parsed)
   if (!rawItems) {
     return failBulkParse(
       'JSON must be an array of questions or an object with a "questions" array.',
@@ -107,68 +230,16 @@ export function parseBulkQuestionsJson(
   const normalized: QuestionBulkItemInput[] = []
 
   for (let i = 0; i < rawItems.length; i += 1) {
-    const label = `Question ${i + 1}`
-    const entry = rawItems[i]
-    if (typeof entry !== 'object' || entry === null) {
-      return failBulkParse(`${label}: must be an object.`)
+    const result = parseSingleBulkQuestion(
+      rawItems[i],
+      `Question ${i + 1}`,
+      existingKeys,
+      seenInBatch,
+    )
+    if (result.error || !result.item) {
+      return failBulkParse(result.error ?? 'Invalid question entry.')
     }
-
-    const questionText = (entry as { question_text?: unknown }).question_text
-    const cleanedQuestionText =
-      typeof questionText === 'string' ? sanitizeInputText(questionText) : ''
-    if (!cleanedQuestionText) {
-      return failBulkParse(`${label}: "question_text" must be a non-empty string.`)
-    }
-
-    const normalizedKey = cleanedQuestionText.toLowerCase()
-    if (seenInBatch.has(normalizedKey)) {
-      return failBulkParse(`${label}: Duplicate question in upload.`)
-    }
-    if (existingKeys.has(normalizedKey)) {
-      return failBulkParse(`${label}: Question already exists in this subject.`)
-    }
-    seenInBatch.add(normalizedKey)
-
-    const options = (entry as { options?: unknown }).options
-    if (!Array.isArray(options) || options.length !== 4) {
-      return failBulkParse(`${label}: "options" must be an array of exactly 4 items.`)
-    }
-
-    const normalizedOptions: QuestionOptionInput[] = []
-    let correctCount = 0
-
-    for (let j = 0; j < options.length; j += 1) {
-      const opt = options[j]
-      if (typeof opt !== 'object' || opt === null) {
-        return failBulkParse(`${label}, Option ${j + 1}: must be an object.`)
-      }
-
-      const optionText = (opt as { option_text?: unknown }).option_text
-      const isCorrect = (opt as { is_correct?: unknown }).is_correct
-      const cleanedOptionText =
-        typeof optionText === 'string' ? sanitizeInputText(optionText) : ''
-
-      if (!cleanedOptionText) {
-        return failBulkParse(`${label}, Option ${j + 1}: "option_text" is required.`)
-      }
-      if (typeof isCorrect !== 'boolean') {
-        return failBulkParse(`${label}, Option ${j + 1}: "is_correct" must be a boolean.`)
-      }
-
-      if (isCorrect) correctCount += 1
-      normalizedOptions.push({ option_text: cleanedOptionText, is_correct: isCorrect })
-    }
-
-    if (correctCount !== 1) {
-      return failBulkParse(
-        `${label}: exactly one option must have "is_correct": true.`,
-      )
-    }
-
-    normalized.push({
-      question_text: cleanedQuestionText,
-      options: normalizedOptions,
-    })
+    normalized.push(result.item)
   }
 
   return { items: normalized, error: null }

@@ -22,6 +22,91 @@ import type { Question, QuestionRowItem } from '../model'
 
 const QUESTIONS_PER_PAGE = 5
 
+function QuestionTextCell({ question }: Readonly<{ question: Question }>) {
+  const correctOption = question.options.find((opt) => opt.is_correct)
+  return (
+    <div>
+      <div className="font-medium text-foreground">
+        {question.question_text}
+      </div>
+      <div className="mt-1 text-xs text-muted-foreground">
+        Correct answer:{' '}
+        {correctOption ? correctOption.option_text : 'Not set'} &middot;{' '}
+        {question.options.length} options
+      </div>
+    </div>
+  )
+}
+
+function QuestionActionsCell({
+  item,
+  onEditQuestion,
+  onDeleteQuestion,
+}: Readonly<{
+  item: QuestionRowItem
+  onEditQuestion: (question: Question) => void
+  onDeleteQuestion: (question: Question) => void
+}>) {
+  const { question, code } = item
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => onEditQuestion(question)}
+        aria-label={`Edit ${code}`}
+      >
+        <Edit2Icon aria-hidden="true" />
+        <span className="hidden lg:inline">Edit</span>
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => onDeleteQuestion(question)}
+        aria-label={`Delete ${code}`}
+        className="text-destructive hover:text-destructive"
+      >
+        <Trash2Icon aria-hidden="true" />
+      </Button>
+    </div>
+  )
+}
+
+function createQuestionColumns(
+  onEditQuestion: (question: Question) => void,
+  onDeleteQuestion: (question: Question) => void,
+): ColumnDef<QuestionRowItem>[] {
+  return [
+    {
+      accessorKey: 'code',
+      header: 'ID',
+      meta: {
+        headClassName: 'w-32',
+        cellClassName: 'font-medium tabular-nums text-foreground',
+      },
+    },
+    {
+      id: 'question_text',
+      header: 'Question',
+      cell: ({ row }) => <QuestionTextCell question={row.original.question} />,
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      meta: { headClassName: 'w-44 text-right' },
+      cell: ({ row }) => (
+        <QuestionActionsCell
+          item={row.original}
+          onEditQuestion={onEditQuestion}
+          onDeleteQuestion={onDeleteQuestion}
+        />
+      ),
+    },
+  ]
+}
+
 interface QuestionPoolTableCardProps {
   totalQuestions: number
   filteredQuestions: QuestionRowItem[]
@@ -46,70 +131,9 @@ export function QuestionPoolTableCard({
   onCreateFirst,
   onEditQuestion,
   onDeleteQuestion,
-}: QuestionPoolTableCardProps) {
-  const columns = useMemo<ColumnDef<QuestionRowItem>[]>(
-    () => [
-      {
-        accessorKey: 'code',
-        header: 'ID',
-        meta: {
-          headClassName: 'w-32',
-          cellClassName: 'font-medium tabular-nums text-foreground',
-        },
-      },
-      {
-        id: 'question_text',
-        header: 'Question',
-        cell: ({ row }) => {
-          const { question } = row.original
-          const correctOption = question.options.find((opt) => opt.is_correct)
-          return (
-            <div>
-              <div className="font-medium text-foreground">
-                {question.question_text}
-              </div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                Correct answer:{' '}
-                {correctOption ? correctOption.option_text : 'Not set'} &middot;{' '}
-                {question.options.length} options
-              </div>
-            </div>
-          )
-        },
-      },
-      {
-        id: 'actions',
-        header: 'Actions',
-        meta: { headClassName: 'w-44 text-right' },
-        cell: ({ row }) => {
-          const { question, code } = row.original
-          return (
-            <div className="flex items-center justify-end gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => onEditQuestion(question)}
-                aria-label={`Edit ${code}`}
-              >
-                <Edit2Icon aria-hidden="true" />
-                <span className="hidden lg:inline">Edit</span>
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => onDeleteQuestion(question)}
-                aria-label={`Delete ${code}`}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2Icon aria-hidden="true" />
-              </Button>
-            </div>
-          )
-        },
-      },
-    ],
+}: Readonly<QuestionPoolTableCardProps>) {
+  const columns = useMemo(
+    () => createQuestionColumns(onEditQuestion, onDeleteQuestion),
     [onEditQuestion, onDeleteQuestion],
   )
 
