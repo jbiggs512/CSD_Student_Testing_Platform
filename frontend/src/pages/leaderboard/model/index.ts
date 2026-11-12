@@ -1,6 +1,7 @@
 // Leaderboard page state, types, and business logic
-export {
-    type LeaderboardEntry,
-    type LeaderboardProps,
-    type SubjectFilter,
+export type {
+    LeaderboardEntry,
+    LeaderboardProps,
+    LeaderboardResponse,
+    SubjectFilter,
 } from "./types"

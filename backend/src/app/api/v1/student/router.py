@@ -42,3 +42,19 @@ def get_course_title(
     """Get course title for the current student"""
     return service.get_course_title(current_user)
 
+@router.get("/subjects")
+def get_subjects(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
+) -> list[schemas.SubjectResponse]:
+    """Get subjects available for the current student"""
+    return service.get_subjects(db, current_user)
+
+@router.get("/leaderboard/{subject_id}")
+def get_leaderboard(
+    subject_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
+) -> schemas.LeaderboardResponse:
+    """Get the leaderboard data for the passed subject"""
+    return service.get_leaderboard(db, current_user, subject_id)

@@ -1,4 +1,5 @@
 import { createApiClient, ApiError } from '@shared/api'
+import type { LeaderboardResponse, SubjectFilter } from '../model'
 
 export class LeaderboardApiError extends ApiError {
     constructor(message: string, status: number) {
@@ -11,4 +12,12 @@ const request = createApiClient({ basePath: '/student', ErrorClass: LeaderboardA
 
 export function getCourseTitle(): Promise<string> {
     return request<string>('/courseTitle')
+}
+
+export function getSubjects(): Promise<SubjectFilter[]>{
+    return request<SubjectFilter[]>(`/subjects`)
+}
+
+export function getLeaderboard(subjectId: number): Promise<LeaderboardResponse> {
+    return request<LeaderboardResponse>(`/leaderboard/${subjectId}`)
 }
