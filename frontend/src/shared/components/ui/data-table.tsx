@@ -7,6 +7,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table"
+import { cn } from "@/shared/lib/utils"
 import {
   Table,
   TableBody,
@@ -21,13 +22,15 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   pageSize?: number
   itemLabel?: string
+  className?: string
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   pageSize = 5,
-  itemLabel = "questions",
+  itemLabel = "items",
+  className,
 }: DataTableProps<TData, TValue>) {
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -65,17 +68,24 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      <Table className="min-w-[640px]">
-        <TableHeader className="bg-muted/60 text-xs font-medium text-muted-foreground">
+      <Table className={cn("min-w-[720px] text-left text-sm", className)}>
+        <TableHeader className="bg-navy text-xs uppercase tracking-wide text-white/80">
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="hover:bg-transparent">
+            <TableRow
+              key={headerGroup.id}
+              className="border-b-0 hover:bg-transparent"
+            >
               {headerGroup.headers.map((header) => (
                 <TableHead
                   key={header.id}
-                  className={
-                    (header.column.columnDef.meta as { headClassName?: string } | undefined)
-                      ?.headClassName
-                  }
+                  className={cn(
+                    "px-6 py-3 font-medium text-white/80",
+                    (
+                      header.column.columnDef.meta as
+                        | { headClassName?: string }
+                        | undefined
+                    )?.headClassName,
+                  )}
                 >
                   {header.isPlaceholder
                     ? null
@@ -88,7 +98,7 @@ export function DataTable<TData, TValue>({
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody>
+        <TableBody className="divide-y divide-border">
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
               <TableRow
@@ -99,10 +109,14 @@ export function DataTable<TData, TValue>({
                 {row.getVisibleCells().map((cell) => (
                   <TableCell
                     key={cell.id}
-                    className={
-                      (cell.column.columnDef.meta as { cellClassName?: string } | undefined)
-                        ?.cellClassName
-                    }
+                    className={cn(
+                      "px-6 py-4",
+                      (
+                        cell.column.columnDef.meta as
+                          | { cellClassName?: string }
+                          | undefined
+                      )?.cellClassName,
+                    )}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>

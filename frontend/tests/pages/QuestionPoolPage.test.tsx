@@ -198,6 +198,26 @@ describe('QuestionPoolPage', () => {
     })
   })
 
+  it('filters questions by search term', async () => {
+    getSubjects.mockResolvedValue(mockSubjects)
+    getQuestions.mockResolvedValue(mockQuestions)
+
+    renderQuestionPoolPage()
+    await screen.findByText('What is encapsulation in OOP?')
+
+    fireEvent.change(screen.getByPlaceholderText('Search questions...'), {
+      target: { value: 'LSP' },
+    })
+
+    expect(screen.queryByText('What is encapsulation in OOP?')).toBeNull()
+    expect(screen.getByText('What does LSP stand for?')).toBeDefined()
+
+    fireEvent.change(screen.getByPlaceholderText('Search questions...'), {
+      target: { value: 'nonexistent-query' },
+    })
+    expect(screen.getByText('No matching questions')).toBeDefined()
+  })
+
   it('confirms question deletion before calling deleteQuestion', async () => {
     getSubjects.mockResolvedValue(mockSubjects)
     getQuestions.mockResolvedValue(mockQuestions)

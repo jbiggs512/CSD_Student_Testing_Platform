@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SubmitEvent } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
 import {
   AlertCircleIcon,
   CheckCircle2Icon,
@@ -22,6 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@shared/components/ui/card'
+import { DataTable } from '@shared/components'
 import { Input } from '@shared/components/ui/input'
 import { Label } from '@shared/components/ui/label'
 import {
@@ -183,6 +185,58 @@ function StudentListCard({
   const showEmptyState = !state.isLoading && filteredStudents.length === 0
   const showStudentTable = !state.isLoading && filteredStudents.length > 0
 
+  const columns = useMemo<ColumnDef<Student>[]>(
+    () => [
+      {
+        accessorKey: 'username',
+        header: 'Student',
+        cell: ({ row }) => {
+          const student = row.original
+          return (
+            <div>
+              <div className="font-medium text-foreground">
+                {student.first_name} {student.last_name}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {student.username}
+              </div>
+            </div>
+          )
+        },
+      },
+      {
+        accessorKey: 'email',
+        header: 'Email',
+        meta: {
+          cellClassName: 'text-muted-foreground',
+        },
+      },
+      {
+        accessorKey: 'account_status',
+        header: 'Status',
+        cell: ({ row }) => <StatusBadge status={row.original.account_status} />,
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        meta: {
+          headClassName: 'text-right',
+        },
+        cell: ({ row }) => (
+          <StudentActions
+            student={row.original}
+            onApprove={onApprove}
+            onToggleStatus={onToggleStatus}
+            onPassword={onPassword}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ),
+      },
+    ],
+    [onApprove, onDelete, onEdit, onPassword, onToggleStatus],
+  )
+
   return (
     <Card className="gap-0 border-0 py-0 shadow-md">
       <CardHeader className="gap-4 border-b py-5 sm:flex-row sm:items-center sm:justify-between">
@@ -210,23 +264,15 @@ function StudentListCard({
           <p className="max-w-sm text-sm text-muted-foreground">{state.students.length === 0 ? 'Create the first student account to get started.' : 'Try changing your search or status filter.'}</p>
           {state.students.length === 0 && <Button onClick={onCreate}>Add your first student</Button>}
         </div>}
-        {showStudentTable && <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="bg-navy text-xs uppercase tracking-wide text-white/80">
-              <tr><th scope="col" className="px-6 py-3 font-medium">Student</th><th scope="col" className="px-6 py-3 font-medium">Email</th><th scope="col" className="px-6 py-3 font-medium">Status</th><th scope="col" className="px-6 py-3 text-right font-medium">Actions</th></tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredStudents.map((student) => (
-                <tr key={student.user_id} className="transition-colors hover:bg-pink/5">
-                  <td className="px-6 py-4"><div className="font-medium text-foreground">{student.first_name} {student.last_name}</div><div className="mt-1 text-xs text-muted-foreground">{student.username}</div></td>
-                  <td className="px-6 py-4 text-muted-foreground">{student.email}</td>
-                  <td className="px-6 py-4"><StatusBadge status={student.account_status} /></td>
-                  <td className="px-6 py-4"><StudentActions student={student} onApprove={onApprove} onToggleStatus={onToggleStatus} onPassword={onPassword} onEdit={onEdit} onDelete={onDelete} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>}
+        {showStudentTable && (
+          <DataTable
+            columns={columns}
+            data={filteredStudents}
+            pageSize={10}
+            itemLabel="students"
+            className="min-w-[900px]"
+          />
+        )}
       </CardContent>
     </Card>
   )

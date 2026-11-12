@@ -4,8 +4,12 @@ import type { ColumnDef } from '@tanstack/react-table'
 import {
   AlertCircleIcon,
   CheckCircle2Icon,
+  Edit2Icon,
   HelpCircleIcon,
   LoaderCircleIcon,
+  PlusIcon,
+  SearchIcon,
+  Trash2Icon,
 } from 'lucide-react'
 import {
   Alert,
@@ -91,10 +95,16 @@ function getDisplayError(error: unknown): string {
   return 'Something went wrong. Please try again.'
 }
 
+interface QuestionRowItem {
+  question: Question
+  code: string
+}
+
 export function QuestionPoolPage() {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null)
   const [questions, setQuestions] = useState<Question[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
 
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true)
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false)
@@ -199,32 +209,54 @@ export function QuestionPoolPage() {
     [subjects, selectedSubjectId],
   )
 
-  const columns = useMemo<ColumnDef<Question>[]>(
+  const codedQuestions = useMemo<QuestionRowItem[]>(
+    () =>
+      questions.map((question, index) => ({
+        question,
+        code: formatQuestionCode(
+          question,
+          index + 1,
+          selectedSubject?.subject_name,
+        ),
+      })),
+    [questions, selectedSubject?.subject_name],
+  )
+
+  const filteredQuestions = useMemo(() => {
+    const search = searchTerm.trim().toLocaleLowerCase()
+    if (!search) return codedQuestions
+
+    return codedQuestions.filter(({ question, code }) => {
+      const optionTexts = question.options
+        .map((opt) => opt.option_text)
+        .join(' ')
+      return [code, question.question_text, optionTexts]
+        .join(' ')
+        .toLocaleLowerCase()
+        .includes(search)
+    })
+  }, [codedQuestions, searchTerm])
+
+  const columns = useMemo<ColumnDef<QuestionRowItem>[]>(
     () => [
       {
-        accessorKey: 'question_id',
+        accessorKey: 'code',
         header: 'ID',
         meta: {
           headClassName: 'w-32',
-          cellClassName: 'font-medium tabular-nums text-navy',
+          cellClassName: 'font-medium tabular-nums text-foreground',
         },
-        cell: ({ row }) =>
-          formatQuestionCode(
-            row.original,
-            row.index + 1,
-            selectedSubject?.subject_name,
-          ),
       },
       {
-        accessorKey: 'question_text',
+        id: 'question_text',
         header: 'Question',
         cell: ({ row }) => {
-          const question = row.original
+          const { question } = row.original
           const correctOption = question.options.find((opt) => opt.is_correct)
 
           return (
             <div>
-              <div className="font-medium text-navy">
+              <div className="font-medium text-foreground">
                 {question.question_text}
               </div>
               <div className="mt-1 text-xs text-muted-foreground">
@@ -243,37 +275,36 @@ export function QuestionPoolPage() {
           headClassName: 'w-44 text-right',
         },
         cell: ({ row }) => {
-          const question = row.original
-          const code = formatQuestionCode(
-            question,
-            row.index + 1,
-            selectedSubject?.subject_name,
-          )
+          const { question, code } = row.original
 
           return (
-            <div className="flex items-center justify-end gap-4">
-              <button
+            <div className="flex items-center justify-end gap-1">
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => openEditModal(question)}
                 aria-label={`Edit ${code}`}
-                className="cursor-pointer text-xs font-medium text-navy hover:underline"
               >
-                Edit
-              </button>
-              <button
+                <Edit2Icon aria-hidden="true" />
+                <span className="hidden lg:inline">Edit</span>
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => setQuestionPendingDelete(question)}
                 aria-label={`Delete ${code}`}
-                className="cursor-pointer text-xs font-medium text-pink hover:underline"
+                className="text-destructive hover:text-destructive"
               >
-                Delete
-              </button>
+                <Trash2Icon aria-hidden="true" />
+              </Button>
             </div>
           )
         },
       },
     ],
-    [openEditModal, selectedSubject?.subject_name],
+    [openEditModal],
   )
 
   function closeModal(open: boolean) {
@@ -379,17 +410,33 @@ export function QuestionPoolPage() {
   }
 
   const isLoading = isLoadingSubjects || isLoadingQuestions
+  const showEmptyState = !isLoading && filteredQuestions.length === 0
+  const showQuestionTable = !isLoading && filteredQuestions.length > 0
 
   return (
-    <main className="flex min-h-screen w-full flex-col gap-6 bg-[#f7f8fb] p-4 sm:p-6">
-      <section className="flex flex-col justify-center rounded-2xl bg-navy p-8 text-white shadow-md sm:p-12">
-        <h1 className="font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl">
-          Question Pool Management
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80 sm:text-base">
-          Organise questions by subject. Add new questions or keep your existing
-          pool up to date.
-        </p>
+    <main className="flex min-h-screen w-full flex-col gap-8 bg-[#f7f8fb] p-4">
+      <section className="flex flex-col gap-6 rounded-2xl bg-navy p-10 text-white shadow-md sm:flex-row sm:items-end sm:justify-between sm:p-14">
+        <div className="max-w-2xl space-y-2">
+          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-white/70">
+            Teaching and assessment
+          </p>
+          <h1 className="font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Question Pool Management
+          </h1>
+          <p className="text-sm leading-6 text-white/80 sm:text-base">
+            Organise questions by subject. Add new questions or keep your
+            existing pool up to date.
+          </p>
+        </div>
+        <Button
+          type="button"
+          onClick={openCreateModal}
+          disabled={selectedSubjectId === null}
+          className="w-full bg-white text-navy hover:bg-white/90 sm:w-auto"
+        >
+          <PlusIcon aria-hidden="true" />
+          Add Question
+        </Button>
       </section>
 
       {pageError && (
@@ -424,7 +471,7 @@ export function QuestionPoolPage() {
                 onChange={(event) =>
                   setSelectedSubjectId(Number(event.target.value))
                 }
-                className="h-10 w-full rounded-md border border-navy/40 bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-w-xs"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-w-xs"
               >
                 {subjects.length === 0 ? (
                   <option value="">No subjects available</option>
@@ -447,10 +494,10 @@ export function QuestionPoolPage() {
         </CardContent>
       </Card>
 
-      <Card className="gap-0 border-0 py-0 shadow-sm">
-        <CardHeader className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
+      <Card className="gap-0 border-0 py-0 shadow-md">
+        <CardHeader className="gap-4 border-b py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <CardTitle className="font-heading text-2xl font-bold text-navy">
+            <CardTitle className="font-heading text-2xl font-bold text-plum">
               Subject questions
             </CardTitle>
             <CardDescription>
@@ -459,18 +506,25 @@ export function QuestionPoolPage() {
               subject pool
             </CardDescription>
           </div>
-          <Button
-            type="button"
-            onClick={openCreateModal}
-            disabled={selectedSubjectId === null}
-            className="w-full sm:w-auto"
-          >
-            Add Question
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative min-w-0 sm:w-72">
+              <SearchIcon
+                aria-hidden="true"
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                aria-label="Search questions"
+                placeholder="Search questions..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
         </CardHeader>
 
         <CardContent className="p-0">
-          {isLoading ? (
+          {isLoading && (
             <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-muted-foreground">
               <LoaderCircleIcon
                 className="size-4 animate-spin"
@@ -478,7 +532,9 @@ export function QuestionPoolPage() {
               />
               Loading questions...
             </div>
-          ) : questions.length === 0 ? (
+          )}
+
+          {showEmptyState && (
             <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
               <div className="rounded-full bg-muted p-3">
                 <HelpCircleIcon
@@ -487,27 +543,32 @@ export function QuestionPoolPage() {
                 />
               </div>
               <div className="space-y-1">
-                <h2 className="font-medium text-navy">
-                  No questions in this subject pool
+                <h2 className="font-medium">
+                  {questions.length === 0
+                    ? 'No questions in this subject pool'
+                    : 'No matching questions'}
                 </h2>
                 <p className="max-w-sm text-sm text-muted-foreground">
-                  {selectedSubjectId === null
-                    ? 'Select a subject to manage its multiple-choice questions.'
-                    : 'Add the first multiple-choice question to start building this subject pool.'}
+                  {questions.length === 0
+                    ? 'Add the first multiple-choice question to start building this subject pool.'
+                    : 'Try changing your search term.'}
                 </p>
               </div>
-              {selectedSubjectId !== null && (
+              {questions.length === 0 && selectedSubjectId !== null && (
                 <Button type="button" onClick={openCreateModal}>
                   Add your first question
                 </Button>
               )}
             </div>
-          ) : (
+          )}
+
+          {showQuestionTable && (
             <DataTable
               columns={columns}
-              data={questions}
+              data={filteredQuestions}
               pageSize={QUESTIONS_PER_PAGE}
               itemLabel="questions"
+              className="min-w-[900px]"
             />
           )}
         </CardContent>
@@ -516,7 +577,7 @@ export function QuestionPoolPage() {
       <Dialog open={isModalOpen} onOpenChange={closeModal}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-heading text-lg font-bold text-navy">
+            <DialogTitle className="font-heading text-lg font-bold text-plum">
               {editingQuestion ? 'Edit Question' : 'Add Question'}
             </DialogTitle>
             <DialogDescription>
