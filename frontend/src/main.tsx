@@ -33,6 +33,10 @@ const TestPage = lazy(() =>
   import('./pages/test').then((m) => ({ default: m.TestPage })),
 )
 
+const StatisticsPage = lazy(() =>
+  import('./pages/statistics').then((m) => ({ default: m.StatisticsPage })),
+)
+
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
     <StrictMode>
@@ -48,6 +52,7 @@ createRoot(document.getElementById('root')!).render(
               <Route element={<ProtectedRoute allowedRoles={['student']} />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/leaderboards" element={<LeaderboardPage />} />
+                <Route path="/statistics" element={<StatisticsPage />} />
               </Route>
               <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
                 <Route
