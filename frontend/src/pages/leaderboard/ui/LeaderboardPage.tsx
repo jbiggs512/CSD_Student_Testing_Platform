@@ -7,28 +7,13 @@ import {
     type SubjectFilter
 } from "../model"
 
-const DEFAULT_TOP_FIVE: LeaderboardEntry[] = [
-    { user_id: 2, rank: 1, name: "John D.", avg_score: 96, points: 1860 },
-    { user_id: 3, rank: 2, name: "Jane D.", avg_score: 93, points: 1820 },
-    { user_id: 4, rank: 3, name: "Bob S.", avg_score: 92, points: 1780 },
-    { user_id: 5, rank: 4, name: "Joe B.", avg_score: 89, points: 1640 },
-    { user_id: 6, rank: 5, name: "Dave A.", avg_score: 88, points: 1600 },
-];
-
 const DEFAULT_CURRENT_USER: LeaderboardEntry = {
-    user_id: 1,
-    rank: 12,
-    name: "You",
-    avg_score: 83,
-    points: 1410,
+    user_id: 0,
+    rank: 0,
+    name: "",
+    avg_score: 0,
+    points: 0,
 };
-
-export const DEFAULT_SUBJECT: SubjectFilter[] = [
-    { label: "Software", value: 0 },
-    { label: "Mathematics", value: 1 },
-    { label: "Science", value: 2 },
-]
-
 
 export function LeaderboardPage() {
     const [courseTitle, setCourseTitle] = useState<string>("");
