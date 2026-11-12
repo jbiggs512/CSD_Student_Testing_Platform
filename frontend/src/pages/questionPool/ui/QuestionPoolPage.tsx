@@ -56,8 +56,33 @@ const EMPTY_FORM: QuestionFormValues = {
   correctIndex: 0,
 }
 
-function formatQuestionCode(questionId: number): string {
-  return `QUE-${String(questionId).padStart(3, '0')}`
+function getSubjectPrefix(subjectName: string | undefined): string {
+  if (!subjectName) return 'QUE'
+  const words = subjectName
+    .trim()
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+  if (words.length >= 3) {
+    return words
+      .slice(0, 3)
+      .map((word) => word[0])
+      .join('')
+      .toUpperCase()
+  }
+  const cleaned = subjectName.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  return (cleaned.slice(0, 3) || 'QUE').padEnd(3, 'X')
+}
+
+function formatQuestionCode(
+  question: Question,
+  sequenceNumber: number,
+  subjectName: string | undefined,
+): string {
+  if (question.question_code) {
+    return question.question_code
+  }
+  const prefix = getSubjectPrefix(subjectName)
+  return `${prefix}-${String(sequenceNumber).padStart(3, '0')}`
 }
 
 function getDisplayError(error: unknown): string {
@@ -167,6 +192,13 @@ export function QuestionPoolPage() {
     setIsModalOpen(true)
   }, [])
 
+  const selectedSubject = useMemo(
+    () =>
+      subjects.find((subject) => subject.subject_id === selectedSubjectId) ??
+      null,
+    [subjects, selectedSubjectId],
+  )
+
   const columns = useMemo<ColumnDef<Question>[]>(
     () => [
       {
@@ -176,7 +208,12 @@ export function QuestionPoolPage() {
           headClassName: 'w-32',
           cellClassName: 'font-medium tabular-nums text-navy',
         },
-        cell: ({ row }) => formatQuestionCode(row.original.question_id),
+        cell: ({ row }) =>
+          formatQuestionCode(
+            row.original,
+            row.index + 1,
+            selectedSubject?.subject_name,
+          ),
       },
       {
         accessorKey: 'question_text',
@@ -207,7 +244,11 @@ export function QuestionPoolPage() {
         },
         cell: ({ row }) => {
           const question = row.original
-          const code = formatQuestionCode(question.question_id)
+          const code = formatQuestionCode(
+            question,
+            row.index + 1,
+            selectedSubject?.subject_name,
+          )
 
           return (
             <div className="flex items-center justify-end gap-4">
@@ -232,7 +273,7 @@ export function QuestionPoolPage() {
         },
       },
     ],
-    [openEditModal],
+    [openEditModal, selectedSubject?.subject_name],
   )
 
   function closeModal(open: boolean) {

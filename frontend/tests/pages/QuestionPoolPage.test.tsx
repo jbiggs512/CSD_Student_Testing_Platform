@@ -91,8 +91,8 @@ describe('QuestionPoolPage', () => {
     renderQuestionPoolPage()
 
     expect(await screen.findByText('What is encapsulation in OOP?')).toBeDefined()
-    expect(screen.getByText('QUE-001')).toBeDefined()
-    expect(screen.getByText('QUE-002')).toBeDefined()
+    expect(screen.getByText('OOP-001')).toBeDefined()
+    expect(screen.getByText('OOP-002')).toBeDefined()
     expect(screen.getByText('2 questions in this subject pool')).toBeDefined()
     expect(getQuestions).toHaveBeenCalledWith(1)
   })
@@ -174,7 +174,7 @@ describe('QuestionPoolPage', () => {
     renderQuestionPoolPage()
     await screen.findByText('What is encapsulation in OOP?')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit QUE-001' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit OOP-001' }))
 
     const questionInput = screen.getByLabelText('Question') as HTMLInputElement
     expect(questionInput.value).toBe('What is encapsulation in OOP?')
@@ -206,7 +206,7 @@ describe('QuestionPoolPage', () => {
     renderQuestionPoolPage()
     await screen.findByText('What is encapsulation in OOP?')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete QUE-001' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete OOP-001' }))
 
     expect(
       screen.getByText(

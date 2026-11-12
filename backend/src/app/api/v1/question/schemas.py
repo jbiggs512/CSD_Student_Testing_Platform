@@ -28,6 +28,7 @@ class QuestionUpdateRequest(BaseModel):
 
 class QuestionResponse(BaseModel):
     question_id: int
+    question_code: str | None = None
     subject_id: int | None
     test_id: int | None = None
     question_text: str

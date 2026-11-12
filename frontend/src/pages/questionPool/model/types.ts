@@ -21,6 +21,7 @@ export interface QuestionOptionInput {
 
 export interface Question {
   question_id: number
+  question_code?: string | null
   subject_id: number | null
   test_id?: number | null
   question_text: string
