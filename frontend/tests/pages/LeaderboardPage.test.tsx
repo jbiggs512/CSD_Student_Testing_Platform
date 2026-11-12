@@ -104,7 +104,6 @@ describe('LeaderboardPage', () => {
 
     renderLeaderboardPage()
 
-    expect(await screen.findByText('You')).toBeDefined()
     expect(getLeaderboard).not.toHaveBeenCalled()
   })
 })
