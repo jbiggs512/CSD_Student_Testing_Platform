@@ -11,15 +11,6 @@ export {
   CardHeader,
   CardTitle,
 } from './ui/card'
-export {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-  ChartStyle,
-} from './ui/chart'
 export { ConfirmDialog } from './ui/confirm-dialog'
 export {
   Dialog,

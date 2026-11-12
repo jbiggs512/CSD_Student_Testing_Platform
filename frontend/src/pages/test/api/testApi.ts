@@ -8,7 +8,7 @@ export class TestApiError extends ApiError {
     }
 }
 
-const request = createApiClient({ basePath: '/student', ErrorClass: TestApiError })
+const request = createApiClient({ basePath: '/test', ErrorClass: TestApiError })
 
 export function getTestDetails(id: number): Promise<TestDetails> {
     return request<TestDetails>(`/${id}`)
