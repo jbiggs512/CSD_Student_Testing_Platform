@@ -91,7 +91,10 @@ function downloadJsonFile(filename: string, data: unknown): void {
   URL.revokeObjectURL(url)
 }
 
-function parseBulkQuestionsJson(rawJson: string): {
+function parseBulkQuestionsJson(
+  rawJson: string,
+  existingQuestions: Question[] = [],
+): {
   items: QuestionBulkItemInput[] | null
   error: string | null
 } {
@@ -127,6 +130,10 @@ function parseBulkQuestionsJson(rawJson: string): {
     return { items: null, error: 'At least one question is required.' }
   }
 
+  const existingKeys = new Set(
+    existingQuestions.map((q) => sanitizeInputText(q.question_text).toLowerCase()),
+  )
+  const seenInBatch = new Set<string>()
   const normalized: QuestionBulkItemInput[] = []
 
   for (let i = 0; i < rawItems.length; i += 1) {
@@ -145,6 +152,21 @@ function parseBulkQuestionsJson(rawJson: string): {
         error: `${label}: "question_text" must be a non-empty string.`,
       }
     }
+
+    const normalizedKey = cleanedQuestionText.toLowerCase()
+    if (seenInBatch.has(normalizedKey)) {
+      return {
+        items: null,
+        error: `${label}: Duplicate question in upload.`,
+      }
+    }
+    if (existingKeys.has(normalizedKey)) {
+      return {
+        items: null,
+        error: `${label}: Question already exists in this subject.`,
+      }
+    }
+    seenInBatch.add(normalizedKey)
 
     const options = (entry as { options?: unknown }).options
     if (!Array.isArray(options) || options.length !== 4) {
@@ -507,6 +529,17 @@ export function QuestionPoolPage() {
       return
     }
 
+    const isDuplicate = questions.some(
+      (q) =>
+        q.question_id !== editingQuestion?.question_id &&
+        sanitizeInputText(q.question_text).toLowerCase() ===
+          questionText.toLowerCase(),
+    )
+    if (isDuplicate) {
+      setFormError('Question already exists in this subject.')
+      return
+    }
+
     const trimmedOptions = formValues.options.map((opt) => sanitizeInputText(opt))
     if (trimmedOptions.some((opt) => opt.length === 0)) {
       setFormError('All four answer options are required.')
@@ -621,7 +654,7 @@ export function QuestionPoolPage() {
       return
     }
 
-    const { items, error } = parseBulkQuestionsJson(bulkJsonText)
+    const { items, error } = parseBulkQuestionsJson(bulkJsonText, questions)
     if (error || !items) {
       setBulkError(error ?? 'Invalid JSON payload.')
       return
@@ -648,8 +681,8 @@ export function QuestionPoolPage() {
 
   const bulkPreview = useMemo(() => {
     if (!bulkJsonText.trim()) return null
-    return parseBulkQuestionsJson(bulkJsonText)
-  }, [bulkJsonText])
+    return parseBulkQuestionsJson(bulkJsonText, questions)
+  }, [bulkJsonText, questions])
 
   const isLoading = isLoadingSubjects || isLoadingQuestions
   const showEmptyState = !isLoading && filteredQuestions.length === 0

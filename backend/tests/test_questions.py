@@ -294,3 +294,61 @@ def test_bulk_create_questions_sanitizes_input(client, test_subject, auth_header
     assert created["options"][0]["option_text"] == "Cross-Site Scripting"
     assert created["options"][1]["option_text"] == "Option B"
 
+
+def test_duplicate_question_rejected_in_create_update_and_bulk(
+    client, test_subject, auth_headers
+):
+    headers = auth_headers(UserRole.LECTURER)
+    payload = valid_question_payload(test_subject.subject_id)
+
+    first_res = client.post(QUESTIONS_URL, json=payload, headers=headers)
+    assert first_res.status_code == 201
+
+    # Duplicate on create (case-insensitive)
+    dup_payload = valid_question_payload(test_subject.subject_id)
+    dup_payload["question_text"] = "  what does http stand for? "
+    dup_res = client.post(QUESTIONS_URL, json=dup_payload, headers=headers)
+    assert dup_res.status_code == 400
+    assert dup_res.json()["detail"] == "Question already exists in this subject."
+
+    # Duplicate within bulk upload
+    bulk_dup_res = client.post(
+        f"{QUESTIONS_URL}/bulk",
+        json={
+            "subject_id": test_subject.subject_id,
+            "questions": [
+                {
+                    "question_text": "Unique Bulk Q?",
+                    "options": payload["options"],
+                },
+                {
+                    "question_text": "unique bulk q?",
+                    "options": payload["options"],
+                },
+            ],
+        },
+        headers=headers,
+    )
+    assert bulk_dup_res.status_code == 400
+    assert bulk_dup_res.json()["detail"] == "Question 2: Duplicate question in upload."
+
+    # Bulk upload colliding with existing question
+    bulk_existing_res = client.post(
+        f"{QUESTIONS_URL}/bulk",
+        json={
+            "subject_id": test_subject.subject_id,
+            "questions": [
+                {
+                    "question_text": "WHAT DOES HTTP STAND FOR?",
+                    "options": payload["options"],
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert bulk_existing_res.status_code == 400
+    assert (
+        bulk_existing_res.json()["detail"]
+        == "Question 1: Question already exists in this subject."
+    )
+

@@ -383,4 +383,63 @@ describe('QuestionPoolPage', () => {
     revokeObjectUrlSpy.mockRestore()
     clickSpy.mockRestore()
   })
+
+  it('rejects duplicate questions in the single question modal and bulk upload modal', async () => {
+    getSubjects.mockResolvedValue(mockSubjects)
+    getQuestions.mockResolvedValue(mockQuestions)
+
+    renderQuestionPoolPage()
+    await screen.findByText('What is encapsulation in OOP?')
+
+    // Duplicate on single Add Question modal
+    fireEvent.click(screen.getByRole('button', { name: 'Add Question' }))
+    fireEvent.change(screen.getByLabelText('Question'), {
+      target: { value: '  what is encapsulation in oop? ' },
+    })
+    fireEvent.change(screen.getByLabelText('Option 1'), { target: { value: 'A' } })
+    fireEvent.change(screen.getByLabelText('Option 2'), { target: { value: 'B' } })
+    fireEvent.change(screen.getByLabelText('Option 3'), { target: { value: 'C' } })
+    fireEvent.change(screen.getByLabelText('Option 4'), { target: { value: 'D' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create question' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Question already exists in this subject.',
+    )
+    expect(createQuestion).not.toHaveBeenCalled()
+
+    // Duplicate within bulk upload
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Bulk Upload JSON' }))
+
+    const duplicateBatch = JSON.stringify([
+      {
+        question_text: 'Brand new question?',
+        options: [
+          { option_text: 'A', is_correct: true },
+          { option_text: 'B', is_correct: false },
+          { option_text: 'C', is_correct: false },
+          { option_text: 'D', is_correct: false },
+        ],
+      },
+      {
+        question_text: 'brand new question?',
+        options: [
+          { option_text: 'A', is_correct: true },
+          { option_text: 'B', is_correct: false },
+          { option_text: 'C', is_correct: false },
+          { option_text: 'D', is_correct: false },
+        ],
+      },
+    ])
+
+    fireEvent.change(screen.getByLabelText('JSON content'), {
+      target: { value: duplicateBatch },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Upload questions' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Question 2: Duplicate question in upload.',
+    )
+    expect(bulkCreateQuestions).not.toHaveBeenCalled()
+  })
 })
