@@ -18,3 +18,4 @@ export {
   parseBulkQuestionsJson,
 } from './questionHelpers'
 export type { QuestionFormValues, QuestionRowItem } from './questionHelpers'
+export { useQuestionPool } from './useQuestionPool'
