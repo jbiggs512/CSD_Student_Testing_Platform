@@ -12,13 +12,14 @@ import {
   DialogTitle,
   DialogTrigger,
   Progress,
+  RadioIndicator,
 } from '@shared/components'
 import { Clock, TriangleAlert } from "lucide-react";
 import type { TestPageContentProps } from "../model";
 import logo from '@shared/assets/altius-transparent.png'
 import { useNavigate } from 'react-router';
 
-export function TestPageContent(props: TestPageContentProps) {
+export function TestPageContent(props: Readonly<TestPageContentProps>) {
   const navigate = useNavigate();
 
   const toMMSS = (secs: number) => {
@@ -118,10 +119,7 @@ export function TestPageContent(props: TestPageContentProps) {
                   onClick={() => props.onSelectOption(props.testDetails.questions[props.testDetails.current_question - 1].question_id, option.option_id)}
                 >
                   {/* Custom Radio Button UI */}
-                  <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${option.selected ? 'border-navy' : 'border-slate-300'
-                    }`}>
-                    {option.selected && <div className="h-2.5 w-2.5 rounded-full bg-navy" />}
-                  </div>
+                  <RadioIndicator selected={option.selected} />
 
                   {/* Letter Indicator (A, B, C, D */}
                   <div className="flex h-8 w-8 items-center justify-center rounded bg-muted text-sm font-bold text-navy">
