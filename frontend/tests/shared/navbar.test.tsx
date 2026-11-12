@@ -52,7 +52,7 @@ describe('NavBar', () => {
 
   it.each([
     ['student', ['Dashboard', 'Leaderboards', 'Statistics', 'Profile']],
-    ['lecturer', ['Dashboard', 'Students', 'Tests', 'Profile']],
+    ['lecturer', ['Dashboard', 'Students', 'Tests', 'Question Pool', 'Profile']],
     ['admin', ['Dashboard', 'Lecturers', 'Subjects', 'Profile']],
   ] as const)(
     'renders %s navigation headings based on the authenticated user role',

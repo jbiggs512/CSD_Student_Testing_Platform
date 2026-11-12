@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { ArrowRightIcon, UsersIcon } from 'lucide-react'
+import { ArrowRightIcon, HelpCircleIcon, UsersIcon } from 'lucide-react'
 import { Button } from '@shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@shared/components/ui/card'
 
@@ -34,6 +34,26 @@ export function LecturerDashboardPage() {
             <Button asChild>
               <Link to="/students">
                 Manage students
+                <ArrowRightIcon aria-hidden="true" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader>
+            <HelpCircleIcon className="size-8 text-pink" aria-hidden="true" />
+            <CardTitle className="font-heading text-2xl text-plum">
+              Question pool management
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Organise multiple-choice questions by subject, add new questions, and keep your question pool up to date.
+            </p>
+            <Button asChild>
+              <Link to="/questionPool">
+                Manage question pool
                 <ArrowRightIcon aria-hidden="true" />
               </Link>
             </Button>

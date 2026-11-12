@@ -66,4 +66,9 @@ class Subject(Base):
     tests: Mapped[list["Test"]] = relationship(
         back_populates="subject",
         passive_deletes="all",
-)
+    )
+
+    questions: Mapped[list["Question"]] = relationship(
+        back_populates="subject",
+        passive_deletes="all",
+    )

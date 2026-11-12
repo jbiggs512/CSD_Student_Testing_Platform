@@ -98,6 +98,7 @@ def seed_test_data(db: Session) -> None:
 
     for q_data in quiz_data:
         question = Question(
+            subject_id=subject.subject_id,
             test_id=test.test_id,
             question_text=q_data["text"],
         )
