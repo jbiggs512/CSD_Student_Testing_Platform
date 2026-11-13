@@ -14,7 +14,7 @@
   --brand-yellow: #f4b767; /* Accents */
 
   --radius: 0.625rem;
-  --background: #ffffff;
+  --background: #f5f7ff;
   --foreground: var(--brand-navy);
   --card: #ffffff;
   --card-foreground: var(--brand-navy);
