@@ -9,6 +9,7 @@ import {
   getCohortRank as getDashboardCohortRank,
 } from '@/pages/dashboard/api'
 import { clearAccessToken, setAccessToken } from '@/shared/api'
+import type { DashboardContentProps } from '@/pages/dashboard/model'
 
 vi.mock('@/pages/dashboard/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/pages/dashboard/api')>()
@@ -44,7 +45,7 @@ function renderDashboardWithRoutes() {
 }
 
 // Helper function to render the dashboard content with test data and routing context
-function renderDashboardContentWithRoutes(props: { outstandingTests?: any[], completedTests?: any[], cohortRank?: any } = {}) {
+function renderDashboardContentWithRoutes(props: DashboardContentProps = { courseTitle: "" }) {
   return render(
     <MemoryRouter>
       <DashboardContent {...props} />
@@ -112,7 +113,7 @@ describe('Dashboard Page', () => {
   })
 
   it('renders empty state messaging when no tests are available', () => {
-    renderDashboardContentWithRoutes({ outstandingTests: [], completedTests: [] })
+    renderDashboardContentWithRoutes({ outstandingTests: [], completedTests: [], courseTitle: "" })
 
     // Hero section empty states
     expect(screen.getByText("You have no outstanding tests!")).toBeDefined()
@@ -129,14 +130,14 @@ describe('Dashboard Page', () => {
   })
 
   it('calculates and displays the correct rounded average score', () => {
-    renderDashboardContentWithRoutes({ completedTests: mockCompletedTests })
+    renderDashboardContentWithRoutes({ completedTests: mockCompletedTests, courseTitle: "" })
 
     // Average score calculation: (80 + 90 + 84) / 3 = 84.666 = 85
     expect(screen.getByText("85%")).toBeDefined()
   })
 
   it('hides the sort and filter dropdowns when test arrays are empty', () => {
-    renderDashboardContentWithRoutes({ outstandingTests: [], completedTests: [] })
+    renderDashboardContentWithRoutes({ outstandingTests: [], completedTests: [], courseTitle: "" })
 
     const sortLabels = screen.queryAllByText("Sort by")
     const filterLabels = screen.queryAllByText("Filter by")
@@ -146,7 +147,7 @@ describe('Dashboard Page', () => {
   })
 
   it('shows the sort and filter dropdowns when test arrays are not empty', () => {
-    renderDashboardContentWithRoutes({ outstandingTests: mockOutstandingTests, completedTests: mockCompletedTests })
+    renderDashboardContentWithRoutes({ outstandingTests: mockOutstandingTests, completedTests: mockCompletedTests, courseTitle: "" })
 
     const sortLabels = screen.queryAllByText("Sort by")
     const filterLabels = screen.queryAllByText("Filter by")
@@ -156,7 +157,7 @@ describe('Dashboard Page', () => {
   })
 
   it('opens the sort dropdown and selects an option', async () => {
-    renderDashboardContentWithRoutes({ outstandingTests: mockOutstandingTests })
+    renderDashboardContentWithRoutes({ outstandingTests: mockOutstandingTests, courseTitle: "" })
 
     // Open the sort dropdown
     const sortDropdown = screen.getByText("Sort by...")
@@ -172,6 +173,7 @@ describe('Dashboard Page', () => {
     renderDashboardContentWithRoutes({
       completedTests: mockCompletedTests,
       cohortRank: mockCohortRank,
+      courseTitle: ""
     })
 
     expect(screen.getByText("Cohort Rank")).toBeDefined()
@@ -183,7 +185,8 @@ describe('Dashboard Page', () => {
 it('renders the correct number of test cards', () => {
   renderDashboardContentWithRoutes({
     outstandingTests: mockOutstandingTests,
-    completedTests: mockCompletedTests
+    completedTests: mockCompletedTests,
+    courseTitle: ""
   })
 
   // Hero section dynamic text
@@ -195,7 +198,7 @@ it('renders the correct number of test cards', () => {
 })
 
 it('renders the completed tests dialog', async () => {
-  renderDashboardContentWithRoutes({ completedTests: mockCompletedTests })
+  renderDashboardContentWithRoutes({ completedTests: mockCompletedTests, courseTitle: "" })
 
   fireEvent.click(screen.getByRole('button', { name: 'View All Completed Tests...' }))
 

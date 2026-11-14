@@ -2,6 +2,7 @@
 export { AuthHeroPanel } from './auth-hero-panel'
 export { AuthSplitLayout } from './auth-split-layout'
 export { Alert, AlertDescription } from './ui/alert'
+export { Badge, badgeVariants } from './ui/badge'
 export { Button, buttonVariants } from './ui/button'
 export {
   Card,

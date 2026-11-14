@@ -10,3 +10,4 @@ export {
   setCurrentUser,
 } from './authSession'
 export type { AccountStatus, AuthUser, UserRole } from './authSession'
+export { createApiClient, ApiError } from './client'

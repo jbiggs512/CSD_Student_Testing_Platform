@@ -2,6 +2,7 @@
 export {
     getOutstandingTests,
     getCompletedTests,
-    getCohortRank
+    getCohortRank,
+    getCourseTitle
 } from "./dashboardApi"
 

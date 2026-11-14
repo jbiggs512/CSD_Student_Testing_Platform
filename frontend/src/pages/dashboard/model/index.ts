@@ -1,6 +1,4 @@
 // Dashboard page state, types, and business logic
-export const COURSE_TITLE = "Course Title"
-
 export const SORT_OPTIONS = [
     { label: "Sort by...", value: null },
     { label: "A - Z", value: 1 },
