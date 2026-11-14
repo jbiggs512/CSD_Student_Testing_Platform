@@ -29,6 +29,12 @@ const SubjectsPage = lazy(() =>
 const LecturersPage = lazy(() =>
   import('./pages/lecturers').then((m) => ({ default: m.LecturersPage })),
 )
+const LecturerDashboardPage = lazy(() =>
+  import('./pages/lecturerDashboard').then((m) => ({ default: m.LecturerDashboardPage })),
+)
+const StudentsPage = lazy(() =>
+  import('./pages/students').then((m) => ({ default: m.StudentsPage })),
+)
 const TestPage = lazy(() =>
   import('./pages/test').then((m) => ({ default: m.TestPage })),
 )
@@ -67,6 +73,14 @@ createRoot(document.getElementById('root')!).render(
                   path="/lecturers"
                   element={<LecturersPage />}
                 />
+              </Route>
+              <Route element={<ProtectedRoute allowedRoles={['lecturer']} />}>
+                <Route 
+                  path="/lecturerDashboard"
+                  element={<LecturerDashboardPage />} />
+                <Route 
+                  path="/students"
+                  element={<StudentsPage />} />
               </Route>
             </Route>
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
