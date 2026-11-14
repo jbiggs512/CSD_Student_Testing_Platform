@@ -14,6 +14,17 @@ export {
   CardTitle,
 } from './ui/card'
 export { ConfirmDialog } from './ui/confirm-dialog'
+export { DataTable } from './ui/data-table'
+export {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './ui/table'
 export {
   Dialog,
   DialogClose,
@@ -79,3 +90,4 @@ export {
   toast,
   useToastManager,
 } from './ui/toast'
+export { RadioIndicator } from './ui/radio-indicator'
