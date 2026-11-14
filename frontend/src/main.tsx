@@ -32,6 +32,9 @@ const LecturerDashboardPage = lazy(() =>
 const StudentsPage = lazy(() =>
   import('./pages/students').then((m) => ({ default: m.StudentsPage })),
 )
+const QuestionPoolPage = lazy(() =>
+  import('./pages/questionPool').then((m) => ({ default: m.QuestionPoolPage })),
+)
 const TestPage = lazy(() =>
   import('./pages/test').then((m) => ({ default: m.TestPage })),
 )
@@ -72,6 +75,9 @@ createRoot(document.getElementById('root')!).render(
                 <Route 
                   path="/students"
                   element={<StudentsPage />} />
+                <Route 
+                  path="/questionPool"
+                  element={<QuestionPoolPage />} />
               </Route>
             </Route>
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>

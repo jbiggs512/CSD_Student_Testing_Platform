@@ -34,6 +34,7 @@ const navItems: Record<UserRole, NavItem[]> = {
     { to: "/lecturerDashboard", label: "Dashboard" },
     { to: "/students", label: "Students" },
     { to: "/tests", label: "Tests" },
+    { to: "/questionPool", label: "Question Pool" },
     { to: "/profile", label: "Profile" },
   ],
   admin: [
