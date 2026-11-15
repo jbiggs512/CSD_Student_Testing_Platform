@@ -79,21 +79,28 @@ export function useQuestionPool() {
     }
   }, [])
 
-  const loadQuestions = useCallback(async (subjectId: number | null) => {
-    if (subjectId === null) {
-      setQuestions([])
-      return
-    }
-    setIsLoadingQuestions(true)
-    setPageError(null)
-    try {
-      setQuestions(await getQuestions(subjectId))
-    } catch (error) {
-      setPageError(getErrorMessage(error))
-    } finally {
-      setIsLoadingQuestions(false)
-    }
-  }, [])
+  const loadQuestions = useCallback(
+    async (subjectId: number | null, silent = false) => {
+      if (subjectId === null) {
+        setQuestions([])
+        return
+      }
+      if (!silent) {
+        setIsLoadingQuestions(true)
+      }
+      setPageError(null)
+      try {
+        setQuestions(await getQuestions(subjectId))
+      } catch (error) {
+        setPageError(getErrorMessage(error))
+      } finally {
+        if (!silent) {
+          setIsLoadingQuestions(false)
+        }
+      }
+    },
+    [],
+  )
 
   useEffect(() => {
     void loadSubjects()
@@ -241,7 +248,7 @@ export function useQuestionPool() {
       }
 
       setSuccessMessage(statusText)
-      await loadQuestions(selectedSubjectId)
+      await loadQuestions(selectedSubjectId, true)
 
       if (keepOpen) {
         setEditingQuestion(null)
@@ -274,7 +281,7 @@ export function useQuestionPool() {
       await deleteQuestion(questionPendingDelete.question_id)
       setSuccessMessage('Question deleted successfully.')
       setQuestionPendingDelete(null)
-      await loadQuestions(selectedSubjectId)
+      await loadQuestions(selectedSubjectId, true)
     } catch (error) {
       setPageError(getErrorMessage(error))
     }
@@ -338,7 +345,7 @@ export function useQuestionPool() {
         `Uploaded ${response.created_count} ${response.created_count === 1 ? 'question' : 'questions'} successfully.`,
       )
       closeBulkModal(false)
-      await loadQuestions(selectedSubjectId)
+      await loadQuestions(selectedSubjectId, true)
     } catch (err) {
       setBulkError(getErrorMessage(err))
     } finally {

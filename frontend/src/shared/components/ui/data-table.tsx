@@ -38,12 +38,13 @@ export function DataTable<TData, TValue>({
   })
 
   useEffect(() => {
+    const maxPageIndex = Math.max(0, Math.ceil(data.length / pageSize) - 1)
     setPagination((prev) => ({
       ...prev,
-      pageIndex: 0,
+      pageIndex: Math.min(prev.pageIndex, maxPageIndex),
       pageSize,
     }))
-  }, [data, pageSize])
+  }, [data.length, pageSize])
 
   const table = useReactTable({
     data,
@@ -51,6 +52,7 @@ export function DataTable<TData, TValue>({
     state: {
       pagination,
     },
+    autoResetPageIndex: false,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),

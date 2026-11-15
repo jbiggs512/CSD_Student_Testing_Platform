@@ -485,4 +485,42 @@ describe('QuestionPoolPage', () => {
       (screen.getByLabelText('Question') as HTMLInputElement).value,
     ).toBe('')
   })
+
+  it('stays on the current pagination page after deleting a question when that page still exists', async () => {
+    const sevenQuestions = Array.from({ length: 7 }, (_, idx) => ({
+      question_id: idx + 1,
+      question_code: `OOP-00${idx + 1}`,
+      subject_id: 1,
+      test_id: null,
+      question_text: `Question ${idx + 1} prompt`,
+      options: [
+        { option_id: 1, option_text: 'A', is_correct: true },
+        { option_id: 2, option_text: 'B', is_correct: false },
+        { option_id: 3, option_text: 'C', is_correct: false },
+        { option_id: 4, option_text: 'D', is_correct: false },
+      ],
+    }))
+
+    getSubjects.mockResolvedValue(mockSubjects)
+    getQuestions
+      .mockResolvedValueOnce(sevenQuestions)
+      .mockResolvedValueOnce(sevenQuestions.slice(0, 6))
+    deleteQuestion.mockResolvedValue(undefined)
+
+    renderQuestionPoolPage()
+    await screen.findByText('Question 1 prompt')
+
+    fireEvent.click(screen.getByRole('button', { name: '2' }))
+    expect(await screen.findByText('Question 6 prompt')).toBeTruthy()
+    expect(screen.getByText('Question 7 prompt')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete OOP-007' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(
+      await screen.findByText('Question deleted successfully.'),
+    ).toBeTruthy()
+    expect(screen.getByText('Question 6 prompt')).toBeTruthy()
+    expect(screen.queryByText('Question 1 prompt')).toBeNull()
+  })
 })
