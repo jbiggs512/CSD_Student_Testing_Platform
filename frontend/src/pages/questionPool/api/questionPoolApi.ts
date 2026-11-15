@@ -1,4 +1,4 @@
-import { getAccessToken, refreshAccessToken } from '@shared/api'
+import { fetchWithAuthRetry, getAccessToken } from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type {
   Question,
@@ -38,28 +38,7 @@ async function apiRequest<T>(
   let response: Response
 
   try {
-    response = await fetch(url, {
-      ...options,
-      headers: {
-        Authorization: 'Bearer ' + token,
-        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-        ...options.headers,
-      },
-    })
-
-    if (response.status === 401) {
-      const refreshedToken = await refreshAccessToken()
-      if (refreshedToken) {
-        response = await fetch(url, {
-          ...options,
-          headers: {
-            Authorization: 'Bearer ' + refreshedToken,
-            ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-            ...options.headers,
-          },
-        })
-      }
-    }
+    response = await fetchWithAuthRetry(url, token, options)
   } catch {
     throw new QuestionPoolApiError(
       'Unable to connect to the server. Please try again.',

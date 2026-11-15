@@ -1,6 +1,7 @@
 // Shared API client and requests
 export {
   clearAccessToken,
+  fetchWithAuthRetry,
   getAccessToken,
   getCurrentUser,
   getDashboardPathForRole,

@@ -108,6 +108,38 @@ export async function refreshAccessToken(): Promise<string | null> {
   return pendingRefresh
 }
 
+function buildAuthRequestInit(
+  token: string,
+  options: RequestInit,
+): RequestInit {
+  return {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...options.headers,
+    },
+  }
+}
+
+export async function fetchWithAuthRetry(
+  url: string,
+  token: string,
+  options: RequestInit = {},
+): Promise<Response> {
+  const response = await fetch(url, buildAuthRequestInit(token, options))
+  if (response.status !== 401) {
+    return response
+  }
+
+  const refreshedToken = await refreshAccessToken()
+  if (!refreshedToken) {
+    return response
+  }
+
+  return fetch(url, buildAuthRequestInit(refreshedToken, options))
+}
+
 /**
  * Completely invalidates both the client in-memory auth state and the backend's
  * HttpOnly refresh token cookie so the user cannot be re-authenticated upon
