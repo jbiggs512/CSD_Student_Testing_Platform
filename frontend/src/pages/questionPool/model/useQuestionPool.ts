@@ -39,6 +39,7 @@ export function useQuestionPool() {
 
   const [pageError, setPageError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
+  const [formSuccess, setFormSuccess] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -139,6 +140,7 @@ export function useQuestionPool() {
     setEditingQuestion(null)
     setFormValues(EMPTY_FORM)
     setFormError(null)
+    setFormSuccess(null)
     setIsModalOpen(true)
   }, [])
 
@@ -157,6 +159,7 @@ export function useQuestionPool() {
       correctIndex: Math.max(0, foundCorrectIndex),
     })
     setFormError(null)
+    setFormSuccess(null)
     setIsModalOpen(true)
   }, [])
 
@@ -166,10 +169,12 @@ export function useQuestionPool() {
       setEditingQuestion(null)
       setFormValues(EMPTY_FORM)
       setFormError(null)
+      setFormSuccess(null)
     }
   }
 
   function handleOptionTextChange(index: number, value: string) {
+    setFormSuccess(null)
     setFormValues((current) => {
       const nextOptions = [...current.options] as [string, string, string, string]
       nextOptions[index] = value
@@ -177,9 +182,9 @@ export function useQuestionPool() {
     })
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function submitQuestion(keepOpen: boolean) {
     setFormError(null)
+    setFormSuccess(null)
     setSuccessMessage(null)
 
     if (selectedSubjectId === null) {
@@ -225,20 +230,40 @@ export function useQuestionPool() {
 
     setIsSaving(true)
     try {
+      const statusText = editingQuestion
+        ? 'Question updated successfully.'
+        : 'Question created successfully.'
+
       if (editingQuestion) {
         await updateQuestion(editingQuestion.question_id, payload)
-        setSuccessMessage('Question updated successfully.')
       } else {
         await createQuestion(payload)
-        setSuccessMessage('Question created successfully.')
       }
-      closeModal(false)
+
+      setSuccessMessage(statusText)
       await loadQuestions(selectedSubjectId)
+
+      if (keepOpen) {
+        setEditingQuestion(null)
+        setFormValues(EMPTY_FORM)
+        setFormSuccess(`${statusText} Add another question below.`)
+      } else {
+        closeModal(false)
+      }
     } catch (error) {
       setFormError(getErrorMessage(error))
     } finally {
       setIsSaving(false)
     }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await submitQuestion(false)
+  }
+
+  async function handleSaveAndAddAnother() {
+    await submitQuestion(true)
   }
 
   async function confirmDelete() {
@@ -335,6 +360,8 @@ export function useQuestionPool() {
     isSaving,
     pageError,
     formError,
+    formSuccess,
+    setFormSuccess,
     successMessage,
     isModalOpen,
     editingQuestion,
@@ -354,6 +381,7 @@ export function useQuestionPool() {
     closeModal,
     handleOptionTextChange,
     handleSubmit,
+    handleSaveAndAddAnother,
     confirmDelete,
     closeBulkModal,
     handleBulkFileChange,

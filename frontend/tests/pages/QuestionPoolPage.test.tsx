@@ -442,4 +442,47 @@ describe('QuestionPoolPage', () => {
     )
     expect(bulkCreateQuestions).not.toHaveBeenCalled()
   })
+
+  it('allows creating multiple questions consecutively using Create & add another', async () => {
+    getSubjects.mockResolvedValue(mockSubjects)
+    getQuestions.mockResolvedValue(mockQuestions)
+    createQuestion.mockResolvedValue({
+      question_id: 20,
+      subject_id: 1,
+      test_id: null,
+      question_text: 'What is inheritance?',
+      options: [
+        { option_id: 1, option_text: 'A', is_correct: true },
+        { option_id: 2, option_text: 'B', is_correct: false },
+        { option_id: 3, option_text: 'C', is_correct: false },
+        { option_id: 4, option_text: 'D', is_correct: false },
+      ],
+    })
+
+    renderQuestionPoolPage()
+    await screen.findByText('What is encapsulation in OOP?')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Question' }))
+    fireEvent.change(screen.getByLabelText('Question'), {
+      target: { value: 'What is inheritance?' },
+    })
+    fireEvent.change(screen.getByLabelText('Option 1'), { target: { value: 'A' } })
+    fireEvent.change(screen.getByLabelText('Option 2'), { target: { value: 'B' } })
+    fireEvent.change(screen.getByLabelText('Option 3'), { target: { value: 'C' } })
+    fireEvent.change(screen.getByLabelText('Option 4'), { target: { value: 'D' } })
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Create & add another' }),
+    )
+
+    expect(
+      await screen.findByText(
+        'Question created successfully. Add another question below.',
+      ),
+    ).toBeTruthy()
+    expect(createQuestion).toHaveBeenCalledTimes(1)
+    expect(
+      (screen.getByLabelText('Question') as HTMLInputElement).value,
+    ).toBe('')
+  })
 })

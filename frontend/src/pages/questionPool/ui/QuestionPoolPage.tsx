@@ -61,12 +61,15 @@ export function QuestionPoolPage() {
         isEditing={pool.editingQuestion !== null}
         isSaving={pool.isSaving}
         formError={pool.formError}
+        formSuccess={pool.formSuccess}
         formValues={pool.formValues}
         onOpenChange={pool.closeModal}
         onSubmit={pool.handleSubmit}
-        onQuestionTextChange={(value) =>
+        onSaveAndAddAnother={() => void pool.handleSaveAndAddAnother()}
+        onQuestionTextChange={(value) => {
+          pool.setFormSuccess(null)
           pool.setFormValues((current) => ({ ...current, question_text: value }))
-        }
+        }}
         onOptionTextChange={pool.handleOptionTextChange}
         onCorrectIndexChange={(index) =>
           pool.setFormValues((current) => ({ ...current, correctIndex: index }))
