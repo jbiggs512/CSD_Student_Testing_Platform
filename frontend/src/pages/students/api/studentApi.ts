@@ -1,4 +1,4 @@
-import { getAccessToken } from '@shared/api'
+import { getAccessToken, refreshAccessToken } from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type { Student, StudentCreateRequest, StudentUpdateRequest } from '../model'
 
@@ -36,6 +36,20 @@ async function studentRequest<T>(
         ...options.headers,
       },
     })
+
+    if (response.status === 401) {
+      const refreshedToken = await refreshAccessToken()
+      if (refreshedToken) {
+        response = await fetch(`${STUDENTS_URL}${endpoint}`, {
+          ...options,
+          headers: {
+            Authorization: `Bearer ${refreshedToken}`,
+            ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+            ...options.headers,
+          },
+        })
+      }
+    }
   } catch {
     throw new StudentApiError(
       'Unable to connect to the server. Please try again.',

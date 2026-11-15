@@ -120,4 +120,40 @@ describe('questionPoolApi', () => {
       expect.objectContaining({ method: 'POST' }),
     )
   })
+
+  it('refreshes the access token and retries once when an API call returns 401', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ access_token: 'refreshed-token' }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([{ subject_id: 1, subject_name: 'OOP' }]), {
+          status: 200,
+        }),
+      )
+
+    const subjects = await getSubjects()
+    expect(subjects).toHaveLength(1)
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/auth/refresh'),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      }),
+    )
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('/subject'),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer refreshed-token',
+        }),
+      }),
+    )
+  })
 })
