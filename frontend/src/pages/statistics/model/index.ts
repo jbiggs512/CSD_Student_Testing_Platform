@@ -1,5 +1,9 @@
 // Statistics page state, types, and business logic
 export type {
-    StatisticsProps
+    ScoreResponse,
+    StatisticsResponse,
+    StatisticsProps,
+    GradePoint,
+    GradesOverTimeResponse
 } from "./types"
 

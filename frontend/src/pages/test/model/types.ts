@@ -27,7 +27,7 @@ export interface TestDetails {
 export interface TestPageContentProps {
   readonly testDetails: TestDetails;
   readonly onSelectOption: (question_id: number, option_id: number) => void;
-  readonly onNavigateQuestion: (question_number: number) => void;
+  readonly onNavigateQuestion: (question_id: number) => void;
   readonly isAnswered: (question_id: number) => boolean;
   readonly onSubmit?: () => void | Promise<void>;
   readonly isSubmitting?: boolean;

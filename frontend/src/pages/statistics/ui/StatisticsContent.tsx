@@ -1,6 +1,9 @@
 import type { StatisticsProps } from "../model"
 import { LockKeyhole } from 'lucide-react'
 import { Card } from "@/shared/components";
+import { GradesChartCard } from "./GradesChartCard"
+import { GradesTableCard } from "./GradesTableCard";
+import { ExportResultsCard } from "./ExportResultsCard";
 
 export function StatisticsContent(props: Readonly<StatisticsProps>) {
     return (
@@ -22,27 +25,27 @@ export function StatisticsContent(props: Readonly<StatisticsProps>) {
                 <Card className="shadow-sm rounded-xl p-0">
                     <div className="justify-center p-6">
                         <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-navy/70">Total Points</span>
-                        <div className="font-heading text-5xl font-bold">100</div>
+                        <div className="font-heading text-5xl font-bold">{props.statistics?.total_points}</div>
                     </div>
                 </Card>
                 <Card className="shadow-sm rounded-xl p-0">
                     <div className="justify-center p-6">
                         <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-navy/70">Average Score</span>
-                        <div className="font-heading text-5xl font-bold">82%</div>
+                        <div className="font-heading text-5xl font-bold">{props.statistics?.average_score}%</div>
                     </div>
                 </Card>
                 <Card className="shadow-sm border-2 rounded-xl border-green-500 p-0">
                     <div className="justify-center p-6">
                         <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-navy/70">Best Score</span>
-                        <div className="font-heading text-5xl font-bold text-green-500">86%</div>
-                        <span className="mb-2 text-xs font-semibold text-navy/70">Test 1 - 10 Oct</span>
+                        <div className="font-heading text-5xl font-bold text-green-500">{props.statistics?.best_score.score}%</div>
+                        <span className="mb-2 text-xs font-semibold text-navy/70">{props.statistics?.best_score.test_name} - {props.statistics?.best_score.completed_date}</span>
                     </div>
                 </Card>
                 <Card className="shadow-sm border-2 rounded-xl border-red-600 p-0">
                     <div className="justify-center p-6">
                         <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-navy/70">Worst Score</span>
-                        <div className="font-heading text-5xl font-bold text-red-600">76%</div>
-                        <span className="mb-2 text-xs font-semibold text-navy/70">Test 4 - 21 Oct</span>
+                        <div className="font-heading text-5xl font-bold text-red-600">{props.statistics?.worst_score.score}%</div>
+                        <span className="mb-2 text-xs font-semibold text-navy/70">{props.statistics?.worst_score.test_name} - {props.statistics?.worst_score.completed_date}</span>
                     </div>
                 </Card>
             </div>
@@ -50,25 +53,13 @@ export function StatisticsContent(props: Readonly<StatisticsProps>) {
             {/* Graph for results over time */}
             <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2">
-                    <Card className="p-6 shadow-sm">
-                        <div className="mb-6 flex items-centre justify-between">
-                            <h3 className="text-3xl font-bold text-navy py-4">Grades Over Time</h3>
-                        </div>
-                    </Card>
+                    <GradesChartCard data={props.gradesOverTime} />
                 </div>
                 <div className="col-span-1">
-                    <Card className="p-6 shadow-sm">
-                        <div className="mb-6 flex items-centre justify-between">
-                            <h3 className="text-3xl font-bold text-navy py-4">Export Results</h3>
-                        </div>
-                    </Card>
+                    <ExportResultsCard data={props.gradesOverTime} />
                 </div>
                 <div className="lg:col-span-3">
-                    <Card className="p-6 shadow-sm">
-                        <div className="mb-6 flex items-centre justify-between">
-                            <h3 className="text-3xl font-bold text-navy py-4">Grades Over Time - Data Table</h3>
-                        </div>
-                    </Card>
+                    <GradesTableCard points={props.gradesOverTime.points} />
                 </div>
             </div>
         </main>

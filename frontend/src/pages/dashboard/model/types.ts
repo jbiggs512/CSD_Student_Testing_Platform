@@ -8,6 +8,7 @@ export interface OutstandingTest {
 
 export interface CompletedTest {
     id: number
+    test_id: number
     test_name: string
     score_percentage: number
     questions_correct: number

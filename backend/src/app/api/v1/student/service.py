@@ -1,10 +1,21 @@
-from sqlalchemy import table, column, select, func, join
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from app.api.v1.student.schemas import OutstandingTestResponse, CompletedTestResponse, CohortRankResponse, SubjectResponse, LeaderboardEntry, LeaderboardResponse
+from app.api.v1.student.schemas import ( 
+OutstandingTestResponse, 
+CompletedTestResponse, 
+CohortRankResponse, 
+SubjectResponse, 
+LeaderboardEntry, 
+LeaderboardResponse, 
+StatisticsResponse, 
+ScoreResponse,
+GradePoint,
+GradesOverTimeResponse)
 from app.db.models import TestAttempt, Test, Subject, Course, User, Role
 
-not_enrolled_error = "You are not enrolled in any courses."
+NOT_ENROLLED_DETAIL = "You are not enrolled in any courses."
+NO_RESULTS_DETAIL = "No results were returned."
 
 def get_outstanding_tests(
     db: Session, 
@@ -52,11 +63,13 @@ def get_completed_tests(
         .where(TestAttempt.user_id == student_id,
                 TestAttempt.completed_at.isnot(None)
         )
+        .order_by(TestAttempt.completed_at.desc())
     )
 
     # Return the results as completed test model instances
     return [CompletedTestResponse(
-                id=attempt.test.test_id,
+                id=attempt.attempt_id,
+                test_id=attempt.test.test_id,
                 test_name=attempt.test.test_name,
                 score_percentage=(attempt.correct_questions/attempt.total_questions)*100,
                 questions_correct=attempt.correct_questions,
@@ -76,38 +89,18 @@ def get_cohort_rank(
         # Return 412 if user is not enrolled on any courses
         raise HTTPException(
             status_code=412,
-            detail=not_enrolled_error,
+            detail=NOT_ENROLLED_DETAIL,
         )
-    
-    # Find the best score for each user, per test, within the subject
-    # This is so the user can only achieve one lot of points per test 
-    # If they take multiple tests, only the best will count towards their overall score
-    best_per_test = (
-        select(
-            TestAttempt.user_id,
-            TestAttempt.test_id,
-            func.max(TestAttempt.score).label("best_score"),
-        )
-        .join(Test, Test.test_id == TestAttempt.test_id)
-        .join(Subject, Subject.subject_id == Test.subject_id)
-        .where(
-            Subject.course_id == course_id,
-            TestAttempt.completed_at.is_not(None),
-            TestAttempt.score.is_not(None),
-        )
-        .group_by(TestAttempt.user_id, TestAttempt.test_id)
-        .subquery()
-    )
 
     # Find and calculate the total score per enrolled active student (0 if no attempts)
     cohort_totals = (
         select(
             User.user_id,
-            func.coalesce(func.sum(best_per_test.c.best_score), 0).label("total_score"),
+            func.coalesce(func.sum(TestAttempt.score), 0).label("total_score"),
         )
         .join(User.courses)  # Link table between user and courses
         .join(Role, Role.role_id == User.role_id)
-        .outerjoin(best_per_test, best_per_test.c.user_id == User.user_id)
+        .join(TestAttempt, TestAttempt.user_id == User.user_id)
         .where(
             Course.course_id == course_id,
             User.account_status == "active",
@@ -153,7 +146,7 @@ def get_course_title(
         # Return 412 error if the user is not enrolled in any courses
         raise HTTPException(
             status_code=412,
-            detail=not_enrolled_error,
+            detail=NOT_ENROLLED_DETAIL,
         )
 
 def get_subjects(
@@ -167,7 +160,7 @@ def get_subjects(
         # Return 412 if user is not enrolled on any courses
         raise HTTPException(
             status_code=412,
-            detail=not_enrolled_error,
+            detail=NOT_ENROLLED_DETAIL,
         )
     
     subjects = db.scalars(
@@ -192,35 +185,15 @@ def get_leaderboard(
         .where(Subject.subject_id == subject_id)
     )
     
-    # Find the best score for each user, per test, within the subject
-    best_per_test = (
-        select(
-            TestAttempt.user_id,
-            TestAttempt.test_id,
-            func.max(TestAttempt.score).label("best_score"),
-            func.max(TestAttempt.correct_questions).label("correct_questions"),
-            func.max(TestAttempt.total_questions).label("total_questions")
-        )
-        .join(Test, Test.test_id == TestAttempt.test_id)
-        .join(Subject, Subject.subject_id == Test.subject_id)
-        .where(
-            Subject.subject_id == subject_id,
-            TestAttempt.completed_at.is_not(None),
-            TestAttempt.score.is_not(None),
-        )
-        .group_by(TestAttempt.user_id, TestAttempt.test_id)
-        .subquery()
-    )
-
     # Calculate average score per user for tests in this subject
-    percentage_expr = (best_per_test.c.correct_questions / best_per_test.c.total_questions) * 100.0
+    percentage_expr = (TestAttempt.correct_questions / TestAttempt.total_questions) * 100.0
     
     user_averages = (
         select(
-            best_per_test.c.user_id,
+            TestAttempt.user_id,
             func.coalesce(func.avg(percentage_expr), 0.0).label("avg_score")
         )
-        .group_by(best_per_test.c.user_id)
+        .group_by(TestAttempt.user_id)
         .subquery()
     )
 
@@ -228,11 +201,11 @@ def get_leaderboard(
     cohort_totals = (
         select(
             User.user_id,
-            func.coalesce(func.sum(best_per_test.c.best_score), 0).label("total_score"),
+            func.coalesce(func.sum(TestAttempt.score), 0).label("total_score"),
         )
         .join(User.courses) 
         .join(Role, Role.role_id == User.role_id)
-        .outerjoin(best_per_test, best_per_test.c.user_id == User.user_id)
+        .join(TestAttempt, TestAttempt.user_id == User.user_id)
         .where(
             Course.course_id == course_id,
             User.account_status == "active",
@@ -310,4 +283,98 @@ def get_leaderboard(
         top_students=top_students,
         current_user_entry=current_user_entry,
         is_in_top_5=is_in_top_5
+    )
+    
+def get_statistics(
+    db: Session,
+    student_id: int,
+) -> StatisticsResponse | None:
+    
+    # Get all of the users completed tests
+    completed_tests = db.scalars(
+        select(TestAttempt) 
+        .where(
+            TestAttempt.user_id == student_id,
+            TestAttempt.completed_at.is_not(None),
+            TestAttempt.score.is_not(None),
+            TestAttempt.total_questions.is_not(None),
+            TestAttempt.total_questions > 0,   
+        )
+    ).all()
+
+    # Return none if the user has not yet completed any tests
+    if not completed_tests:
+        return None
+
+    # Function to get the test attempt score as a percentage
+    def percentage(attempt: TestAttempt) -> float:
+        return attempt.correct_questions / attempt.total_questions * 100
+
+    # Function to convert the test attempt into a score response model
+    def to_score_response(attempt: TestAttempt) -> ScoreResponse:
+        return ScoreResponse(
+            score=round(percentage(attempt)),
+            test_name=attempt.test.test_name,
+            completed_date=attempt.completed_at.strftime("%-d %b %Y"),
+        )
+
+    # Get the best and worst scores as percentages from the list
+    best = max(completed_tests, key=percentage)
+    worst = min(completed_tests, key=percentage)
+
+    # Get the average score as a percentage
+    average_percentage = sum(percentage(a) for a in completed_tests) / len(completed_tests)
+
+    # Return the calculated results as a statistics response model
+    return StatisticsResponse(
+        total_points=sum(a.score for a in completed_tests),
+        average_score=round(average_percentage),
+        best_score=to_score_response(best),
+        worst_score=to_score_response(worst),
+    )
+    
+def get_grades_over_time(
+    db: Session,
+    student_id: int,
+) -> GradesOverTimeResponse | None:
+    # Get all test attempts for the student
+    attempts = db.scalars(
+        select(TestAttempt) 
+        .where(
+            TestAttempt.user_id == student_id,
+            TestAttempt.completed_at.is_not(None),
+            TestAttempt.score.is_not(None),
+            TestAttempt.total_questions.is_not(None),
+            TestAttempt.total_questions > 0,
+        )
+        .order_by(TestAttempt.completed_at.asc())
+    ).all()
+
+    # Return none if there are no completed tests / attempts
+    if not attempts:
+        return None
+
+    # Calculate percentage score for each attempt
+    percentages = [a.correct_questions / a.total_questions * 100 for a in attempts]
+
+    # Get the index of the best and worst scores in the percentages list
+    best_index = max(range(len(percentages)), key=percentages.__getitem__)
+    worst_index = min(range(len(percentages)), key=percentages.__getitem__)
+
+    # Turn each attempt into a GradePoint model
+    points = [
+        GradePoint(
+            completed_at=attempt.completed_at.isoformat(),
+            percentage=round(pct),
+            test_name=attempt.test.test_name,
+            is_best=(i == best_index),
+            is_worst=(i == worst_index),
+        )
+        for i, (attempt, pct) in enumerate(zip(attempts, percentages))
+    ]
+
+    # Return results as a GradesOverTimeResponse model
+    return GradesOverTimeResponse(
+        average=round(sum(percentages) / len(percentages)),
+        points=points,
     )

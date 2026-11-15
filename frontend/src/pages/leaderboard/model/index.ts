@@ -4,4 +4,5 @@ export type {
     LeaderboardProps,
     LeaderboardResponse,
     SubjectFilter,
+    TopStudentCardProps
 } from "./types"

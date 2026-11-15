@@ -24,3 +24,10 @@ export interface LeaderboardProps {
     currentUser: LeaderboardEntry;
     userInTop5: boolean;
 }
+
+export interface TopStudentCardProps { 
+    subjects: SubjectFilter[];
+    topFive: LeaderboardEntry[];
+    currentUser: LeaderboardEntry;
+    userInTop5: boolean;
+}

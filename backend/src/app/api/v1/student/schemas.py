@@ -9,6 +9,7 @@ class OutstandingTestResponse(BaseModel):
     
 class CompletedTestResponse(BaseModel):
     id: int
+    test_id: int
     test_name: str
     score_percentage: int
     questions_correct: int
@@ -36,3 +37,24 @@ class LeaderboardResponse(BaseModel):
     current_user_entry: LeaderboardEntry | None
     is_in_top_5: bool
     
+class ScoreResponse(BaseModel):
+    score: int
+    test_name: str
+    completed_date: str    
+
+class StatisticsResponse(BaseModel):
+    total_points: int
+    average_score: int
+    best_score: ScoreResponse
+    worst_score: ScoreResponse
+
+class GradePoint(BaseModel):
+    completed_at: str    
+    percentage: int      
+    test_name: str
+    is_best: bool
+    is_worst: bool
+
+class GradesOverTimeResponse(BaseModel):
+    average: int        
+    points: list[GradePoint]
