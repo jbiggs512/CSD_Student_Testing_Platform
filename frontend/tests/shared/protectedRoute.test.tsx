@@ -6,6 +6,7 @@ import {
   getAccessToken,
   getCurrentUser,
   logoutUser,
+  refreshAccessToken,
   restoreAuthSession,
   setAccessToken,
   setCurrentUser,
@@ -167,19 +168,52 @@ describe('ProtectedRoute & restoreAuthSession', () => {
     await expect(restoreAuthSession()).resolves.toBeNull()
     expect(getAccessToken()).toBeNull()
 
-    // Token already set, but /auth/me returns 401
+    // Token already set, but /auth/me returns 401 and subsequent refresh fails
     setAccessToken('expired-token')
-    fetchSpy.mockResolvedValueOnce({
-      ok: false,
-      status: 401,
-      json: async () => ({ detail: 'Invalid token' }),
-    } as Response)
+    fetchSpy
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ detail: 'Invalid token' }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ detail: 'Invalid refresh token' }),
+      } as Response)
     await expect(restoreAuthSession()).resolves.toBeNull()
     expect(getAccessToken()).toBeNull()
 
-    // Network error
+    // Token already set, /auth/me returns 401, refresh succeeds with user, and retry /auth/me succeeds
+    const refreshedUser = buildUser('lecturer')
+    setAccessToken('expired-token')
+    fetchSpy
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ detail: 'Expired token' }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          access_token: 'new-valid-token',
+          user: refreshedUser,
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => refreshedUser,
+      } as Response)
+    await expect(restoreAuthSession()).resolves.toEqual(refreshedUser)
+    expect(getAccessToken()).toBe('new-valid-token')
+    expect(getCurrentUser()).toEqual(refreshedUser)
+
+    // Network error during refreshAccessToken
+    clearAccessToken()
     fetchSpy.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-    await expect(restoreAuthSession()).resolves.toBeNull()
+    await expect(refreshAccessToken()).resolves.toBeNull()
     expect(getAccessToken()).toBeNull()
   })
 

@@ -92,4 +92,41 @@ describe('Students API clients', () => {
       new StudentApiError('Unable to connect to the server. Please try again.', 0),
     )
   })
+
+  it('refreshes the access token and retries once when an API call returns 401', async () => {
+    setAccessToken('expired-token')
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ detail: 'Could not validate credentials.' }), {
+          status: 401,
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({ access_token: 'fresh-token', token_type: 'bearer' }),
+      )
+      .mockResolvedValueOnce(Response.json(student))
+
+    await expect(
+      updateStudent(student.username, { account_status: 'disabled' }),
+    ).resolves.toEqual(student)
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/auth/refresh'),
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+    )
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('/student/ws100001'),
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer fresh-token',
+          'Content-Type': 'application/json',
+        }),
+      }),
+    )
+  })
 })
