@@ -205,12 +205,19 @@ export function useQuestionPool() {
       return
     }
 
-    const isDuplicate = questions.some(
-      (q) =>
-        q.question_id !== editingQuestion?.question_id &&
-        sanitizeInputText(q.question_text).toLowerCase() ===
-          questionText.toLowerCase(),
-    )
+    const isTextChanged =
+      !editingQuestion ||
+      sanitizeInputText(editingQuestion.question_text).toLowerCase() !==
+        questionText.toLowerCase()
+
+    const isDuplicate =
+      isTextChanged &&
+      questions.some(
+        (q) =>
+          q.question_id !== editingQuestion?.question_id &&
+          sanitizeInputText(q.question_text).toLowerCase() ===
+            questionText.toLowerCase(),
+      )
     if (isDuplicate) {
       setFormError('Question already exists in this subject.')
       return

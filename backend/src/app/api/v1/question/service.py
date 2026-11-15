@@ -324,9 +324,12 @@ def update_question(
         get_subject_or_404(db, request.subject_id)
         question.subject_id = request.subject_id
 
-    if next_subject_id is not None and (
-        request.question_text is not None or request.subject_id is not None
-    ):
+    text_changed = (
+        next_question_text.lower() != sanitize_text(question.question_text).lower()
+    )
+    subject_changed = next_subject_id != default_subject_id
+
+    if next_subject_id is not None and (text_changed or subject_changed):
         ensure_unique_question_in_subject(
             db,
             next_subject_id,
