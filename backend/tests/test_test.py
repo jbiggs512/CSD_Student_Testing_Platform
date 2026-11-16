@@ -40,6 +40,9 @@ def test_get_test_data(client, db_session, auth_headers):
     assert body["questions_per_attempt"] == 5
     assert body["current_question"] == 1
     assert len(body["questions"]) == 5
+    for question in body["questions"]:
+        for option in question["options"]:
+            assert "is_correct" not in option
 
 
 def test_get_test_data_draws_random_questions_from_subject_pool(
@@ -141,3 +144,98 @@ def test_get_test_data_requires_authentication(client):
     response = client.get("/api/v1/test/1")
 
     assert response.status_code == 401
+
+
+def test_save_test_attempt_grades_answers_server_side(
+    client, db_session, auth_headers
+):
+    seed_test_data(db_session)
+    test = db_session.scalar(
+        select(Test).where(Test.test_name == "OOP Key Principles")
+    )
+    assert test is not None
+
+    questions = db_session.scalars(
+        select(Question)
+        .where(Question.subject_id == test.subject_id)
+        .order_by(Question.question_id.asc())
+    ).all()
+    assert len(questions) >= 3
+
+    student_headers = auth_headers(UserRole.STUDENT)
+
+    # Unenrolled student is rejected
+    attempt_payload_base = {
+        "test_id": test.test_id,
+        "started_at": "2026-11-16T21:00:00Z",
+        "completed_at": "2026-11-16T21:05:00Z",
+        "answers": [],
+    }
+    unenrolled = client.post(
+        "/api/v1/test/attempt", json=attempt_payload_base, headers=student_headers
+    )
+    assert unenrolled.status_code == 401
+
+    student = db_session.scalar(
+        select(User)
+        .join(Role, User.role_id == Role.role_id)
+        .where(Role.role_name == UserRole.STUDENT.value)
+        .order_by(User.user_id.desc())
+    )
+    assert student is not None
+    student.courses.append(test.subject.course)
+    db_session.commit()
+
+    # Unknown test returns 404
+    missing_test = client.post(
+        "/api/v1/test/attempt",
+        json={**attempt_payload_base, "test_id": 999999},
+        headers=student_headers,
+    )
+    assert missing_test.status_code == 404
+
+    q1, q2, q3 = questions[0], questions[1], questions[2]
+    q1_correct = next(opt for opt in q1.options if opt.is_correct)
+    q2_wrong = next(opt for opt in q2.options if not opt.is_correct)
+
+    # 1 correct (+30), 1 duplicate attempt for q1 (ignored), 1 wrong (-10), 1 unanswered (0) => score 20
+    graded_res = client.post(
+        "/api/v1/test/attempt",
+        json={
+            "test_id": test.test_id,
+            "started_at": "2026-11-16T21:00:00Z",
+            "completed_at": "2026-11-16T21:05:00Z",
+            "answers": [
+                {"question_id": q1.question_id, "selected_option_id": q1_correct.option_id},
+                {"question_id": q1.question_id, "selected_option_id": q1_correct.option_id},
+                {"question_id": q2.question_id, "selected_option_id": q2_wrong.option_id},
+                {"question_id": q3.question_id, "selected_option_id": None},
+            ],
+        },
+        headers=student_headers,
+    )
+    assert graded_res.status_code == 201, graded_res.text
+    graded = graded_res.json()
+    assert graded["score"] == 20
+    assert graded["correct_questions"] == 1
+    assert graded["total_questions"] == test.questions_per_attempt
+
+    # Net negative score is clamped to 0
+    q1_wrong = next(opt for opt in q1.options if not opt.is_correct)
+    clamped_res = client.post(
+        "/api/v1/test/attempt",
+        json={
+            "test_id": test.test_id,
+            "started_at": "2026-11-16T21:06:00Z",
+            "completed_at": "2026-11-16T21:07:00Z",
+            "answers": [
+                {"question_id": q1.question_id, "selected_option_id": q1_wrong.option_id},
+                {"question_id": q2.question_id, "selected_option_id": q2_wrong.option_id},
+            ],
+        },
+        headers=student_headers,
+    )
+    assert clamped_res.status_code == 201, clamped_res.text
+    clamped = clamped_res.json()
+    assert clamped["score"] == 0
+    assert clamped["correct_questions"] == 0

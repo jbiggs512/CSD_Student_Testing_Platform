@@ -2,12 +2,13 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 from fastapi import HTTPException
 
-from app.db.models import Test, User, Subject, Course, TestAttempt, Question
+from app.db.models import Test, User, Subject, Course, TestAttempt, Question, QuestionOption
 from app.api.v1.question.service import sanitize_text
 from app.api.v1.test.schemas import (
     LecturerTestResponse,
     QuestionOptionResponse,
     QuestionResponse,
+    TestAnswerSubmission,
     TestAttemptCreateRequest,
     TestAttemptResponse,
     TestCreateRequest,
@@ -121,19 +122,18 @@ def create_test(db: Session, request: TestCreateRequest) -> LecturerTestResponse
     return to_lecturer_test_response(new_test, pool_size)
 
 
-def get_test_data(
-    db: Session, 
+def _ensure_student_can_access_test(
+    db: Session,
     target_test_id: int,
-    current_user: User
-) -> TestResponse:
-    
-    # Fetch the test data from the database
+    current_user: User,
+) -> Test:
     test = db.get(Test, target_test_id)
-
     if test is None:
-        raise HTTPException(status_code=404, detail=f"Test with ID '{target_test_id}' not found.")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Test with ID '{target_test_id}' not found.",
+        )
 
-    # Check user is allowed to access test
     test_user_check = db.scalar(
         select(Test)
         .join(Subject, Test.subject_id == Subject.subject_id)
@@ -144,9 +144,21 @@ def get_test_data(
             Test.test_id == target_test_id,
         )
     )
-
     if test_user_check is None:
-            raise HTTPException(status_code=401, detail=f"User not allowed to access test with ID '{target_test_id}'.")
+        raise HTTPException(
+            status_code=401,
+            detail=f"User not allowed to access test with ID '{target_test_id}'.",
+        )
+
+    return test
+
+
+def get_test_data(
+    db: Session,
+    target_test_id: int,
+    current_user: User,
+) -> TestResponse:
+    test = _ensure_student_can_access_test(db, target_test_id, current_user)
 
     sampled_questions = sample_subject_pool_questions(
         db,
@@ -172,7 +184,6 @@ def get_test_data(
                     QuestionOptionResponse(
                         option_id=option.option_id,
                         option_text=option.option_text,
-                        is_correct=option.is_correct,
                     )
                     for option in question.options
                 ],
@@ -180,27 +191,86 @@ def get_test_data(
             for question in sampled_questions
         ],
     )
-    
+
+
+def _grade_attempt_answers(
+    db: Session,
+    subject_id: int,
+    answers: list[TestAnswerSubmission],
+) -> tuple[int, int]:
+    selected_by_question: dict[int, int | None] = {}
+    for answer in answers:
+        selected_by_question.setdefault(answer.question_id, answer.selected_option_id)
+
+    option_ids = [
+        option_id
+        for option_id in selected_by_question.values()
+        if option_id is not None
+    ]
+    if not option_ids:
+        return 0, 0
+
+    rows = db.execute(
+        select(
+            QuestionOption.option_id,
+            QuestionOption.question_id,
+            QuestionOption.is_correct,
+        )
+        .join(Question, QuestionOption.question_id == Question.question_id)
+        .where(
+            QuestionOption.option_id.in_(option_ids),
+            _subject_pool_filter(subject_id),
+        )
+    ).all()
+
+    options_by_pair = {
+        (row.question_id, row.option_id): row.is_correct
+        for row in rows
+    }
+
+    raw_score = 0
+    correct_questions = 0
+    for question_id, option_id in selected_by_question.items():
+        if option_id is None:
+            continue
+        is_correct = options_by_pair.get((question_id, option_id))
+        if is_correct is None:
+            continue
+        if is_correct:
+            raw_score += 30
+            correct_questions += 1
+        else:
+            raw_score -= 10
+
+    return max(0, raw_score), correct_questions
+
+
 def save_test_attempt(
     db: Session,
     request: TestAttemptCreateRequest,
-    current_user: User
-    ) -> TestAttemptResponse:
-    
+    current_user: User,
+) -> TestAttemptResponse:
+    test = _ensure_student_can_access_test(db, request.test_id, current_user)
+    score, correct_questions = _grade_attempt_answers(
+        db,
+        test.subject_id,
+        request.answers,
+    )
+
     new_test_attempt = TestAttempt(
-        test_id=request.test_id,
+        test_id=test.test_id,
         user_id=current_user.user_id,
         started_at=request.started_at,
         completed_at=request.completed_at,
-        score=request.score,
-        total_questions=request.total_questions,
-        correct_questions=request.correct_questions
+        score=score,
+        total_questions=test.questions_per_attempt,
+        correct_questions=correct_questions,
     )
-    
+
     db.add(new_test_attempt)
     db.commit()
     db.refresh(new_test_attempt)
-    
+
     return new_test_attempt
     
     

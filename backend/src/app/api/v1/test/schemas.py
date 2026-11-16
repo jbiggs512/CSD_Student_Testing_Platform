@@ -4,7 +4,6 @@ from datetime import datetime
 class QuestionOptionResponse(BaseModel):
     option_id: int
     option_text: str
-    is_correct: bool
 
 class QuestionResponse(BaseModel):
     question_id: int
@@ -22,14 +21,18 @@ class TestResponse(BaseModel):
     current_question: int
     questions_per_attempt: int
     questions: list[QuestionResponse]
-    
+
+
+class TestAnswerSubmission(BaseModel):
+    question_id: int
+    selected_option_id: int | None = None
+
+
 class TestAttemptCreateRequest(BaseModel):
     test_id: int
     started_at: datetime
     completed_at: datetime
-    score: int
-    total_questions: int
-    correct_questions: int
+    answers: list[TestAnswerSubmission] = Field(default_factory=list)
     
 class TestAttemptResponse(BaseModel):
     attempt_id: int
