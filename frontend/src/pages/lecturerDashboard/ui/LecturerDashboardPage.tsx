@@ -1,5 +1,10 @@
 import { Link } from 'react-router'
-import { ArrowRightIcon, HelpCircleIcon, UsersIcon } from 'lucide-react'
+import {
+  ArrowRightIcon,
+  ClipboardListIcon,
+  HelpCircleIcon,
+  UsersIcon,
+} from 'lucide-react'
 import { Button } from '@shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@shared/components/ui/card'
 
@@ -19,7 +24,7 @@ export function LecturerDashboardPage() {
         </p>
       </section>
 
-      <section className="mt-8 grid gap-6 md:grid-cols-2">
+      <section className="mt-8 grid gap-6 md:grid-cols-3">
         <Card className="shadow-sm">
           <CardHeader>
             <UsersIcon className="size-8 text-pink" aria-hidden="true" />
@@ -34,6 +39,26 @@ export function LecturerDashboardPage() {
             <Button asChild>
               <Link to="/students">
                 Manage students
+                <ArrowRightIcon aria-hidden="true" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader>
+            <ClipboardListIcon className="size-8 text-pink" aria-hidden="true" />
+            <CardTitle className="font-heading text-2xl text-plum">
+              Test management
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Create, configure, and manage subject assessments generated from your question pools.
+            </p>
+            <Button asChild>
+              <Link to="/tests">
+                Manage tests
                 <ArrowRightIcon aria-hidden="true" />
               </Link>
             </Button>
