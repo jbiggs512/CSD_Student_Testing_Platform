@@ -196,7 +196,7 @@ def get_leaderboard(
         .group_by(TestAttempt.user_id)
         .subquery()
     )
-
+    
     # Find and calculate the total score per enrolled active student (0 if no attempts)
     cohort_totals = (
         select(
@@ -205,7 +205,7 @@ def get_leaderboard(
         )
         .join(User.courses) 
         .join(Role, Role.role_id == User.role_id)
-        .join(TestAttempt, TestAttempt.user_id == User.user_id)
+        .outerjoin(TestAttempt, TestAttempt.user_id == User.user_id)
         .where(
             Course.course_id == course_id,
             User.account_status == "active",
