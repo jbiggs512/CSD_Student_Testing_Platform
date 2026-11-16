@@ -1,5 +1,5 @@
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from fastapi import HTTPException
 
 from app.db.models import Test, User, Subject, Course, TestAttempt, Question
@@ -22,15 +22,35 @@ TEST_ALREADY_EXISTS_DETAIL = "A test with this name already exists for this subj
 EMPTY_POOL_DETAIL = "This subject has no questions in its question pool."
 
 
+def _subject_pool_filter(subject_id: int):
+    return or_(
+        Question.subject_id == subject_id,
+        Question.test.has(Test.subject_id == subject_id),
+    )
+
+
 def count_subject_pool(db: Session, subject_id: int) -> int:
     return db.scalar(
         select(func.count(Question.question_id)).where(
-            or_(
-                Question.subject_id == subject_id,
-                Question.test.has(Test.subject_id == subject_id),
-            )
+            _subject_pool_filter(subject_id)
         )
     ) or 0
+
+
+def sample_subject_pool_questions(
+    db: Session,
+    subject_id: int,
+    limit: int,
+) -> list[Question]:
+    return list(
+        db.scalars(
+            select(Question)
+            .options(selectinload(Question.options))
+            .where(_subject_pool_filter(subject_id))
+            .order_by(func.random())
+            .limit(limit)
+        ).all()
+    )
 
 
 def to_lecturer_test_response(test: Test, pool_size: int) -> LecturerTestResponse:
@@ -128,12 +148,18 @@ def get_test_data(
     if test_user_check is None:
             raise HTTPException(status_code=401, detail=f"User not allowed to access test with ID '{target_test_id}'.")
 
+    sampled_questions = sample_subject_pool_questions(
+        db,
+        test.subject_id,
+        test.questions_per_attempt,
+    )
+
     return TestResponse(
         test_id=test.test_id,
         course=test.subject.course.course_title,
         subject=test.subject.subject_name,
         test_name=test.test_name,
-        description=test.description,
+        description=test.description or "",
         timed=test.time_limit_minutes is not None and test.time_limit_minutes > 0,
         time_limit_minutes=test.time_limit_minutes,
         current_question=1,
@@ -146,13 +172,13 @@ def get_test_data(
                     QuestionOptionResponse(
                         option_id=option.option_id,
                         option_text=option.option_text,
-                        is_correct=option.is_correct
+                        is_correct=option.is_correct,
                     )
                     for option in question.options
-                ]
+                ],
             )
-            for question in test.questions
-        ]
+            for question in sampled_questions
+        ],
     )
     
 def save_test_attempt(
