@@ -77,7 +77,7 @@ function createGradeColumns(): ColumnDef<GradePoint>[] {
   ]
 }
 
-export function GradesTableCard({ points }: { points: GradePoint[] }) {
+export function GradesTableCard({ points }: Readonly<{ points: GradePoint[] }>) {
   const columns = useMemo(() => createGradeColumns(), [])
 
   // Newest first for the table, instead of oldest first for the graph, as returned by API

@@ -23,7 +23,18 @@ const COLORS = {
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
-export function GradesChartCard({ data }: { data: GradesOverTimeResponse }) {
+// Set the colour of the point on the graph and any necessary suffix text
+function getPointStyle(point: GradePoint) {
+  if (point.is_best) {
+    return { fill: COLORS.best, suffix: " · Best" };
+  }
+  if (point.is_worst) {
+    return { fill: COLORS.worst, suffix: " · Worst" };
+  }
+  return { fill: "#fff", suffix: "" };
+}
+
+export function GradesChartCard({ data }: Readonly<{ data: GradesOverTimeResponse }>) {
   const { points, average } = data;
 
   // Y axis variables
@@ -46,11 +57,9 @@ export function GradesChartCard({ data }: { data: GradesOverTimeResponse }) {
 
     const point = payload as GradePoint;
     const filled = point.is_best || point.is_worst;
-    const fill = point.is_best ? COLORS.best : point.is_worst ? COLORS.worst : "#fff";
+    const { fill, suffix } = getPointStyle(point);
     const stroke = point.is_worst ? COLORS.worst : COLORS.navy;
     const below = labelBelow(index);
-
-    const suffix = point.is_best ? " · Best" : point.is_worst ? " · Worst" : "";
 
     return (
       <g key={`dot-${index}`}>

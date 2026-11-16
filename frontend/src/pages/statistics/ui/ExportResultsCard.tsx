@@ -13,7 +13,7 @@ import {
 } from "@/shared/components";
 import type { GradesOverTimeResponse } from "../model";
 
-export function ExportResultsCard({ data }: { data: GradesOverTimeResponse }) {
+export function ExportResultsCard({ data }: Readonly<{ data: GradesOverTimeResponse }>) {
     const exportOptions = [
         { label: "Excel (.xlsx)", value: 0 }
     ];
