@@ -10,6 +10,17 @@ from app.enums import UserRole
 
 router = APIRouter()
 
+
+@router.post("", status_code=201)
+def create_test(
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN))],
+    request: schemas.TestCreateRequest,
+) -> schemas.LecturerTestResponse:
+    """Create a new test that draws questions from a subject's question pool."""
+    return service.create_test(db, request)
+
+
 @router.get("/{test_id}", response_model=schemas.TestResponse)
 def get_test(
     test_id: int,

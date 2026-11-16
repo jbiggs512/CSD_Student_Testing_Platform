@@ -1,9 +1,104 @@
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
-from app.db.models import Test, User, Subject, Course, TestAttempt
-from app.api.v1.test.schemas import QuestionOptionResponse, QuestionResponse, TestResponse, TestAttemptCreateRequest, TestAttemptResponse
+from app.db.models import Test, User, Subject, Course, TestAttempt, Question
+from app.api.v1.question.service import sanitize_text
+from app.api.v1.test.schemas import (
+    LecturerTestResponse,
+    QuestionOptionResponse,
+    QuestionResponse,
+    TestAttemptCreateRequest,
+    TestAttemptResponse,
+    TestCreateRequest,
+    TestResponse,
+)
+from app.enums import SubjectStatus
+
+SUBJECT_NOT_FOUND_DETAIL = "Subject not found."
+SUBJECT_DISABLED_DETAIL = "Tests cannot be created for a disabled subject."
+TEST_NAME_REQUIRED_DETAIL = "Test name is required."
+TEST_ALREADY_EXISTS_DETAIL = "A test with this name already exists for this subject."
+EMPTY_POOL_DETAIL = "This subject has no questions in its question pool."
+
+
+def count_subject_pool(db: Session, subject_id: int) -> int:
+    return db.scalar(
+        select(func.count(Question.question_id)).where(
+            or_(
+                Question.subject_id == subject_id,
+                Question.test.has(Test.subject_id == subject_id),
+            )
+        )
+    ) or 0
+
+
+def to_lecturer_test_response(test: Test, pool_size: int) -> LecturerTestResponse:
+    return LecturerTestResponse(
+        test_id=test.test_id,
+        test_name=test.test_name,
+        description=test.description,
+        subject_id=test.subject_id,
+        subject_name=test.subject.subject_name,
+        course_title=test.subject.course.course_title,
+        time_limit_minutes=test.time_limit_minutes,
+        questions_per_attempt=test.questions_per_attempt,
+        pool_size=pool_size,
+    )
+
+
+def _validate_new_test(db: Session, request: TestCreateRequest) -> tuple[Subject, str, int]:
+    subject = db.get(Subject, request.subject_id)
+    if subject is None:
+        raise HTTPException(status_code=404, detail=SUBJECT_NOT_FOUND_DETAIL)
+    if subject.status != SubjectStatus.ACTIVE:
+        raise HTTPException(status_code=400, detail=SUBJECT_DISABLED_DETAIL)
+
+    test_name = sanitize_text(request.test_name)
+    if not test_name:
+        raise HTTPException(status_code=400, detail=TEST_NAME_REQUIRED_DETAIL)
+
+    duplicate = db.scalar(
+        select(Test.test_id).where(
+            Test.subject_id == subject.subject_id,
+            func.lower(Test.test_name) == test_name.lower(),
+        )
+    )
+    if duplicate is not None:
+        raise HTTPException(status_code=400, detail=TEST_ALREADY_EXISTS_DETAIL)
+
+    pool_size = count_subject_pool(db, subject.subject_id)
+    if pool_size == 0:
+        raise HTTPException(status_code=400, detail=EMPTY_POOL_DETAIL)
+    if request.questions_per_attempt > pool_size:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Questions per attempt ({request.questions_per_attempt}) cannot exceed "
+                f"the subject's question pool size ({pool_size})."
+            ),
+        )
+
+    return subject, test_name, pool_size
+
+
+def create_test(db: Session, request: TestCreateRequest) -> LecturerTestResponse:
+    subject, test_name, pool_size = _validate_new_test(db, request)
+
+    description = sanitize_text(request.description) if request.description else ""
+
+    new_test = Test(
+        subject_id=subject.subject_id,
+        test_name=test_name,
+        description=description or None,
+        time_limit_minutes=request.time_limit_minutes,
+        questions_per_attempt=request.questions_per_attempt,
+    )
+    db.add(new_test)
+    db.commit()
+    db.refresh(new_test)
+
+    return to_lecturer_test_response(new_test, pool_size)
 
 
 def get_test_data(

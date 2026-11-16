@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 class QuestionOptionResponse(BaseModel):
@@ -45,3 +45,22 @@ class TestAttemptResponse(BaseModel):
     
 
 
+
+class TestCreateRequest(BaseModel):
+    subject_id: int
+    test_name: str = Field(min_length=1, max_length=160)
+    description: str | None = Field(default=None, max_length=2000)
+    time_limit_minutes: int | None = Field(default=None, gt=0, le=600)
+    questions_per_attempt: int = Field(default=10, gt=0, le=200)
+
+
+class LecturerTestResponse(BaseModel):
+    test_id: int
+    test_name: str
+    description: str | None
+    subject_id: int
+    subject_name: str
+    course_title: str
+    time_limit_minutes: int | None
+    questions_per_attempt: int
+    pool_size: int
