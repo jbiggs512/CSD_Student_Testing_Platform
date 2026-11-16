@@ -58,16 +58,13 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="gap-2 sm:gap-0">
-                <DialogClose>
-                  <Button variant="outline">
+                <DialogClose render={<Button variant="outline">
                     Cancel
-                  </Button>
-                </DialogClose>
-                <DialogClose>
+                  </Button>} />
+                <DialogClose render={
                   <Button data-testid="continue-exit-test" onClick={() => navigate('/dashboard')}>
                     Exit
-                  </Button>
-                </DialogClose>
+                  </Button>} />
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -209,11 +206,10 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="gap-2 sm:gap-0">
-                  <DialogClose>
+                  <DialogClose render={
                     <Button variant="outline">
                       Cancel
-                    </Button>
-                  </DialogClose>
+                    </Button>} />
                   <Button
                     data-testid="continue-submit-test"
                     onClick={() => void props.onSubmit?.()}
