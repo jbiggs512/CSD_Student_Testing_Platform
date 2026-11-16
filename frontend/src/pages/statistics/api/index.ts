@@ -1,2 +1,6 @@
 // Statistics page API requests
-export { getStatisticsOverview, getGradesOverTime } from './statisticsApi'
+export {
+    getStatisticsOverview,
+    getGradesOverTime,
+    StatisticsApiError
+} from './statisticsApi'
