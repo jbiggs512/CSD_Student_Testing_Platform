@@ -4,6 +4,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@shared/components'
+import type { TestManagementStats } from '../model'
 
 interface HeroStatCardProps {
   title: string
@@ -35,7 +36,20 @@ function HeroStatCard({
   )
 }
 
-export function TestManagementHero() {
+interface TestManagementHeroProps {
+  stats?: TestManagementStats | null
+}
+
+export function TestManagementHero({
+  stats,
+}: Readonly<TestManagementHeroProps>) {
+  const studentTotal = stats ? String(stats.student_total) : '—'
+  const studentAverage =
+    stats && stats.student_average_last_7_days !== null
+      ? `${Math.round(stats.student_average_last_7_days)}%`
+      : '—'
+  const weakestTest = stats?.weakest_test_last_7_days ?? '—'
+
   return (
     <section className="flex flex-col justify-between gap-8 rounded-2xl bg-navy p-8 text-white shadow-md lg:flex-row lg:items-center lg:p-12">
       <div className="space-y-3">
@@ -51,16 +65,16 @@ export function TestManagementHero() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <HeroStatCard title="Student Total" value="—" />
+        <HeroStatCard title="Student Total" value={studentTotal} />
         <HeroStatCard
           title="Student Average"
           subtitle="(Last 7 Days)"
-          value="—"
+          value={studentAverage}
         />
         <HeroStatCard
           title="Weakest Test"
           subtitle="(Last 7 Days)"
-          value="—"
+          value={weakestTest}
         />
       </div>
     </section>

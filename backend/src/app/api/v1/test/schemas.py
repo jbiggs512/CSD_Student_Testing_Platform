@@ -67,3 +67,35 @@ class LecturerTestResponse(BaseModel):
     time_limit_minutes: int | None
     questions_per_attempt: int
     pool_size: int
+    attempt_count: int = 0
+    average_percentage: float | None = None
+
+
+class TestManagementStatsResponse(BaseModel):
+    student_total: int
+    student_average_last_7_days: float | None
+    weakest_test_last_7_days: str | None
+
+
+class StudentTestAttemptItem(BaseModel):
+    attempt_id: int
+    user_id: int
+    username: str
+    student_name: str
+    score: int
+    correct_questions: int
+    total_questions: int
+    percentage: float
+    completed_at: datetime
+
+
+class TestResultsDetailResponse(BaseModel):
+    test_id: int
+    test_name: str
+    subject_name: str
+    course_title: str
+    attempt_count: int
+    average_percentage: float | None
+    highest_score: int | None
+    lowest_score: int | None
+    attempts: list[StudentTestAttemptItem]

@@ -1,6 +1,12 @@
 import { getAccessToken } from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
-import type { LecturerTest, Subject, TestCreateRequest } from '../model'
+import type {
+  LecturerTest,
+  Subject,
+  TestCreateRequest,
+  TestManagementStats,
+  TestResultsDetail,
+} from '../model'
 
 const TESTS_URL = `${API_BASE_URL}/test`
 const SUBJECTS_URL = `${API_BASE_URL}/subject`
@@ -66,6 +72,18 @@ async function apiRequest<T>(
 
 export function getSubjects(): Promise<Subject[]> {
   return apiRequest<Subject[]>(SUBJECTS_URL)
+}
+
+export function getTests(): Promise<LecturerTest[]> {
+  return apiRequest<LecturerTest[]>(TESTS_URL)
+}
+
+export function getTestManagementStats(): Promise<TestManagementStats> {
+  return apiRequest<TestManagementStats>(`${TESTS_URL}/stats`)
+}
+
+export function getTestResults(testId: number): Promise<TestResultsDetail> {
+  return apiRequest<TestResultsDetail>(`${TESTS_URL}/${testId}/results`)
 }
 
 export function createTest(request: TestCreateRequest): Promise<LecturerTest> {

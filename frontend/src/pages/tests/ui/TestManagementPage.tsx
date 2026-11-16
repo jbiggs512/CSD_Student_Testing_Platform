@@ -3,12 +3,24 @@ import type { FormEvent } from 'react'
 import { AlertCircleIcon } from 'lucide-react'
 import { Alert, AlertDescription } from '@shared/components'
 import { getErrorMessage, sanitizeInputText } from '@shared/lib/utils'
-import { createTest, getSubjects } from '../api'
-import type { LecturerTest, Subject } from '../model'
+import {
+  createTest,
+  getSubjects,
+  getTestManagementStats,
+  getTestResults,
+  getTests,
+} from '../api'
+import type {
+  LecturerTest,
+  Subject,
+  TestManagementStats,
+  TestResultsDetail,
+} from '../model'
 import { AllTestsCard } from './AllTestsCard'
 import { CreateTestCard } from './CreateTestCard'
 import type { CreateTestFormValues } from './CreateTestCard'
 import { TestManagementHero } from './TestManagementHero'
+import { TestResultsDialog } from './TestResultsDialog'
 
 const INITIAL_FORM: CreateTestFormValues = {
   testName: '',
@@ -20,34 +32,44 @@ const INITIAL_FORM: CreateTestFormValues = {
 
 export function TestManagementPage() {
   const [subjects, setSubjects] = useState<Subject[]>([])
-  const [createdTests, setCreatedTests] = useState<LecturerTest[]>([])
+  const [tests, setTests] = useState<LecturerTest[]>([])
+  const [stats, setStats] = useState<TestManagementStats | null>(null)
   const [formValues, setFormValues] =
     useState<CreateTestFormValues>(INITIAL_FORM)
-  const [isLoadingSubjects, setIsLoadingSubjects] = useState(true)
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  const loadSubjects = useCallback(async () => {
-    setIsLoadingSubjects(true)
+  const [selectedTestForResults, setSelectedTestForResults] =
+    useState<LecturerTest | null>(null)
+  const [testResults, setTestResults] = useState<TestResultsDetail | null>(null)
+  const [isLoadingResults, setIsLoadingResults] = useState(false)
+  const [resultsError, setResultsError] = useState<string | null>(null)
+
+  const loadDashboardData = useCallback(async () => {
+    setIsLoadingInitial(true)
     setPageError(null)
     try {
-      const subjectList = await getSubjects()
-      const activeSubjects = subjectList.filter(
-        (subject) => subject.status === 'active',
-      )
-      setSubjects(activeSubjects)
+      const [subjectList, testList, summaryStats] = await Promise.all([
+        getSubjects(),
+        getTests(),
+        getTestManagementStats(),
+      ])
+      setSubjects(subjectList.filter((subject) => subject.status === 'active'))
+      setTests(testList)
+      setStats(summaryStats)
     } catch (error) {
       setPageError(getErrorMessage(error))
     } finally {
-      setIsLoadingSubjects(false)
+      setIsLoadingInitial(false)
     }
   }, [])
 
   useEffect(() => {
-    void loadSubjects()
-  }, [loadSubjects])
+    void loadDashboardData()
+  }, [loadDashboardData])
 
   function handleFieldChange(
     field: keyof CreateTestFormValues,
@@ -56,6 +78,29 @@ export function TestManagementPage() {
     setFormError(null)
     setSuccessMessage(null)
     setFormValues((current) => ({ ...current, [field]: value }))
+  }
+
+  async function handleViewResults(test: LecturerTest) {
+    setSelectedTestForResults(test)
+    setTestResults(null)
+    setResultsError(null)
+    setIsLoadingResults(true)
+    try {
+      const details = await getTestResults(test.test_id)
+      setTestResults(details)
+    } catch (error) {
+      setResultsError(getErrorMessage(error))
+    } finally {
+      setIsLoadingResults(false)
+    }
+  }
+
+  function handleResultsDialogOpenChange(open: boolean) {
+    if (!open) {
+      setSelectedTestForResults(null)
+      setTestResults(null)
+      setResultsError(null)
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -102,9 +147,14 @@ export function TestManagementPage() {
         time_limit_minutes: timeLimitMinutes,
         questions_per_attempt: questionsPerAttempt,
       })
-      setCreatedTests((current) => [created, ...current])
       setFormValues(INITIAL_FORM)
       setSuccessMessage(`Created test "${created.test_name}".`)
+      const [updatedTests, updatedStats] = await Promise.all([
+        getTests(),
+        getTestManagementStats(),
+      ])
+      setTests(updatedTests)
+      setStats(updatedStats)
     } catch (error) {
       setFormError(getErrorMessage(error))
     } finally {
@@ -114,7 +164,7 @@ export function TestManagementPage() {
 
   return (
     <main className="flex min-h-screen w-full flex-col gap-8 bg-[#f7f8fb] p-4">
-      <TestManagementHero />
+      <TestManagementHero stats={stats} />
 
       {pageError && (
         <Alert variant="destructive">
@@ -124,11 +174,15 @@ export function TestManagementPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <AllTestsCard tests={createdTests} />
+        <AllTestsCard
+          tests={tests}
+          isLoading={isLoadingInitial}
+          onViewResults={(test) => void handleViewResults(test)}
+        />
         <CreateTestCard
           subjects={subjects}
           formValues={formValues}
-          isLoadingSubjects={isLoadingSubjects}
+          isLoadingSubjects={isLoadingInitial}
           isSaving={isSaving}
           formError={formError}
           successMessage={successMessage}
@@ -136,6 +190,14 @@ export function TestManagementPage() {
           onSubmit={(event) => void handleSubmit(event)}
         />
       </div>
+
+      <TestResultsDialog
+        test={selectedTestForResults}
+        results={testResults}
+        isLoading={isLoadingResults}
+        error={resultsError}
+        onOpenChange={handleResultsDialogOpenChange}
+      />
     </main>
   )
 }
