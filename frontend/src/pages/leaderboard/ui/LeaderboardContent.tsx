@@ -1,4 +1,3 @@
-import { Card } from '@/shared/components'
 import type { LeaderboardProps } from "../model"
 import { TopStudentsCard } from './TopStudentsCard';
 import { ComparisonCard } from './ComparisonCard';
