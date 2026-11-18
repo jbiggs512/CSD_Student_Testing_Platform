@@ -148,14 +148,14 @@ def test_completed_tests_returns_unauthorised(client):
     response = client.get("/api/v1/student/completedTests")
     assert response.status_code == 401
 
-def test_cohort_rank_returns_412(client, auth_headers):
+def test_cohort_rank_returns_no_content(client, auth_headers):
     """
-    Test the cohort rank endpoint returns precondition failed when user has no results
+    Test the cohort rank endpoint returns no content when user has no results
     """
     headers = auth_headers(UserRole.STUDENT)
     
     response = client.get("/api/v1/student/cohortRank", headers=headers)
-    assert response.status_code == 412
+    assert response.status_code == 204
 
 def test_cohort_rank(client, db_session, student_with_course):
     """
@@ -242,13 +242,12 @@ def test_student_subjects_returns_subjects_for_enrolled_course(
     )
 
 
-def test_student_subjects_requires_course_enrollment(client, auth_headers):
+def test_student_subjects_returns_no_content(client, auth_headers):
     headers = auth_headers(UserRole.STUDENT)
 
     response = client.get("/api/v1/student/subjects", headers=headers)
 
-    assert response.status_code == 412
-    assert response.json()["detail"] == "You are not enrolled in any courses."
+    assert response.status_code == 204 
 
 
 def test_student_course_title_returns_enrolled_course_title(
