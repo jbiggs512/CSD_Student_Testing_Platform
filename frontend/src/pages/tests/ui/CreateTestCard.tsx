@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@shared/components'
+import { MIN_QUESTIONS_PER_ATTEMPT } from '../model'
 import type { Subject } from '../model'
 
 export interface CreateTestFormValues {
@@ -134,7 +135,7 @@ export function CreateTestCard({
                 name="questions_per_attempt"
                 type="number"
                 required
-                min={10}
+                min={MIN_QUESTIONS_PER_ATTEMPT}
                 max={200}
                 value={formValues.questionsPerAttempt}
                 onChange={(event) =>

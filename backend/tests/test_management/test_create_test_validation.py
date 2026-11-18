@@ -2,6 +2,7 @@
 
 import pytest
 
+from app.api.v1.test.schemas import MIN_QUESTIONS_PER_ATTEMPT
 from app.enums import SubjectStatus, UserRole
 
 from .conftest import TESTS_URL
@@ -19,7 +20,7 @@ def test_create_test_disabled_subject_returns_400(
     client, make_subject, add_pool_questions, test_payload, auth_headers
 ):
     subject = make_subject(status=SubjectStatus.DISABLED)
-    add_pool_questions(subject, 10)
+    add_pool_questions(subject, MIN_QUESTIONS_PER_ATTEMPT)
 
     response = client.post(
         TESTS_URL,
@@ -70,11 +71,11 @@ def test_create_test_questions_per_attempt_exceeds_pool_returns_400(
     client, make_subject, add_pool_questions, test_payload, auth_headers
 ):
     subject = make_subject()
-    add_pool_questions(subject, 9)
+    add_pool_questions(subject, MIN_QUESTIONS_PER_ATTEMPT - 1)
 
     response = client.post(
         TESTS_URL,
-        json=test_payload(subject.subject_id, questions_per_attempt=10),
+        json=test_payload(subject.subject_id, questions_per_attempt=MIN_QUESTIONS_PER_ATTEMPT),
         headers=auth_headers(UserRole.LECTURER),
     )
     assert response.status_code == 400
@@ -100,7 +101,8 @@ def test_create_test_whitespace_name_returns_400(
         {"test_name": "x" * 161},
         {"time_limit_minutes": 0},
         {"time_limit_minutes": -5},
-        {"questions_per_attempt": 0},`r`n        {"questions_per_attempt": 9},
+        {"questions_per_attempt": 0},
+        {"questions_per_attempt": MIN_QUESTIONS_PER_ATTEMPT - 1},
     ],
 )
 def test_create_test_invalid_fields_return_422(

@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 
+MIN_QUESTIONS_PER_ATTEMPT = 10
+
 class QuestionOptionResponse(BaseModel):
     option_id: int
     option_text: str
@@ -54,7 +56,9 @@ class TestCreateRequest(BaseModel):
     test_name: str = Field(min_length=1, max_length=160)
     description: str | None = Field(default=None, max_length=2000)
     time_limit_minutes: int | None = Field(default=None, gt=0, le=600)
-    questions_per_attempt: int = Field(default=10, ge=10, le=200)
+    questions_per_attempt: int = Field(
+        default=MIN_QUESTIONS_PER_ATTEMPT, ge=MIN_QUESTIONS_PER_ATTEMPT, le=200
+    )
 
 
 class LecturerTestResponse(BaseModel):

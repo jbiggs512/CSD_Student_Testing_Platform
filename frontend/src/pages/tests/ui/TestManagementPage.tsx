@@ -10,6 +10,7 @@ import {
   getTestResults,
   getTests,
 } from '../api'
+import { MIN_QUESTIONS_PER_ATTEMPT } from '../model'
 import type {
   LecturerTest,
   Subject,
@@ -26,7 +27,7 @@ const INITIAL_FORM: CreateTestFormValues = {
   testName: '',
   description: '',
   timeLimitMinutes: '',
-  questionsPerAttempt: '10',
+  questionsPerAttempt: String(MIN_QUESTIONS_PER_ATTEMPT),
   subjectId: '',
 }
 
@@ -121,8 +122,8 @@ export function TestManagementPage() {
     }
 
     const questionsPerAttempt = Number(formValues.questionsPerAttempt)
-    if (!Number.isInteger(questionsPerAttempt) || questionsPerAttempt < 10) {
-      setFormError('Questions per attempt must be at least 10.')
+    if (!Number.isInteger(questionsPerAttempt) || questionsPerAttempt < MIN_QUESTIONS_PER_ATTEMPT) {
+      setFormError(`Questions per attempt must be at least ${MIN_QUESTIONS_PER_ATTEMPT}.`)
       return
     }
 

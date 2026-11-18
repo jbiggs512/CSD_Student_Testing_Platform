@@ -7,3 +7,4 @@ export type {
   TestManagementStats,
   TestResultsDetail,
 } from './types'
+export { MIN_QUESTIONS_PER_ATTEMPT } from './constants'

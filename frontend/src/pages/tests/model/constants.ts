@@ -1,0 +1,2 @@
+export const MIN_QUESTIONS_PER_ATTEMPT = 10
+
