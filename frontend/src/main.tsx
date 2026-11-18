@@ -35,6 +35,9 @@ const LecturerDashboardPage = lazy(() =>
 const StudentsPage = lazy(() =>
   import('./pages/students').then((m) => ({ default: m.StudentsPage })),
 )
+const TestManagementPage = lazy(() =>
+  import('./pages/tests').then((m) => ({ default: m.TestManagementPage })),
+)
 const QuestionPoolPage = lazy(() =>
   import('./pages/questionPool').then((m) => ({ default: m.QuestionPoolPage })),
 )
@@ -79,6 +82,9 @@ createRoot(document.getElementById('root')!).render(
                 <Route 
                   path="/students"
                   element={<StudentsPage />} />
+                <Route 
+                  path="/tests"
+                  element={<TestManagementPage />} />
                 <Route 
                   path="/questionPool"
                   element={<QuestionPoolPage />} />

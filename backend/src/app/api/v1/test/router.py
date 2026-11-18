@@ -10,6 +10,45 @@ from app.enums import UserRole
 
 router = APIRouter()
 
+
+@router.post("", status_code=201)
+def create_test(
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN))],
+    request: schemas.TestCreateRequest,
+) -> schemas.LecturerTestResponse:
+    """Create a new test that draws questions from a subject's question pool."""
+    return service.create_test(db, request)
+
+
+@router.get("")
+def list_tests(
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN))],
+) -> list[schemas.LecturerTestResponse]:
+    """List all tests with subject pool sizes and student attempt summaries."""
+    return service.list_lecturer_tests(db)
+
+
+@router.get("/stats")
+def get_test_management_stats(
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN))],
+) -> schemas.TestManagementStatsResponse:
+    """Get summary statistics for the lecturer test management dashboard."""
+    return service.get_test_management_stats(db)
+
+
+@router.get("/{test_id}/results")
+def get_test_results(
+    test_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN))],
+) -> schemas.TestResultsDetailResponse:
+    """Get detailed student attempt results for a specific test."""
+    return service.get_test_results(db, test_id)
+
+
 @router.get("/{test_id}", response_model=schemas.TestResponse)
 def get_test(
     test_id: int,

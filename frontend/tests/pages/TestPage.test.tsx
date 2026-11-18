@@ -23,100 +23,100 @@ function createTestDetails(): TestDetails {
         "question_id": 1,
         "question_text": "What does HTML stand for?",
         "options": [
-          { "option_id": 1, "option_text": "HyperText Markup Language", "is_correct": true, "selected": false },
-          { "option_id": 2, "option_text": "High Tech Modern Language", "is_correct": false, "selected": false },
-          { "option_id": 3, "option_text": "Hyperlink and Text Markup Language", "is_correct": false, "selected": false },
-          { "option_id": 4, "option_text": "Home Tool Markup Language", "is_correct": false, "selected": false }
+          { "option_id": 1, "option_text": "HyperText Markup Language", "selected": false },
+          { "option_id": 2, "option_text": "High Tech Modern Language", "selected": false },
+          { "option_id": 3, "option_text": "Hyperlink and Text Markup Language", "selected": false },
+          { "option_id": 4, "option_text": "Home Tool Markup Language", "selected": false }
         ]
       },
       {
         "question_id": 2,
         "question_text": "Which of the following is a programming language?",
         "options": [
-          { "option_id": 1, "option_text": "Python", "is_correct": true, "selected": false },
-          { "option_id": 2, "option_text": "HTML", "is_correct": false, "selected": false },
-          { "option_id": 3, "option_text": "CSS", "is_correct": false, "selected": false },
-          { "option_id": 4, "option_text": "SQL", "is_correct": false, "selected": false }
+          { "option_id": 1, "option_text": "Python", "selected": false },
+          { "option_id": 2, "option_text": "HTML", "selected": false },
+          { "option_id": 3, "option_text": "CSS", "selected": false },
+          { "option_id": 4, "option_text": "SQL", "selected": false }
         ]
       },
       {
         "question_id": 3,
         "question_text": "What is the primary function of a web browser?",
         "options": [
-          { "option_id": 1, "option_text": "To display web pages", "is_correct": true, "selected": false },
-          { "option_id": 2, "option_text": "To compile code", "is_correct": false, "selected": false },
-          { "option_id": 3, "option_text": "To manage computer hardware", "is_correct": false, "selected": false },
-          { "option_id": 4, "option_text": "To create databases", "is_correct": false, "selected": false }
+          { "option_id": 1, "option_text": "To display web pages", "selected": false },
+          { "option_id": 2, "option_text": "To compile code", "selected": false },
+          { "option_id": 3, "option_text": "To manage computer hardware", "selected": false },
+          { "option_id": 4, "option_text": "To create databases", "selected": false }
         ]
       },
       {
         "question_id": 4,
         "question_text": "Which symbol is commonly used for single-line comments in JavaScript?",
         "options": [
-          { "option_id": 1, "option_text": "//", "is_correct": true, "selected": false },
-          { "option_id": 2, "option_text": "#", "is_correct": false, "selected": false },
-          { "option_id": 3, "option_text": "/*", "is_correct": false, "selected": false },
-          { "option_id": 4, "option_text": "<!--", "is_correct": false, "selected": false }
+          { "option_id": 1, "option_text": "//", "selected": false },
+          { "option_id": 2, "option_text": "#", "selected": false },
+          { "option_id": 3, "option_text": "/*", "selected": false },
+          { "option_id": 4, "option_text": "<!--", "selected": false }
         ]
       },
       {
         "question_id": 5,
         "question_text": "What does CSS stand for?",
         "options": [
-          { "option_id": 1, "option_text": "Cascading Style Sheets", "is_correct": true, "selected": false },
-          { "option_id": 2, "option_text": "Computer Style System", "is_correct": false, "selected": false },
-          { "option_id": 3, "option_text": "Creative Style Sheets", "is_correct": false, "selected": false },
-          { "option_id": 4, "option_text": "Colorful Style Sheets", "is_correct": false, "selected": false }
+          { "option_id": 1, "option_text": "Cascading Style Sheets", "selected": false },
+          { "option_id": 2, "option_text": "Computer Style System", "selected": false },
+          { "option_id": 3, "option_text": "Creative Style Sheets", "selected": false },
+          { "option_id": 4, "option_text": "Colorful Style Sheets", "selected": false }
         ]
       },
       {
         "question_id": 6,
         "question_text": "Which data structure operates on a Last-In, First-Out (LIFO) basis?",
         "options": [
-          { "option_id": 1, "option_text": "Stack", "is_correct": true, "selected": false },
-          { "option_id": 2, "option_text": "Queue", "is_correct": false, "selected": false },
-          { "option_id": 3, "option_text": "Array", "is_correct": false, "selected": false },
-          { "option_id": 4, "option_text": "Linked List", "is_correct": false, "selected": false }
+          { "option_id": 1, "option_text": "Stack", "selected": false },
+          { "option_id": 2, "option_text": "Queue", "selected": false },
+          { "option_id": 3, "option_text": "Array", "selected": false },
+          { "option_id": 4, "option_text": "Linked List", "selected": false }
         ]
       },
       {
         "question_id": 7,
         "question_text": "What is Git primarily used for?",
         "options": [
-          { "option_id": 1, "option_text": "Version control", "is_correct": true, "selected": false },
-          { "option_id": 2, "option_text": "Designing user interfaces", "is_correct": false, "selected": false },
-          { "option_id": 3, "option_text": "Database management", "is_correct": false, "selected": false },
-          { "option_id": 4, "option_text": "Network security", "is_correct": false, "selected": false }
+          { "option_id": 1, "option_text": "Version control", "selected": false },
+          { "option_id": 2, "option_text": "Designing user interfaces", "selected": false },
+          { "option_id": 3, "option_text": "Database management", "selected": false },
+          { "option_id": 4, "option_text": "Network security", "selected": false }
         ]
       },
       {
         "question_id": 8,
         "question_text": "Which of the following is a relational database management system?",
         "options": [
-          { "option_id": 1, "option_text": "PostgreSQL", "is_correct": true, "selected": false },
-          { "option_id": 2, "option_text": "MongoDB", "is_correct": false, "selected": false },
-          { "option_id": 3, "option_text": "Redis", "is_correct": false, "selected": false },
-          { "option_id": 4, "option_text": "Cassandra", "is_correct": false, "selected": false }
+          { "option_id": 1, "option_text": "PostgreSQL", "selected": false },
+          { "option_id": 2, "option_text": "MongoDB", "selected": false },
+          { "option_id": 3, "option_text": "Redis", "selected": false },
+          { "option_id": 4, "option_text": "Cassandra", "selected": false }
         ]
       },
       {
         "question_id": 9,
         "question_text": "What does API stand for?",
         "options": [
-          { "option_id": 1, "option_text": "Application Programming Interface", "is_correct": true, "selected": false },
-          { "option_id": 2, "option_text": "Advanced Programming Interaction", "is_correct": false, "selected": false },
-          { "option_id": 3, "option_text": "Automated Program Integration", "is_correct": false, "selected": false },
-          { "option_id": 4, "option_text": "Application Process Integration", "is_correct": false, "selected": false }
+          { "option_id": 1, "option_text": "Application Programming Interface", "selected": false },
+          { "option_id": 2, "option_text": "Advanced Programming Interaction", "selected": false },
+          { "option_id": 3, "option_text": "Automated Program Integration", "selected": false },
+          { "option_id": 4, "option_text": "Application Process Integration", "selected": false }
         ]
       },
       {
         "question_id": 10,
         "question_text": "Which file extension is typically used for Python source code files?",
         "options": [
-          { "option_id": 1, "option_text": ".py", "is_correct": true, "selected": false },
-          { "option_id": 2, "option_text": ".js", "is_correct": false, "selected": false },
-          { "option_id": 3, "option_text": ".html", "is_correct": false, "selected": false },
-          { "option_id": 4, "option_text": ".java", "is_correct": false, "selected": false }
+          { "option_id": 1, "option_text": ".py", "selected": false },
+          { "option_id": 2, "option_text": ".js", "selected": false },
+          { "option_id": 3, "option_text": ".html", "selected": false },
+          { "option_id": 4, "option_text": ".java", "selected": false }
         ]
       }
     ]
@@ -343,6 +343,7 @@ describe('Test data API client', () => {
         completed_at: '2026-11-08T00:01:00.000Z',
         score: 30,
         total_questions: 10,
+        correct_questions: 1,
       }
     })
 
@@ -361,11 +362,18 @@ describe('Test data API client', () => {
 
     const postCall = fetchSpy.mock.calls.find(([, init]) => init?.method === 'POST')
     expect(postCall?.[0]).toEqual(expect.stringContaining('/test/attempt'))
-    expect(JSON.parse(String(postCall?.[1]?.body))).toMatchObject({
+    const submittedBody = JSON.parse(String(postCall?.[1]?.body))
+    expect(submittedBody).toMatchObject({
       test_id: 1,
-      score: 30,
-      total_questions: 10,
     })
+    expect(submittedBody.answers).toEqual(
+      expect.arrayContaining([
+        { question_id: 1, selected_option_id: 1 },
+        { question_id: 2, selected_option_id: null },
+      ]),
+    )
+    expect(submittedBody.score).toBeUndefined()
+    expect(submittedBody.correct_questions).toBeUndefined()
   })
 
   it('shows a submission error without leaving the test page', async () => {
@@ -416,13 +424,16 @@ describe('Test data API client', () => {
       test_id: 1,
       started_at: '2026-11-08T00:00:00.000Z',
       completed_at: '2026-11-08T00:01:00.000Z',
-      score: 30,
-      total_questions: 10,
-      correct_questions: 1
+      answers: [{ question_id: 1, selected_option_id: 1 }],
     }
     const response = {
       attempt_id: 42,
-      ...request,
+      test_id: 1,
+      started_at: '2026-11-08T00:00:00.000Z',
+      completed_at: '2026-11-08T00:01:00.000Z',
+      score: 30,
+      total_questions: 10,
+      correct_questions: 1,
     }
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,

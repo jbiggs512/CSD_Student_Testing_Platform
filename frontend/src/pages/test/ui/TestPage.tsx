@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { TestPageContent } from "./TestPageContent";
 import { useNavigate, useParams } from 'react-router';
-import { type TestDetails, type TestAttemptRequest } from '../model';
+import {
+  type TestAnswerSubmission,
+  type TestDetails,
+  type TestAttemptRequest,
+} from '../model';
 import { getTestDetails, createTestAttempt } from '../api';
 import { toast } from '@/shared/components';
 
@@ -48,41 +52,31 @@ export function TestPage() {
   const handleSubmit = async () => {
     if (!testDetails || isSubmitting) return;
 
-    // Calculate the score based on the users answers
-    // +30 for a correct answer
-    // -10 for an incorrect answer
-    // 0 for no answer
-    const score = testDetails.questions.reduce((total, question) => {
-      const selectedOption = question.options.find(option => option.selected);
-      if (!selectedOption) return total;
-      return total + (selectedOption.is_correct ? 30 : -10);
-    }, 0);
-
-    // Count number of correct answers
-    const correct = testDetails.questions.reduce((count, question) => {
-      const selected = question.options.find(opt => opt.selected);
-      return count + (selected?.is_correct ? 1 : 0);
-    }, 0);
+    const answers: TestAnswerSubmission[] = testDetails.questions.map((question) => {
+      const selectedOption = question.options.find((option) => option.selected);
+      return {
+        question_id: question.question_id,
+        selected_option_id: selectedOption ? selectedOption.option_id : null,
+      };
+    });
 
     const request: TestAttemptRequest = {
       test_id: testDetails.test_id ?? Number.parseInt(id ?? '0'),
       started_at: startedAt,
       completed_at: new Date().toISOString(),
-      score: score,
-      total_questions: testDetails.questions_per_attempt,
-      correct_questions: correct,
+      answers,
     };
 
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
-      await createTestAttempt(request);
+      const result = await createTestAttempt(request);
       // Add toast to page to display success to user
       toast.add({
         type: "success",
         title: "Test results saved!",
-        description: `You achieved ${score} points`,
+        description: `You achieved ${result.score} points`,
       })
       // Navigate student back to dashboard
       navigate('/dashboard');

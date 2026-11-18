@@ -1,7 +1,6 @@
 export interface Option {
   readonly option_id: number;
   readonly option_text: string;
-  readonly is_correct: boolean;
   selected: boolean;
 }
 
@@ -34,13 +33,16 @@ export interface TestPageContentProps {
   readonly submitError?: string | null;
 }
 
+export interface TestAnswerSubmission {
+  question_id: number;
+  selected_option_id: number | null;
+}
+
 export interface TestAttemptRequest {
   test_id: number;
   started_at: string;
   completed_at: string;
-  score: number;
-  total_questions: number;
-  correct_questions: number;
+  answers: TestAnswerSubmission[];
 }
 
 export interface TestAttempt {
