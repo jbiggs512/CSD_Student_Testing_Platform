@@ -11,11 +11,35 @@ import {
   SelectTrigger,
   SelectValue,
   Progress,
+  PageHero,
+  NoContentCard,
 } from "@/shared/components";
-import { CircleCheckBig, BookCheck } from 'lucide-react'
+import { LoaderCircle, CircleCheckBig, BookCheck } from 'lucide-react'
 import { Link } from 'react-router'
 import { SORT_OPTIONS, FILTER_OPTIONS, type DashboardContentProps } from "../model";
 import { CompletedTestsDialog } from './CompletedTestsDialog'
+
+export function LoadingDashboardContent() {
+    return (
+        <main id="statistics-page" className="p-4">
+            {/* Hero Section */}
+            <PageHero
+                title="Welcome back, Student!"
+                description="You have no outstanding tests!" 
+            />
+
+            <div className="grid grid-cols-1 gap-4">
+                <NoContentCard title="Loading"
+                    description="Dashboard data is loading..."
+                    icon={<LoaderCircle
+                        className="size-6 text-muted-foreground animate-spin"
+                        aria-hidden="true"
+                    />}
+                />
+            </div>
+        </main>
+    );
+}
 
 export function DashboardContent({ completedTests = [], outstandingTests = [], cohortRank = { rank: 0, size: 0 }, courseTitle = "" }: DashboardContentProps) {
 
@@ -31,43 +55,41 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
     <main id="dashboard-page" className="p-4">
 
       {/* Hero Section */}
-      <section className="mb-8 flex flex-col justify-between rounded-2xl bg-navy p-10 text-white shadow-md lg:flex-row">
-        <div className="mb-6 flex flex-col justify-center lg:mb-0">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">{courseTitle}</p>
-          <h1 className="mb-2 font-heading text-4xl font-bold tracking-tight text-white">Welcome back, Student!</h1>
-          <p className="text-sm text-white/80">
-            {outstandingTests.length === 0
-              ? "You have no outstanding tests!"
-              : `You have ${outstandingTests.length} outstanding test${testPlural} to complete.`}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-4">
-          <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
-            <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Tests Completed</span>
-            <div className="font-heading text-3xl font-bold">
-              {completedTests.length === 0 ? (
-                <span className="text-5xl">0</span>
-              ) : (
-                <><span className="text-5xl">{completedTests.length}</span> <span className="text-xl font-medium">of {completedTests.length + outstandingTests.length}</span></>
-              )}
+      <PageHero
+        title="Welcome back, Student!"
+        subtitle={courseTitle}
+        description={outstandingTests.length === 0
+          ? "You have no outstanding tests!"
+          : `You have ${outstandingTests.length} outstanding test${testPlural} to complete.`}
+        children={
+          <div className="flex flex-wrap gap-4">
+            <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
+              <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Tests Completed</span>
+              <div className="font-heading text-3xl font-bold">
+                {completedTests.length === 0 ? (
+                  <span className="text-5xl">0</span>
+                ) : (
+                  <><span className="text-5xl">{completedTests.length}</span> <span className="text-xl font-medium">of {completedTests.length + outstandingTests.length}</span></>
+                )}
+              </div>
+            </div>
+            <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
+              <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Average Score</span>
+              <div className="font-heading text-5xl font-bold">{averageScore !== null ? `${averageScore}%` : '-'}</div>
+            </div>
+            <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
+              <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Cohort Rank</span>
+              <div className="font-heading text-3xl font-bold">
+                {completedTests.length === 0 ? (
+                  <span className="text-5xl">-</span>
+                ) : (
+                  <><span className="text-5xl">{cohortRank.rank}</span> <span className="text-xl font-medium">of {cohortRank.size}</span></>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
-            <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Average Score</span>
-            <div className="font-heading text-5xl font-bold">{averageScore !== null ? `${averageScore}%` : '-'}</div>
-          </div>
-          <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
-            <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Cohort Rank</span>
-            <div className="font-heading text-3xl font-bold">
-              {completedTests.length === 0 ? (
-                <span className="text-5xl">-</span>
-              ) : (
-                <><span className="text-5xl">{cohortRank.rank}</span> <span className="text-xl font-medium">of {cohortRank.size}</span></>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
+        }
+      />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
@@ -109,22 +131,13 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
             )}
           </div>
           {outstandingTests.length === 0 ? (
-            <Card className="gap-0 border-0 py-0 shadow-md">
-              <div className="flex flex-col items-center justify-center gap-3 px-6 py-32 text-center">
-                <div className="rounded-full bg-muted p-3">
-                  <CircleCheckBig
-                    className="size-6 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <h2 className="font-medium">No Outstanding Tests</h2>
-                  <p className="max-w-sm text-sm text-muted-foreground">
-                    You're up to date on all your tests!
-                  </p>
-                </div>
-              </div>
-            </Card>
+            <NoContentCard
+              title="No Outstanding Tests"
+              description="You're up to date on all your tests!"
+              icon={<CircleCheckBig
+                className="size-6 text-muted-foreground"
+                aria-hidden="true"
+              />} />
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {outstandingTests.map((test) => (
@@ -184,22 +197,13 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
             )}
           </div>
           {completedTests.length === 0 ? (
-            <Card className="gap-0 border-0 py-0 shadow-md">
-              <div className="flex flex-col items-center justify-center gap-3 px-6 py-32 text-center">
-                <div className="rounded-full bg-muted p-3">
-                  <BookCheck
-                    className="size-6 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <h2 className="font-medium">No Completed Tests</h2>
-                  <p className="max-w-sm text-sm text-muted-foreground">
-                    You've not yet completed any tests.
-                  </p>
-                </div>
-              </div>
-            </Card>
+            <NoContentCard
+              title="No Completed Tests"
+              description="You've not yet completed any tests."
+              icon={<BookCheck
+                className="size-6 text-muted-foreground"
+                aria-hidden="true"
+              />} />
           ) : (
             <>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

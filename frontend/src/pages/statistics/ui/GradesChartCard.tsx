@@ -8,7 +8,7 @@ import {
   YAxis,
   type DotItemDotProps
 } from "recharts";
-import { TrophyIcon } from 'lucide-react'
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components";
 import type { GradePoint, GradesOverTimeResponse } from "../model"
 
@@ -95,22 +95,7 @@ export function GradesChartCard({ data }: Readonly<{ data: GradesOverTimeRespons
       </CardHeader>
 
       <CardContent className="p-4">
-        {points.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-            <div className="rounded-full bg-muted p-3">
-              <TrophyIcon
-                className="size-6 text-muted-foreground"
-                aria-hidden="true"
-              />
-            </div>
-            <div className="space-y-1">
-              <h2 className="font-medium">No completed tests yet</h2>
-              <p className="max-w-sm text-sm text-muted-foreground">
-                Your results will appear here once you complete a test.
-              </p>
-            </div>
-          </div>
-        ) : (
+        {points.length > 0 && (
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={points} margin={{ top: 30, right: 40, bottom: 10, left: 0 }}>
               <CartesianGrid vertical={false} stroke={COLORS.grid} />

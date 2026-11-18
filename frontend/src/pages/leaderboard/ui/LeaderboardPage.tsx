@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LeaderboardContent } from "./LeaderboardContent";
-import { EmptyLeaderboardContent } from "./EmptyLeaderboardContent";
+import { LeaderboardContent, LoadingLeaderboardContent, EmptyLeaderboardContent } from "./LeaderboardContent"; 
 import { getCourseTitle, getSubjects, getLeaderboard } from '../api';
 import {
     type LeaderboardEntry,
@@ -52,13 +51,10 @@ export function LeaderboardPage() {
         });
     }, []);
 
-    if (isLoading) {
-        return <div className="flex min-h-screen items-center justify-center">Loading leaderboard...</div>;
-    }
+    if (isLoading) return <LoadingLeaderboardContent />
 
-    if (leaderboard === undefined) {
-        return <EmptyLeaderboardContent />
-    }
+    if (leaderboard === undefined) return <EmptyLeaderboardContent />
+    
 
     return (
         <LeaderboardContent

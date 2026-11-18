@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DashboardContent } from './DashboardContent';
+import { DashboardContent, LoadingDashboardContent } from './DashboardContent';
 import { getCompletedTests, getOutstandingTests, getCohortRank, getCourseTitle } from '../api';
 import type { OutstandingTest, CompletedTest, CohortRank } from "../model"
 
@@ -38,9 +38,7 @@ export function DashboardPage() {
     });
   }, []);
 
-  if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading dashboard...</div>;
-  }
+  if (isLoading) return <LoadingDashboardContent />
 
   return (
     <DashboardContent

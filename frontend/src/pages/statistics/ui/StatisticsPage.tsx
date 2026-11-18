@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { StatisticsContent } from "./StatisticsContent";
+import { StatisticsContent, LoadingStatisticsContent, EmptyStatisticsContent } from "./StatisticsContent";
 import { getCourseTitle } from '@/pages/dashboard/api';
 import { getGradesOverTime, getStatisticsOverview } from '../api';
-import type { GradesOverTimeResponse, StatisticsResponse } from "../model" 
+import type { GradesOverTimeResponse, StatisticsResponse } from "../model"  
 
 const DEFAULT_GRADES: GradesOverTimeResponse = {
     average: 0,
@@ -41,10 +41,10 @@ export function StatisticsPage() {
     });
   }, []);
 
-  if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading statistics...</div>;
-  }
+  if (isLoading) return <LoadingStatisticsContent />
 
+  if (statistics === undefined) return <EmptyStatisticsContent />
+    
   return (
     <StatisticsContent courseTitle={courseTitle} 
     statistics={statistics} 
