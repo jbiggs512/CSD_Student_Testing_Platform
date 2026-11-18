@@ -69,11 +69,10 @@ export function TestResultsDialog({
   error,
   onOpenChange,
 }: Readonly<TestResultsDialogProps>) {
-  const subtitle = results
-    ? `${results.course_title} · ${results.subject_name}`
-    : test
-      ? `${test.course_title} · ${test.subject_name}`
-      : ''
+  const source = results ?? test
+  const subtitle = source
+    ? `${source.course_title} · ${source.subject_name}`
+    : ''
 
   return (
     <Dialog open={test !== null} onOpenChange={onOpenChange}>
