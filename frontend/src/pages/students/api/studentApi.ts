@@ -1,4 +1,4 @@
-import { getAccessToken } from '@shared/api'
+import { fetchWithAuthRetry, getAccessToken } from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type { Student, StudentCreateRequest, StudentUpdateRequest } from '../model'
 
@@ -28,14 +28,11 @@ async function studentRequest<T>(
 
   let response: Response
   try {
-    response = await fetch(`${STUDENTS_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-        ...options.headers,
-      },
-    })
+    response = await fetchWithAuthRetry(
+      `${STUDENTS_URL}${endpoint}`,
+      token,
+      options,
+    )
   } catch {
     throw new StudentApiError(
       'Unable to connect to the server. Please try again.',

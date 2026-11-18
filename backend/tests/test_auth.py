@@ -1,9 +1,11 @@
 from datetime import timedelta
 
+import tempfile
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.core.config import _default_secret_key, settings
 from app.core.security import (
     TOKEN_TYPE_ACCESS,
     TOKEN_TYPE_REFRESH,
@@ -54,6 +56,15 @@ def test_password_hashing_and_verification():
     assert verify_password(plain, hashed) is True
     assert verify_password("WrongPass!", hashed) is False
     assert verify_password(plain, "not-a-valid-argon2-hash") is False
+
+
+def test_default_secret_key_generates_and_reuses_cached_file(tmp_path, monkeypatch):
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
+    first_key = _default_secret_key()
+    second_key = _default_secret_key()
+
+    assert len(first_key) >= 32
+    assert second_key == first_key
 
 
 def test_jwt_create_and_decode_round_trip():

@@ -1,7 +1,25 @@
+from contextlib import suppress
+from pathlib import Path
 import secrets
+import tempfile
 
 from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_BACKEND_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
+
+
+def _default_secret_key() -> str:
+    secret_file = Path(tempfile.gettempdir()) / "csd_student_testing_secret.key"
+    with suppress(OSError):
+        if secret_file.exists():
+            existing = secret_file.read_text(encoding="utf-8").strip()
+            if existing:
+                return existing
+    generated = secrets.token_urlsafe(32)
+    with suppress(OSError):
+        secret_file.write_text(generated, encoding="utf-8")
+    return generated
 
 
 class Settings(BaseSettings):
@@ -10,7 +28,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./dev.db"
 
     # Authentication / JWT Configuration
-    SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
+    SECRET_KEY: str = Field(default_factory=_default_secret_key)
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -18,7 +36,10 @@ class Settings(BaseSettings):
     COOKIE_SECURE: bool = False
 
     # CORS Configuration
-    BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
+    BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
@@ -31,7 +52,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         case_sensitive=True,
-        env_file=".env",
+        env_file=(str(_BACKEND_ENV_FILE), ".env"),
         env_file_encoding="utf-8",
     )
 

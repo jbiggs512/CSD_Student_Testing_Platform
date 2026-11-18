@@ -34,6 +34,7 @@ export function getDashboardPathForRole(role: UserRole): string {
 let currentAccessToken: string | null = null
 let currentUser: AuthUser | null = null
 let pendingRestore: Promise<AuthUser | null> | null = null
+let pendingRefresh: Promise<string | null> | null = null
 let sessionEpoch = 0
 
 export function getAccessToken(): string | null {
@@ -57,6 +58,86 @@ export function clearAccessToken(): void {
   currentAccessToken = null
   currentUser = null
   pendingRestore = null
+  pendingRefresh = null
+}
+
+async function performTokenRefresh(): Promise<string | null> {
+  const currentEpoch = sessionEpoch
+  try {
+    const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+
+    if (sessionEpoch !== currentEpoch) {
+      return null
+    }
+
+    if (!refreshResponse.ok) {
+      clearAccessToken()
+      return null
+    }
+
+    const refreshData = (await refreshResponse.json()) as {
+      access_token?: unknown
+      user?: AuthUser
+    }
+    if (
+      typeof refreshData.access_token !== 'string' ||
+      refreshData.access_token.length === 0
+    ) {
+      clearAccessToken()
+      return null
+    }
+
+    setAccessToken(refreshData.access_token)
+    if (refreshData.user) {
+      setCurrentUser(refreshData.user)
+    }
+    return refreshData.access_token
+  } catch {
+    clearAccessToken()
+    return null
+  }
+}
+
+export async function refreshAccessToken(): Promise<string | null> {
+  pendingRefresh ??= performTokenRefresh().finally(() => {
+    pendingRefresh = null
+  })
+  return pendingRefresh
+}
+
+function buildAuthRequestInit(
+  token: string,
+  options: RequestInit,
+): RequestInit {
+  return {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...options.headers,
+    },
+  }
+}
+
+export async function fetchWithAuthRetry(
+  url: string,
+  token: string,
+  options: RequestInit = {},
+): Promise<Response> {
+  const response = await fetch(url, buildAuthRequestInit(token, options))
+  if (response.status !== 401) {
+    return response
+  }
+
+  const refreshedToken = await refreshAccessToken()
+  if (!refreshedToken) {
+    return response
+  }
+
+  return fetch(url, buildAuthRequestInit(refreshedToken, options))
 }
 
 /**
@@ -84,40 +165,13 @@ async function performSessionRestore(): Promise<AuthUser | null> {
     let token = currentAccessToken
 
     if (!token) {
-      const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-      })
-
-      if (sessionEpoch !== currentEpoch) {
+      token = await refreshAccessToken()
+      if (sessionEpoch !== currentEpoch || !token) {
         return null
       }
-
-      if (!refreshResponse.ok) {
-        clearAccessToken()
-        return null
-      }
-
-      const refreshData = (await refreshResponse.json()) as {
-        access_token?: unknown
-      }
-      if (
-        typeof refreshData.access_token !== 'string' ||
-        refreshData.access_token.length === 0
-      ) {
-        clearAccessToken()
-        return null
-      }
-
-      token = refreshData.access_token
-      setAccessToken(token)
     }
 
-    if (sessionEpoch !== currentEpoch) {
-      return null
-    }
-
-    const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+    let meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -126,6 +180,22 @@ async function performSessionRestore(): Promise<AuthUser | null> {
 
     if (sessionEpoch !== currentEpoch) {
       return null
+    }
+
+    if (meResponse.status === 401) {
+      token = await refreshAccessToken()
+      if (sessionEpoch !== currentEpoch || !token) {
+        return null
+      }
+      meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (sessionEpoch !== currentEpoch) {
+        return null
+      }
     }
 
     if (!meResponse.ok) {
