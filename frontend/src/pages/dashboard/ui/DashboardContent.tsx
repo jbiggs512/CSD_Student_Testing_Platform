@@ -12,6 +12,7 @@ import {
   SelectValue,
   Progress,
 } from "@/shared/components";
+import { CircleCheckBig, BookCheck } from 'lucide-react'
 import { Link } from 'react-router'
 import { SORT_OPTIONS, FILTER_OPTIONS, type DashboardContentProps } from "../model";
 import { CompletedTestsDialog } from './CompletedTestsDialog'
@@ -108,9 +109,21 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
             )}
           </div>
           {outstandingTests.length === 0 ? (
-            <Card className="flex h-64 flex-col items-center justify-center p-8 text-center shadow-sm">
-              <h4 className="mb-2 font-heading text-3xl font-bold text-navy">No Outstanding Tests</h4>
-              <p className="text-sm font-bold text-navy">You're up to date on all your tests!</p>
+            <Card className="gap-0 border-0 py-0 shadow-md">
+              <div className="flex flex-col items-center justify-center gap-3 px-6 py-32 text-center">
+                <div className="rounded-full bg-muted p-3">
+                  <CircleCheckBig
+                    className="size-6 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <h2 className="font-medium">No Outstanding Tests</h2>
+                  <p className="max-w-sm text-sm text-muted-foreground">
+                    You're up to date on all your tests!
+                  </p>
+                </div>
+              </div>
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -171,9 +184,21 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
             )}
           </div>
           {completedTests.length === 0 ? (
-            <Card className="flex h-64 flex-col items-center justify-center p-8 text-center shadow-sm">
-              <h4 className="mb-2 font-heading text-3xl font-bold text-navy">No Completed Tests</h4>
-              <p className="text-sm font-bold text-navy">You've not yet completed any tests.</p>
+            <Card className="gap-0 border-0 py-0 shadow-md">
+              <div className="flex flex-col items-center justify-center gap-3 px-6 py-32 text-center">
+                <div className="rounded-full bg-muted p-3">
+                  <BookCheck
+                    className="size-6 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <h2 className="font-medium">No Completed Tests</h2>
+                  <p className="max-w-sm text-sm text-muted-foreground">
+                    You've not yet completed any tests.
+                  </p>
+                </div>
+              </div>
             </Card>
           ) : (
             <>

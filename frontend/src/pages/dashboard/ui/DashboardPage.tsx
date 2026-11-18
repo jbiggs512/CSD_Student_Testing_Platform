@@ -16,16 +16,16 @@ export function DashboardPage() {
       try {
         // Fetch all data needed for the dashboard with awaits
         const completed = await getCompletedTests();
-        setCompletedTests(completed);
+        if (completed != undefined) setCompletedTests(completed);
 
         const outstanding = await getOutstandingTests();
-        setOutstandingTests(outstanding);
+        if (outstanding != undefined)setOutstandingTests(outstanding);
 
         const rank = await getCohortRank();
-        setCohortRank(rank);
+        if (rank != undefined)setCohortRank(rank);
 
         const course = await getCourseTitle();
-        setCourseTitle(course);
+        if (course != undefined)setCourseTitle(course);
       } catch (error) {
         console.error("Error loading dashboard data:", error);
       } finally {

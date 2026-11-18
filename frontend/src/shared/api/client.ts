@@ -23,7 +23,7 @@ export function createApiClient({
     return async function request<T>(
         endpoint: string,
         options: RequestInit = {},
-    ): Promise<T> {
+    ): Promise<T | undefined> {
         const token = getAccessToken()
 
         if (!token) {
@@ -72,6 +72,9 @@ export function createApiClient({
                 response.status,
             )
         }
+
+        // Handle no content response
+        if (response.status === 204) return undefined
 
         return (await response.json()) as T
     }

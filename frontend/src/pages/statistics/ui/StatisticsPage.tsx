@@ -21,13 +21,13 @@ export function StatisticsPage() {
       try {
         // Fetch all data needed for the statistics with awaits
         const course = await getCourseTitle();
-        setCourseTitle(course);
+        if (course != undefined) setCourseTitle(course);
 
         const stats = await getStatisticsOverview();
-        setStatistics(stats);
+        if (stats != undefined) setStatistics(stats);
 
         const grades = await getGradesOverTime();
-        setGradesOverTime(grades);
+        if (grades != undefined) setGradesOverTime(grades);
 
       } catch (error) {
         console.error("Error loading statistics data:", error);

@@ -10,14 +10,14 @@ export class LeaderboardApiError extends ApiError {
 
 const request = createApiClient({ basePath: '/student', ErrorClass: LeaderboardApiError })
 
-export function getCourseTitle(): Promise<string> {
+export function getCourseTitle(): Promise<string | undefined> {
     return request<string>('/courseTitle')
 }
 
-export function getSubjects(): Promise<SubjectFilter[]>{
+export function getSubjects(): Promise<SubjectFilter[] | undefined>{
     return request<SubjectFilter[]>(`/subjects`)
 }
 
-export function getLeaderboard(subjectId: number): Promise<LeaderboardResponse> {
+export function getLeaderboard(subjectId: number): Promise<LeaderboardResponse | undefined> {
     return request<LeaderboardResponse>(`/leaderboard/${subjectId}`)
 }
