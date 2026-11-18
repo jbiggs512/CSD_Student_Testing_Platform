@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 from typing import Annotated
 
 from app.api.deps import get_db, require_roles, get_current_user
@@ -58,3 +58,24 @@ def get_leaderboard(
 ) -> schemas.LeaderboardResponse:
     """Get the leaderboard data for the passed subject"""
     return service.get_leaderboard(db, current_user, subject_id)
+
+@router.get("/statistics")
+def get_statistics(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
+) -> schemas.StatisticsResponse:
+    """Get the statistics overview for the authenticated student"""
+    stats = service.get_statistics(db, current_user.user_id)
+    if stats is None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return stats
+
+@router.get( "/gradesOverTime")
+def grades_over_time(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
+):
+    result = service.get_grades_over_time(db, current_user.user_id)
+    if result is None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return result

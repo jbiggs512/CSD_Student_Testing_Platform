@@ -34,7 +34,11 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
       .replace(/^0/, "");
   };
 
-
+  const currentIndex = props.testDetails.questions.findIndex(
+    (q) => q.question_id === props.testDetails.current_question
+  );
+  const isFirstQuestion = currentIndex === 0;
+  const isLastQuestion = currentIndex === -1 || currentIndex >= props.testDetails.questions.length - 1;
 
   return (
     <main id="dashboard-page" className="min-h-screen p-4">
@@ -54,16 +58,13 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="gap-2 sm:gap-0">
-                <DialogClose>
-                  <Button variant="outline">
+                <DialogClose render={<Button variant="outline">
                     Cancel
-                  </Button>
-                </DialogClose>
-                <DialogClose>
+                  </Button>} />
+                <DialogClose render={
                   <Button data-testid="continue-exit-test" onClick={() => navigate('/dashboard')}>
                     Exit
-                  </Button>
-                </DialogClose>
+                  </Button>} />
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -101,29 +102,29 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
           <Card className="p-8 shadow-sm">
             <div className="mb-6">
               <p className="mb-4 text-sm font-medium text-muted-foreground">
-                Question {props.testDetails.current_question} of {props.testDetails.questions_per_attempt}
+                Question {currentIndex + 1} of {props.testDetails.questions_per_attempt}
               </p>
-              <Progress value={(props.testDetails.current_question) / (props.testDetails.questions_per_attempt) * 100} />
+              <Progress value={(currentIndex + 1) / (props.testDetails.questions_per_attempt) * 100} />
             </div>
 
-            <h3 className="mb-8 font-heading text-3xl font-bold text-navy">{props.testDetails.questions[props.testDetails.current_question - 1]?.question_text}</h3>
+            <h3 className="mb-8 font-heading text-3xl font-bold text-navy">{props.testDetails.questions[currentIndex]?.question_text}</h3>
 
             <div className="mb-8 flex flex-col gap-4">
-              {props.testDetails.questions[props.testDetails.current_question - 1]?.options.map((option) => (
+              {props.testDetails.questions[currentIndex]?.options.map((option) => (
                 <button
                   key={option.option_id}
                   className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-colors ${option.selected
                     ? 'border-navy bg-slate-50' // Selected option styling
                     : 'border-border hover:bg-muted/50'
                     }`}
-                  onClick={() => props.onSelectOption(props.testDetails.questions[props.testDetails.current_question - 1].question_id, option.option_id)}
+                  onClick={() => props.onSelectOption(props.testDetails.questions[currentIndex].question_id, option.option_id)}
                 >
                   {/* Custom Radio Button UI */}
                   <RadioIndicator selected={option.selected} />
 
                   {/* Letter Indicator (A, B, C, D */}
                   <div className="flex h-8 w-8 items-center justify-center rounded bg-muted text-sm font-bold text-navy">
-                    {String.fromCodePoint(65 + props.testDetails.questions[props.testDetails.current_question - 1].options.indexOf(option))}
+                    {String.fromCodePoint(65 + props.testDetails.questions[currentIndex].options.indexOf(option))}
                   </div>
 
                   {/* Answer Text */}
@@ -135,10 +136,10 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
             {/* Navigation Buttons */}
             <div className="flex items-center justify-between">
               <Button variant="outline" className="border-border text-navy hover:bg-muted"
-                onClick={() => props.onNavigateQuestion(props.testDetails.current_question - 1)} disabled={props.testDetails.current_question === 1}>
+                onClick={() => props.onNavigateQuestion(props.testDetails.questions[currentIndex-1].question_id)} disabled={isFirstQuestion}>
                 Previous Question
               </Button>
-              <Button onClick={() => props.onNavigateQuestion(props.testDetails.current_question + 1)} disabled={props.testDetails.current_question === props.testDetails.questions_per_attempt}>
+              <Button onClick={() => props.onNavigateQuestion(props.testDetails.questions[currentIndex+1].question_id)} disabled={isLastQuestion}>
                 Next Question
               </Button>
             </div>
@@ -152,9 +153,9 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
 
             {/* Grid of buttons for question navigation */}
             <div className="mb-8 grid grid-cols-5 gap-3">
-              {Array.from({ length: props.testDetails.questions_per_attempt }, (_, i) => i + 1).map((num) => {
-                const isAnswered = props.isAnswered(num);
-                const isCurrent = num === (props.testDetails.current_question);
+              {(props.testDetails.questions).map((q) => {
+                const isAnswered = props.isAnswered(q.question_id);
+                const isCurrent = q.question_id === (props.testDetails.current_question);
 
                 let borderBgClasses = 'border-border bg-white text-navy hover:border-slate-400';
                 if (isAnswered) {
@@ -165,10 +166,10 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
 
                 return (
                   <button
-                    key={num}
+                    key={q.question_id}
                     className={`flex aspect-square items-center justify-center rounded border text-sm font-bold transition-colors ${borderBgClasses}`}
-                    onClick={() => props.onNavigateQuestion(num)}
-                  >{num}</button>
+                    onClick={() => props.onNavigateQuestion(q.question_id)}
+                  >{props.testDetails.questions.indexOf(q) + 1}</button>
                 );
               })}
             </div>
@@ -205,11 +206,10 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="gap-2 sm:gap-0">
-                  <DialogClose>
+                  <DialogClose render={
                     <Button variant="outline">
                       Cancel
-                    </Button>
-                  </DialogClose>
+                    </Button>} />
                   <Button
                     data-testid="continue-submit-test"
                     onClick={() => void props.onSubmit?.()}

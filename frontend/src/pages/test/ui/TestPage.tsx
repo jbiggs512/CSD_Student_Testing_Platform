@@ -33,12 +33,10 @@ export function TestPage() {
     setTestDetails({ ...testDetails! }); // Re-render with the updated state
   };
 
-  // Handle navigation to a specific question by its number
-  const handleNavigateQuestion = (questionNumber: number) => {
+  // Handle navigation to a specific question by its id
+  const handleNavigateQuestion = (questionId: number) => {
     if (!testDetails) return;
-    if (questionNumber >= 1 && questionNumber <= testDetails.questions_per_attempt) {
-      setTestDetails({ ...testDetails, current_question: questionNumber }); // Re-render with the updated current question
-    }
+    setTestDetails({ ...testDetails, current_question: questionId }); // Re-render with the updated current question
   };
 
   // Check if a question has been answered
@@ -89,14 +87,16 @@ export function TestPage() {
     }
   };
 
-
-
   useEffect(() => {
     async function loadData() {
       try {
         // Fetch all data needed for the test
         const testDetails = await getTestDetails(id ? Number.parseInt(id) : 0);
-        setTestDetails(testDetails);
+        if (testDetails.questions.length > 0) {
+          // Set the current question id to the first in the list
+          const firstQ = testDetails.questions[0].question_id
+          setTestDetails({ ...testDetails, current_question: firstQ })
+        }
       }
       catch (error) {
         console.error("Error loading test data:", error);
