@@ -6,6 +6,7 @@ import uuid
 from sqlalchemy import select
 
 from app.core.security import hash_password
+from app.api.v1.test.schemas import MIN_QUESTIONS_PER_ATTEMPT
 from app.db.models import Role, Test, TestAttempt, User
 from app.enums import AccountStatus, UserRole
 
@@ -98,7 +99,7 @@ def test_list_tests_includes_pool_and_attempt_summaries(
     )
     assert matched is not None
     assert matched["test_name"] == "Algorithms Quiz"
-    assert matched["pool_size"] == 5
+    assert matched["pool_size"] == MIN_QUESTIONS_PER_ATTEMPT
     assert matched["attempt_count"] == 2
     assert matched["average_percentage"] == 70.0
 

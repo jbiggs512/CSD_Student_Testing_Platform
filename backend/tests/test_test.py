@@ -84,7 +84,7 @@ def test_get_test_data_draws_random_questions_from_subject_pool(
         json={
             "subject_id": subject.subject_id,
             "test_name": "Pool Sampled Quiz",
-            "questions_per_attempt": 4,
+            "questions_per_attempt": 10,
         },
         headers=lecturer_headers,
     )
@@ -108,9 +108,9 @@ def test_get_test_data_draws_random_questions_from_subject_pool(
         assert res.status_code == 200
         payload = res.json()
         assert payload["description"] == ""
-        assert len(payload["questions"]) == 4
+        assert len(payload["questions"]) == 10
         question_ids = tuple(q["question_id"] for q in payload["questions"])
-        assert len(set(question_ids)) == 4
+        assert len(set(question_ids)) == 10
         seen_draws.add(question_ids)
 
     assert len(seen_draws) > 1
