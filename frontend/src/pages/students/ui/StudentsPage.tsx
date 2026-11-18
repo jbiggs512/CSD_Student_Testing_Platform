@@ -302,14 +302,16 @@ export function StudentsPage() {
     setState((current) => ({ ...current, ...updates }))
   }, [])
 
-  const loadStudents = useCallback(async () => {
-    updateState({ isLoading: true, pageError: null })
+  const loadStudents = useCallback(async (silent = false) => {
+    updateState(silent ? { pageError: null } : { isLoading: true, pageError: null })
     try {
       updateState({ students: await getStudents() })
     } catch (error) {
       updateState({ pageError: getDisplayError(error) })
     } finally {
-      updateState({ isLoading: false })
+      if (!silent) {
+        updateState({ isLoading: false })
+      }
     }
   }, [updateState])
 
@@ -404,7 +406,7 @@ export function StudentsPage() {
         updateState({ successMessage: 'Student created successfully.' })
       }
       closeForm()
-      await loadStudents()
+      await loadStudents(true)
     } catch (error) {
       updateState({ formError: getDisplayError(error) })
     } finally {
@@ -419,7 +421,7 @@ export function StudentsPage() {
       await updateStudent(student.username, { account_status: nextStatus })
       const actionLabel = nextStatus === 'active' ? 'enabled' : 'disabled'
       updateState({ successMessage: `Student ${actionLabel} successfully.` })
-      await loadStudents()
+      await loadStudents(true)
     } catch (error) {
       updateState({ pageError: getDisplayError(error) })
     }
@@ -443,7 +445,7 @@ export function StudentsPage() {
       await updateStudent(state.passwordStudent.username, { password: state.passwordValues.password })
       updateState({ successMessage: 'Student password updated successfully.' })
       closePasswordForm()
-      await loadStudents()
+      await loadStudents(true)
     } catch (error) {
       updateState({ formError: getDisplayError(error) })
     } finally {
@@ -456,7 +458,7 @@ export function StudentsPage() {
     try {
       await approveStudent(student.username)
       updateState({ successMessage: 'Student approved successfully.' })
-      await loadStudents()
+      await loadStudents(true)
     } catch (error) {
       updateState({ pageError: getDisplayError(error) })
     }
@@ -471,7 +473,7 @@ export function StudentsPage() {
         studentPendingDelete: null,
         successMessage: 'Student deleted successfully.',
       })
-      await loadStudents()
+      await loadStudents(true)
     } catch (error) {
       updateState({ pageError: getDisplayError(error) })
     }

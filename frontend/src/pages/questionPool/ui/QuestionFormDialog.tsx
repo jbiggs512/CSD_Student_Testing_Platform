@@ -1,5 +1,10 @@
 import type { FormEvent } from 'react'
-import { AlertCircleIcon, LoaderCircleIcon } from 'lucide-react'
+import {
+  AlertCircleIcon,
+  CheckCircle2Icon,
+  LoaderCircleIcon,
+  PlusIcon,
+} from 'lucide-react'
 import {
   Alert,
   AlertDescription,
@@ -20,9 +25,11 @@ interface QuestionFormDialogProps {
   isEditing: boolean
   isSaving: boolean
   formError: string | null
+  formSuccess: string | null
   formValues: QuestionFormValues
   onOpenChange: (open: boolean) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  onSaveAndAddAnother: () => void
   onQuestionTextChange: (value: string) => void
   onOptionTextChange: (index: number, value: string) => void
   onCorrectIndexChange: (index: number) => void
@@ -33,9 +40,11 @@ export function QuestionFormDialog({
   isEditing,
   isSaving,
   formError,
+  formSuccess,
   formValues,
   onOpenChange,
   onSubmit,
+  onSaveAndAddAnother,
   onQuestionTextChange,
   onOptionTextChange,
   onCorrectIndexChange,
@@ -47,6 +56,9 @@ export function QuestionFormDialog({
   if (isSaving) {
     submitLabel = 'Saving...'
   }
+  const addAnotherLabel = isEditing
+    ? 'Save & add another'
+    : 'Create & add another'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -67,6 +79,13 @@ export function QuestionFormDialog({
             <Alert variant="destructive">
               <AlertCircleIcon aria-hidden="true" />
               <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          )}
+
+          {formSuccess && (
+            <Alert>
+              <CheckCircle2Icon aria-hidden="true" />
+              <AlertDescription>{formSuccess}</AlertDescription>
             </Alert>
           )}
 
@@ -152,6 +171,15 @@ export function QuestionFormDialog({
               disabled={isSaving}
             >
               Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onSaveAndAddAnother}
+              disabled={isSaving}
+            >
+              <PlusIcon aria-hidden="true" />
+              {addAnotherLabel}
             </Button>
             <Button type="submit" disabled={isSaving}>
               {isSaving && (
