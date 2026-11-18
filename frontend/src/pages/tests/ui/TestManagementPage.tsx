@@ -121,8 +121,8 @@ export function TestManagementPage() {
     }
 
     const questionsPerAttempt = Number(formValues.questionsPerAttempt)
-    if (!Number.isInteger(questionsPerAttempt) || questionsPerAttempt < 1) {
-      setFormError('Questions per attempt must be at least 1.')
+    if (!Number.isInteger(questionsPerAttempt) || questionsPerAttempt < 10) {
+      setFormError('Questions per attempt must be at least 10.')
       return
     }
 

@@ -23,8 +23,8 @@ def test_create_test_as_lecturer(
     assert data["subject_name"] == pool_subject.subject_name
     assert data["course_title"] == "BSc Software Engineering"
     assert data["time_limit_minutes"] == 20
-    assert data["questions_per_attempt"] == 3
-    assert data["pool_size"] == 5
+    assert data["questions_per_attempt"] == 10
+    assert data["pool_size"] == 10
 
     stored = db_session.get(Test, data["test_id"])
     assert stored is not None

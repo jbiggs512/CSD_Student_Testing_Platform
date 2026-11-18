@@ -19,7 +19,7 @@ def test_create_test_disabled_subject_returns_400(
     client, make_subject, add_pool_questions, test_payload, auth_headers
 ):
     subject = make_subject(status=SubjectStatus.DISABLED)
-    add_pool_questions(subject, 5)
+    add_pool_questions(subject, 10)
 
     response = client.post(
         TESTS_URL,
@@ -70,11 +70,11 @@ def test_create_test_questions_per_attempt_exceeds_pool_returns_400(
     client, make_subject, add_pool_questions, test_payload, auth_headers
 ):
     subject = make_subject()
-    add_pool_questions(subject, 2)
+    add_pool_questions(subject, 9)
 
     response = client.post(
         TESTS_URL,
-        json=test_payload(subject.subject_id, questions_per_attempt=3),
+        json=test_payload(subject.subject_id, questions_per_attempt=10),
         headers=auth_headers(UserRole.LECTURER),
     )
     assert response.status_code == 400
@@ -100,7 +100,7 @@ def test_create_test_whitespace_name_returns_400(
         {"test_name": "x" * 161},
         {"time_limit_minutes": 0},
         {"time_limit_minutes": -5},
-        {"questions_per_attempt": 0},
+        {"questions_per_attempt": 0},`r`n        {"questions_per_attempt": 9},
     ],
 )
 def test_create_test_invalid_fields_return_422(

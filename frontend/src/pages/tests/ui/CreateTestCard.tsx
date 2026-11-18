@@ -134,7 +134,7 @@ export function CreateTestCard({
                 name="questions_per_attempt"
                 type="number"
                 required
-                min={1}
+                min={10}
                 max={200}
                 value={formValues.questionsPerAttempt}
                 onChange={(event) =>

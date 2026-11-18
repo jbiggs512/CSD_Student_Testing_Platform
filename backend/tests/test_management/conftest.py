@@ -65,9 +65,9 @@ def add_pool_questions(db_session) -> Callable[[Subject, int], None]:
 
 @pytest.fixture
 def pool_subject(make_subject, add_pool_questions) -> Subject:
-    """An active subject with five questions in its pool."""
+    """An active subject with ten questions in its pool."""
     subject = make_subject()
-    add_pool_questions(subject, 5)
+    add_pool_questions(subject, 10)
     return subject
 
 
@@ -81,7 +81,7 @@ def test_payload() -> Callable[..., dict]:
             "test_name": "Week 1 Quiz",
             "description": "Covers the basics.",
             "time_limit_minutes": 20,
-            "questions_per_attempt": 3,
+            "questions_per_attempt": 10,
         }
         payload.update(overrides)
         return payload
