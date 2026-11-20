@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { TrophyIcon } from 'lucide-react'
 import {
   Badge,
   Card,
