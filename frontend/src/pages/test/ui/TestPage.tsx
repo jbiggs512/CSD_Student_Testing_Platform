@@ -70,14 +70,19 @@ export function TestPage() {
 
     try {
       const result = await createTestAttempt(request);
-      // Add toast to page to display success to user
-      toast.add({
-        type: "success",
-        title: "Test results saved!",
-        description: `You achieved ${result.score} points`,
-      })
-      // Navigate student back to dashboard
-      navigate('/dashboard');
+      if (result == undefined) {
+        throw ("Test attempt was not submitted. Please try again.");
+      }
+      else {
+        // Add toast to page to display success to user
+        toast.add({
+          type: "success",
+          title: "Test results saved!",
+          description: `You achieved ${result.score} points`,
+        })
+        // Navigate student back to dashboard
+        navigate('/dashboard');
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to submit the test. Please try again.';
       setSubmitError(message);
@@ -92,11 +97,17 @@ export function TestPage() {
       try {
         // Fetch all data needed for the test
         const testDetails = await getTestDetails(id ? Number.parseInt(id) : 0);
-        if (testDetails.questions.length > 0) {
-          // Set the current question id to the first in the list
-          const firstQ = testDetails.questions[0].question_id
-          setTestDetails({ ...testDetails, current_question: firstQ })
+        if (testDetails == undefined) {
+          throw("Test details were not returned from the API")
         }
+        else {
+          if (testDetails.questions.length > 0) {
+            // Set the current question id to the first in the list
+            const firstQ = testDetails.questions[0].question_id
+            setTestDetails({ ...testDetails, current_question: firstQ })
+          }
+        }
+
       }
       catch (error) {
         console.error("Error loading test data:", error);
