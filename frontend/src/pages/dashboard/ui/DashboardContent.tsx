@@ -20,25 +20,25 @@ import { SORT_OPTIONS, FILTER_OPTIONS, type DashboardContentProps } from "../mod
 import { CompletedTestsDialog } from './CompletedTestsDialog'
 
 export function LoadingDashboardContent() {
-    return (
-        <main id="statistics-page" className="p-4">
-            {/* Hero Section */}
-            <PageHero
-                title="Welcome back, Student!"
-                description="You have no outstanding tests!" 
-            />
+  return (
+    <main id="statistics-page" className="p-4">
+      {/* Hero Section */}
+      <PageHero
+        title="Welcome back, Student!"
+        description="You have no outstanding tests!"
+      />
 
-            <div className="grid grid-cols-1 gap-4">
-                <NoContentCard title="Loading"
-                    description="Dashboard data is loading..."
-                    icon={<LoaderCircle
-                        className="size-6 text-muted-foreground animate-spin"
-                        aria-hidden="true"
-                    />}
-                />
-            </div>
-        </main>
-    );
+      <div className="grid grid-cols-1 gap-4">
+        <NoContentCard title="Loading"
+          description="Dashboard data is loading..."
+          icon={<LoaderCircle
+            className="size-6 text-muted-foreground animate-spin"
+            aria-hidden="true"
+          />}
+        />
+      </div>
+    </main>
+  );
 }
 
 export function DashboardContent({ completedTests = [], outstandingTests = [], cohortRank = { rank: 0, size: 0 }, courseTitle = "" }: DashboardContentProps) {
@@ -60,36 +60,34 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
         subtitle={courseTitle}
         description={outstandingTests.length === 0
           ? "You have no outstanding tests!"
-          : `You have ${outstandingTests.length} outstanding test${testPlural} to complete.`}
-        children={
-          <div className="flex flex-wrap gap-4">
-            <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
-              <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Tests Completed</span>
-              <div className="font-heading text-3xl font-bold">
-                {completedTests.length === 0 ? (
-                  <span className="text-5xl">0</span>
-                ) : (
-                  <><span className="text-5xl">{completedTests.length}</span> <span className="text-xl font-medium">of {completedTests.length + outstandingTests.length}</span></>
-                )}
-              </div>
-            </div>
-            <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
-              <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Average Score</span>
-              <div className="font-heading text-5xl font-bold">{averageScore !== null ? `${averageScore}%` : '-'}</div>
-            </div>
-            <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
-              <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Cohort Rank</span>
-              <div className="font-heading text-3xl font-bold">
-                {completedTests.length === 0 ? (
-                  <span className="text-5xl">-</span>
-                ) : (
-                  <><span className="text-5xl">{cohortRank.rank}</span> <span className="text-xl font-medium">of {cohortRank.size}</span></>
-                )}
-              </div>
+          : `You have ${outstandingTests.length} outstanding test${testPlural} to complete.`}>
+        <div className="flex flex-wrap gap-4">
+          <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
+            <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Tests Completed</span>
+            <div className="font-heading text-3xl font-bold">
+              {completedTests.length === 0 ? (
+                <span className="text-5xl">0</span>
+              ) : (
+                <><span className="text-5xl">{completedTests.length}</span> <span className="text-xl font-medium">of {completedTests.length + outstandingTests.length}</span></>
+              )}
             </div>
           </div>
-        }
-      />
+          <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
+            <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Average Score</span>
+            <div className="font-heading text-5xl font-bold">{averageScore !== null ? `${averageScore}%` : '-'}</div>
+          </div>
+          <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
+            <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Cohort Rank</span>
+            <div className="font-heading text-3xl font-bold">
+              {completedTests.length === 0 ? (
+                <span className="text-5xl">-</span>
+              ) : (
+                <><span className="text-5xl">{cohortRank.rank}</span> <span className="text-xl font-medium">of {cohortRank.size}</span></>
+              )}
+            </div>
+          </div>
+        </div>
+      </PageHero>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">

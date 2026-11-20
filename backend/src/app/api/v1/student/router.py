@@ -40,12 +40,14 @@ def get_cohort_rank(
 
 @router.get("/courseTitle")
 def get_course_title(
+    response: Response,
     current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
-) -> str:
+) -> str | None:
     """Get course title for the current student"""
     course = service.get_course_title(current_user)
     if course is None:
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
+        response.status_code = status.HTTP_204_NO_CONTENT
+        return None
     return course
 
 @router.get("/subjects")

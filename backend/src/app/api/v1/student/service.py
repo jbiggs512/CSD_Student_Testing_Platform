@@ -136,14 +136,11 @@ def get_course_title(
     # Users first / default course
     if len(current_user.courses) >= 1:
         return current_user.courses[0].course_title
-    else:
-        # Return none if user is not enrolled on any courses, so that this is returned as no content
-        None
 
 def get_subjects(
     db: Session,
     current_user: User,
-) -> list[SubjectResponse]:
+) -> list[SubjectResponse] | None:
     # Find users first / default course
     if len(current_user.courses) >= 1:
         course_id = current_user.courses[0].course_id

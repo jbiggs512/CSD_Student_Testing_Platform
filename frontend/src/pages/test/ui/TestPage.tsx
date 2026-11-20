@@ -71,7 +71,7 @@ export function TestPage() {
     try {
       const result = await createTestAttempt(request);
       if (result == undefined) {
-        throw ("Test attempt was not submitted. Please try again.");
+        throw new Error("Test attempt was not submitted. Please try again.");
       }
       else {
         // Add toast to page to display success to user
@@ -98,16 +98,13 @@ export function TestPage() {
         // Fetch all data needed for the test
         const testDetails = await getTestDetails(id ? Number.parseInt(id) : 0);
         if (testDetails == undefined) {
-          throw("Test details were not returned from the API")
+          throw new Error("Test details were not returned from the API");
         }
-        else {
-          if (testDetails.questions.length > 0) {
-            // Set the current question id to the first in the list
-            const firstQ = testDetails.questions[0].question_id
-            setTestDetails({ ...testDetails, current_question: firstQ })
-          }
+        else if (testDetails.questions.length > 0) {
+          // Set the current question id to the first in the list
+          const firstQ = testDetails.questions[0].question_id
+          setTestDetails({ ...testDetails, current_question: firstQ })
         }
-
       }
       catch (error) {
         console.error("Error loading test data:", error);
