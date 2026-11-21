@@ -10,13 +10,13 @@ export class TestApiError extends ApiError {
 
 const request = createApiClient({ basePath: '/test', ErrorClass: TestApiError })
 
-export function getTestDetails(id: number): Promise<TestDetails> {
+export function getTestDetails(id: number): Promise<TestDetails | undefined> {
     return request<TestDetails>(`/${id}`)
 }
 
 export function createTestAttempt(
     payload: TestAttemptRequest,
-): Promise<TestAttempt> {
+): Promise<TestAttempt | undefined> {
     return request<TestAttempt>('/attempt', {
         method: 'POST',
         body: JSON.stringify(payload),

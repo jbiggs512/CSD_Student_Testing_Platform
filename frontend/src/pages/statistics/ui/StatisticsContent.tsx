@@ -1,24 +1,66 @@
 import type { StatisticsProps } from "../model"
-import { LockKeyhole } from 'lucide-react'
-import { Card } from "@/shared/components";
+import { LockKeyhole, TrophyIcon, LoaderCircle } from 'lucide-react'
+import { Card, NoContentCard, PageHero } from "@/shared/components";
 import { GradesChartCard } from "./GradesChartCard"
 import { GradesTableCard } from "./GradesTableCard";
 import { ExportResultsCard } from "./ExportResultsCard";
+
+export function LoadingStatisticsContent() {
+    return (
+        <main id="statistics-page" className="p-4">
+            {/* Hero Section */}
+            <PageHero
+                title="Statistics"
+                description="Only you can see this page."
+                icon={<LockKeyhole className="h-4 w-4" />}
+            />
+
+            <div className="grid grid-cols-1 gap-4">
+                <NoContentCard title="Loading"
+                    description="Statistics data is loading..."
+                    icon={<LoaderCircle
+                        className="size-6 text-muted-foreground animate-spin"
+                        aria-hidden="true"
+                    />}
+                />
+            </div>
+        </main>
+    );
+}
+
+export function EmptyStatisticsContent() {
+    return (
+        <main id="statistics-page" className="p-4">
+            {/* Hero Section */}
+            <PageHero
+                title="Statistics"
+                description="Only you can see this page."
+                icon={<LockKeyhole className="h-4 w-4" />}
+            />
+
+            <div className="grid grid-cols-1 gap-4">
+                <NoContentCard title="No completed tests yet"
+                    description="Your results will appear here once you complete a test."
+                    icon={<TrophyIcon
+                        className="size-6 text-muted-foreground"
+                        aria-hidden="true"
+                    />}
+                />
+            </div>
+        </main>
+    );
+}
 
 export function StatisticsContent(props: Readonly<StatisticsProps>) {
     return (
         <main id="statistics-page" className="p-4">
             {/* Hero Section */}
-            <section className="mb-8 flex flex-col justify-between rounded-2xl bg-navy p-10 text-white shadow-md lg:flex-row">
-                <div className="mb-6 flex flex-col justify-center lg:mb-0">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">{props.courseTitle}</p>
-                    <h1 className="mb-2 font-heading text-4xl font-bold tracking-tight text-white">Statistics</h1>
-                    <div className="flex items-center gap-2 text-white/80">
-                        <LockKeyhole />
-                        <span className="text-sm">Only you can see this page.</span>
-                    </div>
-                </div>
-            </section>
+            <PageHero
+                title="Statistics"
+                subtitle={props.courseTitle}
+                description="Only you can see this page."
+                icon={<LockKeyhole className="h-4 w-4" />}
+            />
 
             {/* Stats overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex items-stretch">

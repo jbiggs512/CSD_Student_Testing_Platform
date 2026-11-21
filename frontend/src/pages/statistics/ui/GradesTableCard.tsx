@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { TrophyIcon } from 'lucide-react'
 import {
   Badge,
   Card,
@@ -103,22 +102,7 @@ export function GradesTableCard({ points }: Readonly<{ points: GradePoint[] }>) 
       </CardHeader>
 
       <CardContent className="p-0">
-        {rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-            <div className="rounded-full bg-muted p-3">
-              <TrophyIcon
-                className="size-6 text-muted-foreground"
-                aria-hidden="true"
-              />
-            </div>
-            <div className="space-y-1">
-              <h2 className="font-medium">No completed tests yet</h2>
-              <p className="max-w-sm text-sm text-muted-foreground">
-                Your results will appear here once you complete a test.
-              </p>
-            </div>
-          </div>
-        ) : (
+        {rows.length > 0 &&
           <DataTable
             columns={columns}
             data={rows}
@@ -126,7 +110,7 @@ export function GradesTableCard({ points }: Readonly<{ points: GradePoint[] }>) 
             itemLabel="results"
             className="min-w-[600px]"
           />
-        )}
+        }
       </CardContent>
     </Card>
   )

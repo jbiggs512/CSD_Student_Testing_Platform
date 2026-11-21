@@ -84,7 +84,7 @@ describe('Statistics Page', () => {
 
     renderStatisticsPage()
 
-    expect(screen.getByText('Loading statistics...')).toBeDefined()
+    expect(screen.getByText('Statistics data is loading...')).toBeDefined()
   })
 
   it('loads statistics data and renders the page summary', async () => {

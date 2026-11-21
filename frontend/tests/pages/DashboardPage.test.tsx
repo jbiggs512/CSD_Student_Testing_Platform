@@ -84,7 +84,7 @@ describe('Dashboard Page', () => {
     renderDashboardWithRoutes()
 
     // Check that the loading text is displayed
-    expect(screen.getByText('Loading dashboard...')).toBeDefined()
+    expect(screen.getByText('Dashboard data is loading...')).toBeDefined()
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Welcome back, Student!' })).toBeDefined()

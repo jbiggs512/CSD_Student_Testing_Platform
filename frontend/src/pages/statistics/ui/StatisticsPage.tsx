@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { StatisticsContent } from "./StatisticsContent";
+import { StatisticsContent, LoadingStatisticsContent, EmptyStatisticsContent } from "./StatisticsContent";
 import { getCourseTitle } from '@/pages/dashboard/api';
 import { getGradesOverTime, getStatisticsOverview } from '../api';
-import type { GradesOverTimeResponse, StatisticsResponse } from "../model" 
+import type { GradesOverTimeResponse, StatisticsResponse } from "../model"  
 
 const DEFAULT_GRADES: GradesOverTimeResponse = {
     average: 0,
@@ -21,13 +21,13 @@ export function StatisticsPage() {
       try {
         // Fetch all data needed for the statistics with awaits
         const course = await getCourseTitle();
-        setCourseTitle(course);
+        if (course != undefined) setCourseTitle(course);
 
         const stats = await getStatisticsOverview();
-        setStatistics(stats);
+        if (stats != undefined) setStatistics(stats);
 
         const grades = await getGradesOverTime();
-        setGradesOverTime(grades);
+        if (grades != undefined) setGradesOverTime(grades);
 
       } catch (error) {
         console.error("Error loading statistics data:", error);
@@ -41,10 +41,10 @@ export function StatisticsPage() {
     });
   }, []);
 
-  if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading statistics...</div>;
-  }
+  if (isLoading) return <LoadingStatisticsContent />
 
+  if (statistics === undefined) return <EmptyStatisticsContent />
+    
   return (
     <StatisticsContent courseTitle={courseTitle} 
     statistics={statistics} 

@@ -52,7 +52,7 @@ describe('LeaderboardPage', () => {
 
     renderLeaderboardPage()
 
-    expect(screen.getByText('Loading leaderboard...')).toBeDefined()
+    expect(screen.getByText('Leaderboard data is loading...')).toBeDefined()
   })
 
   it('loads the first subject leaderboard and renders its results', async () => {

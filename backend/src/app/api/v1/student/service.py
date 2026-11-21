@@ -14,9 +14,6 @@ GradePoint,
 GradesOverTimeResponse)
 from app.db.models import TestAttempt, Test, Subject, Course, User, Role
 
-NOT_ENROLLED_DETAIL = "You are not enrolled in any courses."
-NO_RESULTS_DETAIL = "No results were returned."
-
 def get_outstanding_tests(
     db: Session, 
     student_id: int
@@ -86,11 +83,8 @@ def get_cohort_rank(
     if len(current_user.courses) >= 1:
             course_id = current_user.courses[0].course_id
     else:
-        # Return 412 if user is not enrolled on any courses
-        raise HTTPException(
-            status_code=412,
-            detail=NOT_ENROLLED_DETAIL,
-        )
+        # Return none if user is not enrolled on any courses, so that no content (204) is returned
+        return None
 
     # Find and calculate the total score per enrolled active student (0 if no attempts)
     cohort_totals = (
@@ -142,26 +136,17 @@ def get_course_title(
     # Users first / default course
     if len(current_user.courses) >= 1:
         return current_user.courses[0].course_title
-    else:
-        # Return 412 error if the user is not enrolled in any courses
-        raise HTTPException(
-            status_code=412,
-            detail=NOT_ENROLLED_DETAIL,
-        )
 
 def get_subjects(
     db: Session,
     current_user: User,
-) -> list[SubjectResponse]:
+) -> list[SubjectResponse] | None:
     # Find users first / default course
     if len(current_user.courses) >= 1:
         course_id = current_user.courses[0].course_id
     else:
-        # Return 412 if user is not enrolled on any courses
-        raise HTTPException(
-            status_code=412,
-            detail=NOT_ENROLLED_DETAIL,
-        )
+        # Return none if user is not enrolled on any courses, so that no content (204) is returned
+        return None
     
     subjects = db.scalars(
         select(Subject)

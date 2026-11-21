@@ -11,10 +11,35 @@ import {
   SelectTrigger,
   SelectValue,
   Progress,
+  PageHero,
+  NoContentCard,
 } from "@/shared/components";
+import { LoaderCircle, CircleCheckBig, BookCheck } from 'lucide-react'
 import { Link } from 'react-router'
 import { SORT_OPTIONS, FILTER_OPTIONS, type DashboardContentProps } from "../model";
 import { CompletedTestsDialog } from './CompletedTestsDialog'
+
+export function LoadingDashboardContent() {
+  return (
+    <main id="statistics-page" className="p-4">
+      {/* Hero Section */}
+      <PageHero
+        title="Welcome back, Student!"
+        description="You have no outstanding tests!"
+      />
+
+      <div className="grid grid-cols-1 gap-4">
+        <NoContentCard title="Loading"
+          description="Dashboard data is loading..."
+          icon={<LoaderCircle
+            className="size-6 text-muted-foreground animate-spin"
+            aria-hidden="true"
+          />}
+        />
+      </div>
+    </main>
+  );
+}
 
 export function DashboardContent({ completedTests = [], outstandingTests = [], cohortRank = { rank: 0, size: 0 }, courseTitle = "" }: DashboardContentProps) {
 
@@ -30,16 +55,12 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
     <main id="dashboard-page" className="p-4">
 
       {/* Hero Section */}
-      <section className="mb-8 flex flex-col justify-between rounded-2xl bg-navy p-10 text-white shadow-md lg:flex-row">
-        <div className="mb-6 flex flex-col justify-center lg:mb-0">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">{courseTitle}</p>
-          <h1 className="mb-2 font-heading text-4xl font-bold tracking-tight text-white">Welcome back, Student!</h1>
-          <p className="text-sm text-white/80">
-            {outstandingTests.length === 0
-              ? "You have no outstanding tests!"
-              : `You have ${outstandingTests.length} outstanding test${testPlural} to complete.`}
-          </p>
-        </div>
+      <PageHero
+        title="Welcome back, Student!"
+        subtitle={courseTitle}
+        description={outstandingTests.length === 0
+          ? "You have no outstanding tests!"
+          : `You have ${outstandingTests.length} outstanding test${testPlural} to complete.`}>
         <div className="flex flex-wrap gap-4">
           <div className="flex min-w-[150px] flex-col justify-center rounded-xl bg-white/10 p-6">
             <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">Tests Completed</span>
@@ -66,7 +87,7 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
@@ -108,10 +129,13 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
             )}
           </div>
           {outstandingTests.length === 0 ? (
-            <Card className="flex h-64 flex-col items-center justify-center p-8 text-center shadow-sm">
-              <h4 className="mb-2 font-heading text-3xl font-bold text-navy">No Outstanding Tests</h4>
-              <p className="text-sm font-bold text-navy">You're up to date on all your tests!</p>
-            </Card>
+            <NoContentCard
+              title="No Outstanding Tests"
+              description="You're up to date on all your tests!"
+              icon={<CircleCheckBig
+                className="size-6 text-muted-foreground"
+                aria-hidden="true"
+              />} />
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {outstandingTests.map((test) => (
@@ -171,10 +195,13 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
             )}
           </div>
           {completedTests.length === 0 ? (
-            <Card className="flex h-64 flex-col items-center justify-center p-8 text-center shadow-sm">
-              <h4 className="mb-2 font-heading text-3xl font-bold text-navy">No Completed Tests</h4>
-              <p className="text-sm font-bold text-navy">You've not yet completed any tests.</p>
-            </Card>
+            <NoContentCard
+              title="No Completed Tests"
+              description="You've not yet completed any tests."
+              icon={<BookCheck
+                className="size-6 text-muted-foreground"
+                aria-hidden="true"
+              />} />
           ) : (
             <>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
