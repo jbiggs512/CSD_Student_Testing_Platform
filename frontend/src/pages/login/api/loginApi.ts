@@ -57,6 +57,14 @@ export async function loginWithCredentials(
       )
     }
 
+    if (response.status === 423) {
+      throw new LoginApiError(
+        detailMessage ??
+          'Your account is temporarily locked due to too many failed login attempts. Please try again in 15 minutes.',
+        423,
+      )
+    }
+
     throw new LoginApiError(
       detailMessage ?? 'Unable to sign in right now. Please try again.',
       response.status,

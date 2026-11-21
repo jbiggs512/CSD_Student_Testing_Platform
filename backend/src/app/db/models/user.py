@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     String,
     func,
     Enum as SQLAlchemyEnum,
@@ -33,6 +34,10 @@ class User(Base):
     __tablename__ = "users"
 
     __table_args__ = (
+        CheckConstraint(
+            "failed_login_attempts >= 0",
+            name="ck_users_failed_login_attempts_nonnegative",
+        ),
         Index("idx_users_status_role", "account_status", "role_id"),
     )
 
@@ -84,6 +89,18 @@ class User(Base):
     )
     last_login: Mapped[datetime | None] = mapped_column(
         DateTime,
+        nullable=True,
+        default=None,
+        server_default=None,
+    )
+    failed_login_attempts: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+    locked_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
         nullable=True,
         default=None,
         server_default=None,
