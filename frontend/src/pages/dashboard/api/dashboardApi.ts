@@ -10,18 +10,18 @@ export class DashboardApiError extends ApiError {
 
 const request = createApiClient({ basePath: '/student', ErrorClass: DashboardApiError })
 
-export function getOutstandingTests(): Promise<OutstandingTest[]> {
+export function getOutstandingTests(): Promise<OutstandingTest[] | undefined> {
     return request<OutstandingTest[]>(`/outstandingTests`)
 }
 
-export function getCompletedTests(): Promise<CompletedTest[]> {
+export function getCompletedTests(): Promise<CompletedTest[] | undefined> {
     return request<CompletedTest[]>(`/completedTests`)
 }
 
-export function getCohortRank(): Promise<CohortRank> {
+export function getCohortRank(): Promise<CohortRank | undefined> {
      return request<CohortRank>(`/cohortRank`)
 }
 
-export function getCourseTitle(): Promise<string> {
+export function getCourseTitle(): Promise<string | undefined> {
      return request<string>(`/courseTitle`)
 }

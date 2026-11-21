@@ -397,6 +397,69 @@ describe('Test data API client', () => {
     expect(screen.queryByText('Student Dashboard')).toBeNull()
   })
 
+  it('shows an error when the server accepts submission without returning an attempt', async () => {
+    setAccessToken('test-token')
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+      if (init?.method === 'POST') {
+        return {
+          ok: true,
+          status: 204,
+          json: async () => undefined,
+        } as Response
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => createTestDetails(),
+      } as Response
+    })
+
+    renderTestWithRoutes()
+    await screen.findByRole('heading', { name: 'Beginner Software Quiz' })
+
+    fireEvent.click(screen.getByTestId('submit-test'))
+    fireEvent.click(screen.getByTestId('continue-submit-test'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Test attempt was not submitted. Please try again.')).toBeDefined()
+    })
+    expect(screen.queryByText('Student Dashboard')).toBeNull()
+  })
+
+  it('redirects when the API returns no test details', async () => {
+    setAccessToken('test-token')
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 204,
+      json: async () => undefined,
+    } as Response)
+
+    renderTestWithRoutes()
+
+    await waitFor(() => {
+      expect(screen.getByText('Student Dashboard')).toBeDefined()
+    })
+  })
+
+  it('clears loading when the test has no questions', async () => {
+    setAccessToken('test-token')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ ...createTestDetails(), questions: [] }),
+    } as Response)
+
+    renderTestWithRoutes()
+
+    await waitFor(() => {
+      expect(screen.queryByText('Loading test...')).toBeNull()
+    })
+    expect(screen.queryByRole('heading', { name: 'Beginner Software Quiz' })).toBeNull()
+  })
+
   it('requests and returns test details successfully', async () => {
     setAccessToken('test-token')
     const details = createTestDetails()

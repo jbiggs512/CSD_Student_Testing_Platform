@@ -10,10 +10,10 @@ export class StatisticsApiError extends ApiError {
 
 const request = createApiClient({ basePath: '/student', ErrorClass: StatisticsApiError })
 
-export function getStatisticsOverview(): Promise<StatisticsResponse>{
+export function getStatisticsOverview(): Promise<StatisticsResponse | undefined>{
     return request<StatisticsResponse>(`/statistics`)
 }
 
-export function getGradesOverTime(): Promise<GradesOverTimeResponse>{
+export function getGradesOverTime(): Promise<GradesOverTimeResponse | undefined>{
     return request<GradesOverTimeResponse>(`/gradesOverTime`)
 }

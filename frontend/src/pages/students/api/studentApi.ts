@@ -88,6 +88,13 @@ export function approveStudent(username: string): Promise<Student> {
   )
 }
 
+export function unlockStudent(username: string): Promise<Student> {
+  return studentRequest<Student>(
+    `/${encodeURIComponent(username)}/unlock`,
+    { method: 'PATCH' },
+  )
+}
+
 export function deleteStudent(username: string): Promise<void> {
   return studentRequest<void>(`/${encodeURIComponent(username)}`, {
     method: 'DELETE',

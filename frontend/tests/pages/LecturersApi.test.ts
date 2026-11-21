@@ -5,6 +5,7 @@ import {
   deleteLecturer,
   getLecturers,
   LecturerApiError,
+  unlockLecturer,
   updateLecturer,
   updateLecturerPassword,
 } from '@/pages/lecturers/api/lecturerApi'
@@ -62,6 +63,13 @@ describe('Lecturer API client', () => {
       password: 'NewPassword123!',
     })).resolves.toEqual(lecturer)
     await expect(deleteLecturer(lecturer.username)).resolves.toBeUndefined()
+
+    fetchSpy.mockResolvedValueOnce(Response.json(lecturer))
+    await expect(unlockLecturer(lecturer.username)).resolves.toEqual(lecturer)
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      expect.stringContaining('/jane.lecturer/unlock'),
+      expect.objectContaining({ method: 'PATCH' }),
+    )
 
     expect(fetchSpy).toHaveBeenNthCalledWith(
       2,

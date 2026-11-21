@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     REFRESH_TOKEN_COOKIE_NAME: str = "refresh_token"
     COOKIE_SECURE: bool = False
+    MAX_FAILED_LOGIN_ATTEMPTS: int = 5
+    ACCOUNT_LOCKOUT_MINUTES: int = 15
 
     # CORS Configuration
     BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = [

@@ -5,6 +5,8 @@ import {
   Edit2Icon,
   KeyRoundIcon,
   LoaderCircleIcon,
+  LockIcon,
+  LockOpenIcon,
   PlusIcon,
   PowerIcon,
   SearchIcon,
@@ -30,12 +32,17 @@ import {
   SheetTitle,
 } from '@shared/components/ui/sheet'
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog'
+import {
+  getLockoutRemainingMinutes,
+  isAccountLocked,
+} from '@shared/lib/utils'
 import type { Lecturer } from '../model'
 import {
   createLecturer,
   deleteLecturer,
   getLecturers,
   LecturerApiError,
+  unlockLecturer,
   updateLecturer,
   updateLecturerPassword,
 } from '../api'
@@ -72,17 +79,32 @@ function getDisplayError(error: unknown): string {
   return 'Something went wrong. Please try again.'
 }
 
-function StatusBadge({ status }: Readonly<{ status: Lecturer['account_status'] }>) {
+function StatusBadge({
+  status,
+  lockedUntil,
+}: Readonly<{
+  status: Lecturer['account_status']
+  lockedUntil?: string | null
+}>) {
   const styles = {
     active: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
     disabled: 'bg-muted text-muted-foreground ring-border',
     pending: 'bg-yellow/20 text-navy ring-yellow/40',
   } as const
+  const remainingMinutes = getLockoutRemainingMinutes(lockedUntil)
 
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 ring-inset ${styles[status]}`}>
-      {status}
-    </span>
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 ring-inset ${styles[status]}`}>
+        {status}
+      </span>
+      {remainingMinutes !== null && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+          <LockIcon className="size-3" aria-hidden="true" />
+          Locked ({remainingMinutes}m)
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -94,7 +116,7 @@ export function LecturersPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled' | 'locked'>('all')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isPasswordOpen, setIsPasswordOpen] = useState(false)
   const [editingLecturer, setEditingLecturer] = useState<Lecturer | null>(null)
@@ -123,7 +145,10 @@ export function LecturersPage() {
     const search = searchTerm.trim().toLocaleLowerCase()
     return lecturers.filter((lecturer) => {
       const matchesStatus =
-        statusFilter === 'all' || lecturer.account_status === statusFilter
+        statusFilter === 'all' ||
+        (statusFilter === 'locked'
+          ? isAccountLocked(lecturer.locked_until)
+          : lecturer.account_status === statusFilter)
       const matchesSearch =
         !search ||
         [lecturer.username, lecturer.first_name, lecturer.last_name, lecturer.email]
@@ -186,9 +211,26 @@ export function LecturersPage() {
                   <div className="mt-1 text-xs text-muted-foreground">{lecturer.username}</div>
                 </td>
                 <td className="px-6 py-4 text-muted-foreground">{lecturer.email}</td>
-                <td className="px-6 py-4"><StatusBadge status={lecturer.account_status} /></td>
+                <td className="px-6 py-4">
+                  <StatusBadge
+                    status={lecturer.account_status}
+                    lockedUntil={lecturer.locked_until}
+                  />
+                </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-end gap-1">
+                    {isAccountLocked(lecturer.locked_until) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => void handleUnlock(lecturer)}
+                        aria-label={`Unlock ${lecturer.username}`}
+                      >
+                        <LockOpenIcon aria-hidden="true" />
+                        <span className="hidden lg:inline">Unlock</span>
+                      </Button>
+                    )}
                     <Button type="button" variant="ghost" size="sm" onClick={() => openEditForm(lecturer)} aria-label={`Edit ${lecturer.username}`}>
                       <Edit2Icon aria-hidden="true" /><span className="hidden lg:inline">Edit</span>
                     </Button>
@@ -349,6 +391,18 @@ export function LecturersPage() {
     }
   }
 
+  async function handleUnlock(lecturer: Lecturer) {
+    setPageError(null)
+    setSuccessMessage(null)
+    try {
+      await unlockLecturer(lecturer.username)
+      setSuccessMessage('Lecturer unlocked successfully.')
+      await loadLecturers()
+    } catch (error) {
+      setPageError(getDisplayError(error))
+    }
+  }
+
   async function toggleStatus(lecturer: Lecturer) {
     setPageError(null)
     setSuccessMessage(null)
@@ -397,7 +451,7 @@ export function LecturersPage() {
         </Alert>
       )}
 
-      <section aria-label="Lecturer statistics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Lecturer statistics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card className="gap-3 border-0 py-5 shadow-sm">
           <CardHeader className="gap-1 px-5">
             <CardDescription className="font-medium uppercase tracking-wide">Total lecturers</CardDescription>
@@ -431,6 +485,17 @@ export function LecturersPage() {
         </Card>
         <Card className="gap-3 border-0 py-5 shadow-sm">
           <CardHeader className="gap-1 px-5">
+            <CardDescription className="font-medium uppercase tracking-wide">Locked lecturers</CardDescription>
+            <CardTitle className="font-heading text-4xl tabular-nums text-plum">
+              {lecturers.filter(({ locked_until }) => isAccountLocked(locked_until)).length}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-5">
+            <p className="text-xs text-muted-foreground">Temporarily locked after failed logins</p>
+          </CardContent>
+        </Card>
+        <Card className="gap-3 border-0 py-5 shadow-sm">
+          <CardHeader className="gap-1 px-5">
             <CardDescription className="font-medium uppercase tracking-wide">Search results</CardDescription>
             <CardTitle className="font-heading text-4xl tabular-nums text-plum">{filteredLecturers.length}</CardTitle>
           </CardHeader>
@@ -456,8 +521,8 @@ export function LecturersPage() {
               className="pl-9"
             />
           </div>
-          <div className="flex rounded-md border p-1" aria-label="Filter lecturers by status">
-            {(['all', 'active', 'disabled'] as const).map((filter) => (
+          <div className="flex flex-wrap rounded-md border p-1" aria-label="Filter lecturers by status">
+            {(['all', 'active', 'disabled', 'locked'] as const).map((filter) => (
               <Button
                 key={filter}
                 type="button"

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 import tempfile
 
@@ -546,3 +546,158 @@ def test_me_endpoint_rejects_disabled_or_pending_user_tokens(client, db_session)
     )
     assert pending_resp.status_code == 403
     assert pending_resp.json()["detail"] == "Account is pending approval."
+
+
+def test_account_locks_for_15_minutes_after_5_consecutive_failed_logins(
+    client, db_session
+):
+    user = _seed_user(
+        db_session,
+        username="WS881122",
+        password="CorrectPassword1!",
+        email="lockout1@weston.ac.uk",
+    )
+
+    for attempt in range(1, settings.MAX_FAILED_LOGIN_ATTEMPTS):
+        resp = client.post(
+            "/api/v1/auth/login",
+            json={"username": "WS881122", "password": "WrongPassword1!"},
+        )
+        assert resp.status_code == 401
+        db_session.refresh(user)
+        assert user.failed_login_attempts == attempt
+        assert user.locked_until is None
+
+    # 5th consecutive failure (case-insensitive username) locks for 15 minutes
+    lock_resp = client.post(
+        "/api/v1/auth/login",
+        json={"username": "ws881122", "password": "WrongPassword1!"},
+    )
+    assert lock_resp.status_code == 423
+    assert "15 minutes" in lock_resp.json()["detail"]
+    assert int(lock_resp.headers["Retry-After"]) >= 840
+
+    db_session.refresh(user)
+    assert user.failed_login_attempts == settings.MAX_FAILED_LOGIN_ATTEMPTS
+    assert user.locked_until is not None
+    initial_locked_until = user.locked_until
+
+    # Valid credentials must still be rejected with 423 while locked without extending lock
+    blocked_login = client.post(
+        "/api/v1/auth/login",
+        json={"username": "WS881122", "password": "CorrectPassword1!"},
+    )
+    assert blocked_login.status_code == 423
+    assert int(blocked_login.headers["Retry-After"]) >= 1
+
+    blocked_token = client.post(
+        "/api/v1/auth/token",
+        data={"username": "WS881122", "password": "CorrectPassword1!"},
+    )
+    assert blocked_token.status_code == 423
+
+    db_session.refresh(user)
+    assert user.last_login is None
+    assert user.locked_until == initial_locked_until
+
+
+def test_successful_login_resets_consecutive_failed_attempts(client, db_session):
+    user = _seed_user(
+        db_session,
+        username="WS882233",
+        password="CorrectPassword1!",
+        email="lockout2@weston.ac.uk",
+    )
+
+    for _ in range(settings.MAX_FAILED_LOGIN_ATTEMPTS - 1):
+        resp = client.post(
+            "/api/v1/auth/login",
+            json={"username": "WS882233", "password": "WrongPassword1!"},
+        )
+        assert resp.status_code == 401
+
+    success_resp = client.post(
+        "/api/v1/auth/login",
+        json={"username": "WS882233", "password": "CorrectPassword1!"},
+    )
+    assert success_resp.status_code == 200
+
+    db_session.refresh(user)
+    assert user.failed_login_attempts == 0
+    assert user.locked_until is None
+
+    # 4 more consecutive failures after reset should not lock the account yet
+    for attempt in range(1, settings.MAX_FAILED_LOGIN_ATTEMPTS):
+        resp = client.post(
+            "/api/v1/auth/login",
+            json={"username": "WS882233", "password": "WrongPassword1!"},
+        )
+        assert resp.status_code == 401
+        db_session.refresh(user)
+        assert user.failed_login_attempts == attempt
+        assert user.locked_until is None
+
+
+def test_account_unlocks_automatically_after_lockout_expires(client, db_session):
+    user = _seed_user(
+        db_session,
+        username="WS883344",
+        password="CorrectPassword1!",
+        email="lockout3@weston.ac.uk",
+    )
+
+    for _ in range(settings.MAX_FAILED_LOGIN_ATTEMPTS):
+        client.post(
+            "/api/v1/auth/login",
+            json={"username": "WS883344", "password": "WrongPassword1!"},
+        )
+
+    user.locked_until = datetime.now(timezone.utc) - timedelta(seconds=1)
+    db_session.commit()
+
+    # After expiry, a bad attempt returns 401 and restarts count at 1
+    after_expiry_bad = client.post(
+        "/api/v1/auth/login",
+        json={"username": "WS883344", "password": "WrongPassword1!"},
+    )
+    assert after_expiry_bad.status_code == 401
+    db_session.refresh(user)
+    assert user.failed_login_attempts == 1
+    assert user.locked_until is None
+
+    after_expiry_good = client.post(
+        "/api/v1/auth/login",
+        json={"username": "WS883344", "password": "CorrectPassword1!"},
+    )
+    assert after_expiry_good.status_code == 200
+    db_session.refresh(user)
+    assert user.failed_login_attempts == 0
+    assert user.locked_until is None
+
+
+def test_lockout_shared_between_login_and_token_endpoints(client, db_session):
+    _seed_user(
+        db_session,
+        username="WS884455",
+        password="CorrectPassword1!",
+        email="lockout4@weston.ac.uk",
+    )
+
+    for _ in range(3):
+        resp = client.post(
+            "/api/v1/auth/login",
+            json={"username": "WS884455", "password": "WrongPassword1!"},
+        )
+        assert resp.status_code == 401
+
+    fourth = client.post(
+        "/api/v1/auth/token",
+        data={"username": "WS884455", "password": "WrongPassword1!"},
+    )
+    assert fourth.status_code == 401
+
+    fifth = client.post(
+        "/api/v1/auth/token",
+        data={"username": "WS884455", "password": "WrongPassword1!"},
+    )
+    assert fifth.status_code == 423

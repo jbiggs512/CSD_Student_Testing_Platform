@@ -35,3 +35,20 @@ export function getErrorMessage(
   if (error instanceof Error && error.message) return error.message
   return fallback
 }
+
+export function getLockoutRemainingMinutes(
+  lockedUntil?: string | null,
+  nowMs = Date.now(),
+): number | null {
+  if (!lockedUntil) return null
+  const unlockMs = Date.parse(lockedUntil)
+  if (!Number.isFinite(unlockMs) || unlockMs <= nowMs) return null
+  return Math.max(1, Math.ceil((unlockMs - nowMs) / 60_000))
+}
+
+export function isAccountLocked(
+  lockedUntil?: string | null,
+  nowMs = Date.now(),
+): boolean {
+  return getLockoutRemainingMinutes(lockedUntil, nowMs) !== null
+}

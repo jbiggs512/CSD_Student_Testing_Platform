@@ -8,6 +8,7 @@ import {
   YAxis,
   type DotItemDotProps
 } from "recharts";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components";
 import type { GradePoint, GradesOverTimeResponse } from "../model"
 
@@ -47,7 +48,7 @@ export function GradesChartCard({ data }: Readonly<{ data: GradesOverTimeRespons
   const labelBelow = (i: number) => {
     const p = points[i];
     if (p.is_worst) return true;
-    if (p.is_best) return false; 
+    if (p.is_best) return false;
     return p.percentage <= data.average;
   };
 
@@ -94,52 +95,52 @@ export function GradesChartCard({ data }: Readonly<{ data: GradesOverTimeRespons
       </CardHeader>
 
       <CardContent className="p-4">
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={points} margin={{ top: 30, right: 40, bottom: 10, left: 0 }}>
-            <CartesianGrid vertical={false} stroke={COLORS.grid} />
-            <XAxis
-              dataKey="completed_at"
-              tickFormatter={formatDate}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: COLORS.axis, fontSize: 13 }}
-              padding={{ left: 40, right: 40 }}
-            />
-            <YAxis
-              domain={[yMin, 100]}
-              ticks={yTicks}
-              tickFormatter={(v) => `${v}%`}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: COLORS.axis, fontSize: 13 }}
-              width={48}
-            />
+        {points.length > 0 && (
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={points} margin={{ top: 30, right: 40, bottom: 10, left: 0 }}>
+              <CartesianGrid vertical={false} stroke={COLORS.grid} />
+              <XAxis
+                dataKey="completed_at"
+                tickFormatter={formatDate}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: COLORS.axis, fontSize: 13 }}
+                padding={{ left: 40, right: 40 }}
+              />
+              <YAxis
+                domain={[yMin, 100]}
+                ticks={yTicks}
+                tickFormatter={(v) => `${v}%`}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: COLORS.axis, fontSize: 13 }}
+                width={48}
+              />
 
-            <ReferenceLine
-              y={average}
-              stroke={COLORS.plum}
-              strokeDasharray="5 5"
-              strokeWidth={2}
-              label={{
-                value: `Average ${average}%`,
-                position: "insideBottomRight",
-                fill: COLORS.plum,
-                fontSize: 13,
-                fontWeight: 700,
-              }}
-            />
+              <ReferenceLine
+                y={average}
+                stroke={COLORS.plum}
+                strokeDasharray="5 5"
+                strokeWidth={2}
+                label={{
+                  value: `Average ${average}%`,
+                  position: "insideBottomRight",
+                  fill: COLORS.plum,
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              />
 
-            <Line
-              type="linear"
-              dataKey="percentage"
-              stroke={COLORS.navy}
-              strokeWidth={3}
-              dot={renderDot}
-              activeDot={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-
+              <Line
+                type="linear"
+                dataKey="percentage"
+                stroke={COLORS.navy}
+                strokeWidth={3}
+                dot={renderDot}
+                activeDot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>)}
       </CardContent>
     </Card>
   );

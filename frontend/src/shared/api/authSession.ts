@@ -14,6 +14,8 @@ export interface AuthUser {
   account_status: AccountStatus
   registration_date: string
   last_login: string | null
+  failed_login_attempts?: number
+  locked_until?: string | null
 }
 
 const ROLE_DASHBOARD_PATHS: Record<UserRole, string> = {

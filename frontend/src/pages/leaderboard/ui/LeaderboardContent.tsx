@@ -2,24 +2,69 @@ import type { LeaderboardProps } from "../model"
 import { TopStudentsCard } from './TopStudentsCard';
 import { ComparisonCard } from './ComparisonCard';
 import { ScoreDistributionCard } from './ScoreDistributionCard';
+import { NoContentCard, PageHero } from "@/shared/components";
+import { LoaderCircle, Star } from "lucide-react";
 
+export function LoadingLeaderboardContent() {
+    return (
+        <main id="leaderboard-page" className="p-4">
+
+            {/* Hero Section */}
+            <PageHero
+                title="Leaderboards"
+                description="See how you rank against other students in your cohort."
+            />
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 gap-4">
+                <NoContentCard title="Loading"
+                    description="Leaderboard data is loading..."
+                    icon={<LoaderCircle
+                        className="size-6 text-muted-foreground animate-spin"
+                        aria-hidden="true"
+                    />}
+                />
+            </div>
+        </main>
+    );
+}
+
+export function EmptyLeaderboardContent() {
+    return (
+        <main id="leaderboard-page" className="p-4">
+
+            {/* Hero Section */}
+            <PageHero
+                title="Leaderboards"
+                description="See how you rank against other students in your cohort."
+            />
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 gap-4">
+                <NoContentCard title="No enrollment"
+                    description="You are not yet enrolled on a course. Please contact your lecturer."
+                    icon={<Star
+                        className="size-6 text-muted-foreground"
+                        aria-hidden="true"
+                    />}
+                />
+            </div>
+        </main>
+    );
+}
 
 export function LeaderboardContent(props: Readonly<LeaderboardProps>) {
     return (
         <main id="leaderboard-page" className="p-4">
 
             {/* Hero Section */}
-            <section className="mb-8 flex flex-col justify-between rounded-2xl bg-navy p-10 text-white shadow-md lg:flex-row">
-                <div className="mb-6 flex flex-col justify-center lg:mb-0">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70">{props.courseTitle}</p>
-                    <h1 className="mb-2 font-heading text-4xl font-bold tracking-tight text-white">Leaderboards</h1>
-                    <p className="text-sm text-white/80">See how you rank against other students in your cohort.</p>
-                </div>
-            </section>
-
+            <PageHero title="Leaderboards"
+            subtitle={props.courseTitle}
+            description="See how you rank against other students in your cohort." />
+            
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-
+                
                 {/* Podium Results */}
                 <div className="lg:col-span-3">
                     <TopStudentsCard subjects={props.subjects}

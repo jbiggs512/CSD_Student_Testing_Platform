@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LeaderboardContent } from "./LeaderboardContent";
+import { LeaderboardContent, LoadingLeaderboardContent, EmptyLeaderboardContent } from "./LeaderboardContent"; 
 import { getCourseTitle, getSubjects, getLeaderboard } from '../api';
 import {
     type LeaderboardEntry,
@@ -27,15 +27,17 @@ export function LeaderboardPage() {
             try {
                 // Fetch all data needed for the leaderboard with awaits
                 const course = await getCourseTitle();
-                setCourseTitle(course);
+                if (course != undefined) setCourseTitle(course);
 
                 const subjectList = await getSubjects();
-                setSubjects(subjectList);
+                if (subjectList != undefined) {
+                    setSubjects(subjectList);
 
-                // Only get leaderboard data if subjects are returned
-                if (subjectList.length > 0) {
-                    const leaderboard = await getLeaderboard(subjectList[0].value);
-                    setLeaderboard(leaderboard);
+                    // Only get leaderboard data if subjects are returned
+                    if (subjectList.length > 0) {
+                        const leaderboard = await getLeaderboard(subjectList[0].value);
+                        setLeaderboard(leaderboard);
+                    }
                 }
             } catch (error) {
                 console.error("Error loading leaderboard data:", error);
@@ -49,9 +51,10 @@ export function LeaderboardPage() {
         });
     }, []);
 
-    if (isLoading) {
-        return <div className="flex min-h-screen items-center justify-center">Loading leaderboard...</div>;
-    }
+    if (isLoading) return <LoadingLeaderboardContent />
+
+    if (leaderboard === undefined) return <EmptyLeaderboardContent />
+    
 
     return (
         <LeaderboardContent

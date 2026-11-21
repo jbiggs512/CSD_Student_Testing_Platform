@@ -44,6 +44,18 @@ def request_update_lecturer(
     return service.update_lecturer(db, username, changes)
 
 
+@router.patch(
+    "/lecturer/{username}/unlock",
+    response_model=schemas.UserResponse,
+)
+def request_unlock_lecturer(
+    username: str,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
+):
+    return service.unlock_lecturer(db, username)
+
+
 @router.delete("/lecturer/{username}", status_code=204)
 def request_delete_lecturer(
     username: str,
@@ -83,6 +95,15 @@ def approve_student(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
     return service.approve_student(db, username, current_user)
+
+
+@router.patch("/student/{username}/unlock", response_model=schemas.UserResponse)
+def request_unlock_student(
+    username: str,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN))],
+):
+    return service.unlock_student(db, username)
 
 @router.delete("/student/{username}", status_code=204)
 def request_delete_student(

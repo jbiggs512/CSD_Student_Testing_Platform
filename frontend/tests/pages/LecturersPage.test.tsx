@@ -8,12 +8,14 @@ const {
   createLecturer,
   updateLecturer,
   updateLecturerPassword,
+  unlockLecturer,
   deleteLecturer,
 } = vi.hoisted(() => ({
   getLecturers: vi.fn(),
   createLecturer: vi.fn(),
   updateLecturer: vi.fn(),
   updateLecturerPassword: vi.fn(),
+  unlockLecturer: vi.fn(),
   deleteLecturer: vi.fn(),
 }))
 
@@ -22,6 +24,7 @@ vi.mock('@/pages/lecturers/api', () => ({
   createLecturer,
   updateLecturer,
   updateLecturerPassword,
+  unlockLecturer,
   deleteLecturer,
   LecturerApiError: class LecturerApiError extends Error {},
 }))
@@ -254,5 +257,59 @@ describe('LecturersPage', () => {
     await waitFor(() => {
       expect(deleteLecturer).toHaveBeenCalledWith('jane.lecturer')
     })
+  })
+
+  it('shows locked badge, filters by locked status, and unlocks a locked lecturer', async () => {
+    const lockedLecturer = {
+      ...lecturer,
+      user_id: 3,
+      username: 'locked.lecturer',
+      first_name: 'Sam',
+      last_name: 'Locked',
+      failed_login_attempts: 5,
+      locked_until: new Date(Date.now() + 9 * 60_000).toISOString(),
+    }
+    const expiredLecturer = {
+      ...lecturer,
+      user_id: 4,
+      username: 'expired.lecturer',
+      first_name: 'Pat',
+      last_name: 'Expired',
+      failed_login_attempts: 5,
+      locked_until: new Date(Date.now() - 60_000).toISOString(),
+    }
+
+    getLecturers.mockResolvedValue([lecturer, lockedLecturer, expiredLecturer])
+    unlockLecturer.mockResolvedValue({
+      ...lockedLecturer,
+      failed_login_attempts: 0,
+      locked_until: null,
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Sam Locked')).toBeDefined()
+    expect(screen.getByText('Locked (9m)')).toBeDefined()
+    expect(
+      screen.getByRole('button', { name: 'Unlock locked.lecturer' }),
+    ).toBeDefined()
+    expect(
+      screen.queryByRole('button', { name: 'Unlock expired.lecturer' }),
+    ).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'locked' }))
+    expect(screen.queryByText('Jane Lecturer')).toBeNull()
+    expect(screen.queryByText('Pat Expired')).toBeNull()
+    expect(screen.getByText('Sam Locked')).toBeDefined()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Unlock locked.lecturer' }),
+    )
+    await waitFor(() => {
+      expect(unlockLecturer).toHaveBeenCalledWith('locked.lecturer')
+    })
+    expect(
+      await screen.findByText('Lecturer unlocked successfully.'),
+    ).toBeDefined()
   })
 })

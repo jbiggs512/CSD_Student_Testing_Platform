@@ -1,7 +1,9 @@
 # Business logic for auth. Keep routes thin, put the real work here.
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import math
+from typing import NoReturn
 
 import jwt
 from fastapi import HTTPException, status
@@ -10,6 +12,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.v1.auth.schemas import TokenResponse
 from app.api.v1.user.schemas import UserResponse
+from app.core.config import settings
 from app.core.security import (
     DUMMY_PASSWORD_HASH,
     TOKEN_TYPE_REFRESH,
@@ -61,8 +64,28 @@ def _issue_session_tokens(user: User) -> AuthSessionResult:
     )
 
 
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _raise_account_locked(locked_until: datetime, now: datetime) -> NoReturn:
+    remaining_seconds = max(1, math.ceil((locked_until - now).total_seconds()))
+    remaining_minutes = max(1, math.ceil(remaining_seconds / 60))
+    unit = "minute" if remaining_minutes == 1 else "minutes"
+    raise HTTPException(
+        status_code=status.HTTP_423_LOCKED,
+        detail=(
+            "Account is temporarily locked due to too many failed login attempts. "
+            f"Please try again in {remaining_minutes} {unit}."
+        ),
+        headers={"Retry-After": str(remaining_seconds)},
+    )
+
+
 def authenticate_user(db: Session, username: str, password: str) -> User:
-    """Verify username and password, check account status, and update last_login."""
+    """Verify username and password, enforce brute-force lockout, and update last_login."""
     invalid_credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid username or password.",
@@ -79,12 +102,31 @@ def authenticate_user(db: Session, username: str, password: str) -> User:
         verify_password(password, DUMMY_PASSWORD_HASH)
         raise invalid_credentials_exception
 
+    now = datetime.now(timezone.utc)
+    if user.locked_until is not None:
+        locked_until_utc = _as_utc(user.locked_until)
+        if locked_until_utc > now:
+            verify_password(password, DUMMY_PASSWORD_HASH)
+            _raise_account_locked(locked_until_utc, now)
+        user.failed_login_attempts = 0
+        user.locked_until = None
+
     if not verify_password(password, user.password_hash):
+        user.failed_login_attempts += 1
+        if user.failed_login_attempts >= settings.MAX_FAILED_LOGIN_ATTEMPTS:
+            user.locked_until = now + timedelta(
+                minutes=settings.ACCOUNT_LOCKOUT_MINUTES
+            )
+            db.commit()
+            _raise_account_locked(_as_utc(user.locked_until), now)
+        db.commit()
         raise invalid_credentials_exception
 
     _ensure_user_is_active(user)
 
-    user.last_login = datetime.now(timezone.utc).replace(tzinfo=None)
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    user.last_login = now.replace(tzinfo=None)
     db.commit()
     db.refresh(user)
 
