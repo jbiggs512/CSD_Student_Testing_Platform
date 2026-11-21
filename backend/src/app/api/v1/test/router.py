@@ -49,6 +49,16 @@ def get_test_results(
     return service.get_test_results(db, test_id)
 
 
+@router.delete("/{test_id}", status_code=204)
+def delete_test(
+    test_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN))],
+) -> None:
+    """Delete a test and its associated student attempts."""
+    service.delete_test(db, test_id)
+
+
 @router.get("/{test_id}", response_model=schemas.TestResponse)
 def get_test(
     test_id: int,

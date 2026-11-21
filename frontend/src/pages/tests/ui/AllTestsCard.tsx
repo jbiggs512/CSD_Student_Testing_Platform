@@ -4,6 +4,7 @@ import {
   ClockIcon,
   HelpCircleIcon,
   LoaderCircleIcon,
+  Trash2Icon,
 } from 'lucide-react'
 import {
   Badge,
@@ -21,6 +22,7 @@ interface AllTestsCardProps {
   tests: readonly LecturerTest[]
   isLoading?: boolean
   onViewResults: (test: LecturerTest) => void
+  onDeleteTest: (test: LecturerTest) => void
 }
 
 function formatAttemptSummary(test: LecturerTest): string {
@@ -36,6 +38,7 @@ export function AllTestsCard({
   tests,
   isLoading = false,
   onViewResults,
+  onDeleteTest,
 }: Readonly<AllTestsCardProps>) {
   let content: React.ReactNode
 
@@ -67,9 +70,21 @@ export function AllTestsCard({
             className="justify-between gap-3 py-4 shadow-2xs"
           >
             <CardHeader className="gap-1 px-4">
-              <CardTitle className="font-heading text-lg font-bold text-navy">
-                {test.test_name}
-              </CardTitle>
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="font-heading text-lg font-bold text-navy">
+                  {test.test_name}
+                </CardTitle>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Delete ${test.test_name}`}
+                  onClick={() => onDeleteTest(test)}
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2Icon className="size-4" aria-hidden="true" />
+                </Button>
+              </div>
               <CardDescription className="text-xs font-medium text-navy/80">
                 Course: {test.course_title}
               </CardDescription>

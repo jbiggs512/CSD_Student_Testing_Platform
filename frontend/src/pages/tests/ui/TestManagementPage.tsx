@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { AlertCircleIcon } from 'lucide-react'
-import { Alert, AlertDescription } from '@shared/components'
+import { AlertCircleIcon, CheckCircle2Icon } from 'lucide-react'
+import { Alert, AlertDescription, ConfirmDialog } from '@shared/components'
 import { getErrorMessage, sanitizeInputText } from '@shared/lib/utils'
 import {
   createTest,
+  deleteTest,
   getSubjects,
   getTestManagementStats,
   getTestResults,
@@ -31,6 +32,19 @@ const INITIAL_FORM: CreateTestFormValues = {
   subjectId: '',
 }
 
+function formatDeleteTestDescription(test: LecturerTest): string {
+  const studentCount = test.attempted_student_count ?? test.attempt_count ?? 0
+  const studentPhrase =
+    studentCount === 1
+      ? '1 student has attempted this test.'
+      : `${studentCount} students have attempted this test.`
+  const consequence =
+    studentCount > 0
+      ? 'Deleting it will permanently remove all attempt records for this test and cannot be undone.'
+      : 'This action cannot be undone.'
+  return `Delete "${test.test_name}"? ${studentPhrase} ${consequence}`
+}
+
 export function TestManagementPage() {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [tests, setTests] = useState<LecturerTest[]>([])
@@ -40,9 +54,12 @@ export function TestManagementPage() {
   const [isLoadingInitial, setIsLoadingInitial] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
+  const [pageSuccess, setPageSuccess] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
+  const [testPendingDelete, setTestPendingDelete] =
+    useState<LecturerTest | null>(null)
   const [selectedTestForResults, setSelectedTestForResults] =
     useState<LecturerTest | null>(null)
   const [testResults, setTestResults] = useState<TestResultsDetail | null>(null)
@@ -101,6 +118,26 @@ export function TestManagementPage() {
       setSelectedTestForResults(null)
       setTestResults(null)
       setResultsError(null)
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!testPendingDelete) return
+    const target = testPendingDelete
+    setTestPendingDelete(null)
+    setPageError(null)
+    setPageSuccess(null)
+    try {
+      await deleteTest(target.test_id)
+      setPageSuccess(`Deleted test "${target.test_name}".`)
+      const [updatedTests, updatedStats] = await Promise.all([
+        getTests(),
+        getTestManagementStats(),
+      ])
+      setTests(updatedTests)
+      setStats(updatedStats)
+    } catch (error) {
+      setPageError(getErrorMessage(error))
     }
   }
 
@@ -174,11 +211,19 @@ export function TestManagementPage() {
         </Alert>
       )}
 
+      {pageSuccess && (
+        <Alert>
+          <CheckCircle2Icon aria-hidden="true" />
+          <AlertDescription>{pageSuccess}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <AllTestsCard
           tests={tests}
           isLoading={isLoadingInitial}
           onViewResults={(test) => void handleViewResults(test)}
+          onDeleteTest={setTestPendingDelete}
         />
         <CreateTestCard
           subjects={subjects}
@@ -198,6 +243,21 @@ export function TestManagementPage() {
         isLoading={isLoadingResults}
         error={resultsError}
         onOpenChange={handleResultsDialogOpenChange}
+      />
+
+      <ConfirmDialog
+        open={testPendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setTestPendingDelete(null)
+        }}
+        title="Are you sure you want to delete this test?"
+        description={
+          testPendingDelete
+            ? formatDeleteTestDescription(testPendingDelete)
+            : ''
+        }
+        confirmLabel="Delete"
+        onConfirm={() => void handleConfirmDelete()}
       />
     </main>
   )
