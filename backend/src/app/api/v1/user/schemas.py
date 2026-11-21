@@ -68,5 +68,7 @@ class UserResponse(BaseModel):
     account_status: AccountStatus
     registration_date: date
     last_login: datetime | None
+    failed_login_attempts: int = 0
+    locked_until: datetime | None = None
 
     model_config = {"from_attributes": True}
