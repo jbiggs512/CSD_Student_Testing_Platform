@@ -31,6 +31,7 @@ from app.enums import AccountStatus, SubjectStatus, UserRole
 
 SUBJECT_NOT_FOUND_DETAIL = "Subject not found."
 SUBJECT_DISABLED_DETAIL = "Tests cannot be created for a disabled subject."
+TEST_NOT_FOUND_DETAIL = "Test not found."
 TEST_NAME_REQUIRED_DETAIL = "Test name is required."
 TEST_ALREADY_EXISTS_DETAIL = "A test with this name already exists for this subject."
 EMPTY_POOL_DETAIL = "This subject has no questions in its question pool."
@@ -82,6 +83,7 @@ def to_lecturer_test_response(
     test: Test,
     pool_size: int,
     attempt_count: int = 0,
+    attempted_student_count: int = 0,
     average_percentage: float | None = None,
 ) -> LecturerTestResponse:
     return LecturerTestResponse(
@@ -95,6 +97,7 @@ def to_lecturer_test_response(
         questions_per_attempt=test.questions_per_attempt,
         pool_size=pool_size,
         attempt_count=attempt_count,
+        attempted_student_count=attempted_student_count,
         average_percentage=average_percentage,
     )
 
@@ -175,6 +178,7 @@ def list_lecturer_tests(db: Session) -> list[LecturerTestResponse]:
             if (pct := _completed_attempt_percentage(attempt)) is not None
         ]
         attempt_count = len(percentages)
+        attempted_student_count = len({attempt.user_id for attempt in test.attempts})
         avg_pct = (
             round(sum(percentages) / attempt_count, 1)
             if attempt_count > 0
@@ -185,6 +189,7 @@ def list_lecturer_tests(db: Session) -> list[LecturerTestResponse]:
                 test,
                 pool_counts[test.subject_id],
                 attempt_count=attempt_count,
+                attempted_student_count=attempted_student_count,
                 average_percentage=avg_pct,
             )
         )
@@ -255,7 +260,7 @@ def get_test_results(db: Session, test_id: int) -> TestResultsDetailResponse:
         .where(Test.test_id == test_id)
     )
     if test is None:
-        raise HTTPException(status_code=404, detail="Test not found.")
+        raise HTTPException(status_code=404, detail=TEST_NOT_FOUND_DETAIL)
 
     attempts = db.scalars(
         select(TestAttempt)
@@ -312,6 +317,31 @@ def get_test_results(db: Session, test_id: int) -> TestResultsDetailResponse:
         lowest_score=lowest_score,
         attempts=attempt_items,
     )
+
+
+def delete_test(db: Session, test_id: int) -> None:
+    test = db.get(Test, test_id)
+    if test is None:
+        raise HTTPException(status_code=404, detail=TEST_NOT_FOUND_DETAIL)
+
+    # Clear legacy Question.test_id links (e.g. seeded questions) so ON DELETE RESTRICT does not block test deletion.
+    linked_questions = db.scalars(
+        select(Question).where(Question.test_id == test_id)
+    ).all()
+    for question in linked_questions:
+        if question.subject_id is None:
+            question.subject_id = test.subject_id
+        question.test_id = None
+
+    attempts = db.scalars(
+        select(TestAttempt).where(TestAttempt.test_id == test_id)
+    ).all()
+    for attempt in attempts:
+        db.delete(attempt)
+
+    db.flush()
+    db.delete(test)
+    db.commit()
 
 
 def _ensure_student_can_access_test(

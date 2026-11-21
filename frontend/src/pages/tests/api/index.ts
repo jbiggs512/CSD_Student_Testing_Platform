@@ -1,5 +1,6 @@
 export {
   createTest,
+  deleteTest,
   getSubjects,
   getTestManagementStats,
   getTestResults,

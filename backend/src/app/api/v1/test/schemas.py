@@ -72,6 +72,7 @@ class LecturerTestResponse(BaseModel):
     questions_per_attempt: int
     pool_size: int
     attempt_count: int = 0
+    attempted_student_count: int = 0
     average_percentage: float | None = None
 
 
