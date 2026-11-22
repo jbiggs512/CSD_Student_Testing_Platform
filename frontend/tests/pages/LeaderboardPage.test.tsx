@@ -1,6 +1,10 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LeaderboardPage } from '@/pages/leaderboard'
+import { ComparisonCard } from '@/pages/leaderboard/ui/ComparisonCard'
+import { ScoreDistributionCard } from '@/pages/leaderboard/ui/ScoreDistributionCard'
+import type { CohortComparisonResponse, ScoreDistributionResponse } from '@/pages/leaderboard/model'
+import { cloneElement, type ReactElement } from 'react'
 
 const {
   getCourseTitle,
@@ -47,6 +51,56 @@ const emptyLeaderboard = {
   is_in_top_5: true,
 }
 
+const cohortComparison = {
+  subject: 'Mathematics',
+  top5_average: 92,
+  user_average: 80,
+  cohort_average: 74,
+}
+
+const scoreDistribution = {
+  subject: 'Mathematics',
+  bands: [
+    { band: '0-20', count: 1 },
+    { band: '81-100', count: 4 },
+  ],
+  user_band: '81-100',
+  user_score: 80,
+}
+
+const comparisonData: CohortComparisonResponse = {
+  subject: 'Mathematics',
+  top5_average: 92,
+  user_average: 80,
+  cohort_average: 74,
+}
+
+const distributionData: ScoreDistributionResponse = {
+  subject: 'Mathematics',
+  bands: [
+    { band: '0-20', count: 1 },
+    { band: '21-40', count: 2 },
+    { band: '81-100', count: 5 },
+  ],
+  user_band: '81-100',
+  user_score: 83,
+}
+
+vi.mock('recharts', async () => {
+  const actual = await vi.importActual<typeof import('recharts')>('recharts')
+  return {
+    ...actual,
+    ResponsiveContainer: ({ children }: { children: ReactElement }) => (
+      <div style={{ width: 800, height: 400 }}>
+        {cloneElement(children as ReactElement<{ width?: number; height?: number }>, {
+          width: 800,
+          height: 400,
+        })}
+      </div>
+    ),
+  }
+})
+
 function renderLeaderboardPage() {
   return render(<LeaderboardPage />)
 }
@@ -78,7 +132,8 @@ describe('Leaderboard Page', () => {
     getCourseTitle.mockResolvedValue('BSc Software Engineering')
     getSubjects.mockResolvedValue(subjects)
     getLeaderboard.mockResolvedValue(leaderboard)
-
+    getCohortComparison.mockResolvedValue(cohortComparison)
+    getScoreDistribution.mockResolvedValue(scoreDistribution)
     renderLeaderboardPage()
 
     expect(await screen.findByRole('heading', { name: 'Leaderboards' })).toBeDefined()
@@ -87,11 +142,17 @@ describe('Leaderboard Page', () => {
     expect(screen.getByText('John D.')).toBeDefined()
     expect(screen.getByText('96%')).toBeDefined()
     expect(screen.getByText('1860')).toBeDefined()
+    expect(screen.getByText('You vs Cohort vs Top 5' )).toBeDefined()
+    expect(screen.getByText('Comparison against the top 5 students average and the entire cohort average.')).toBeDefined()
+    expect(screen.getByText('Cohort Score Distribution')).toBeDefined()
+    expect(screen.getByText('Number of students per score band for Mathematics.')).toBeDefined()
 
-    expect(getCourseTitle).toHaveBeenCalledTimes(1)
-    expect(getSubjects).toHaveBeenCalledTimes(1)
+    expect(getCourseTitle).toHaveBeenCalledOnce()
+    expect(getSubjects).toHaveBeenCalledOnce()
     expect(getLeaderboard).toHaveBeenCalledOnce()
     expect(getLeaderboard).toHaveBeenCalledWith(subjects[0].value)
+    expect(getCohortComparison).toHaveBeenCalledOnce()
+    expect(getScoreDistribution).toHaveBeenCalledOnce()
   })
 
   it('displays a message when the leaderboard is empty', async () => {
@@ -162,7 +223,7 @@ describe('Leaderboard Page', () => {
     })
   })
 
-it('reloads leaderboard after an empty result', async () => {
+  it('reloads leaderboard after an empty result', async () => {
     getCourseTitle.mockResolvedValue('BSc Software Engineering')
     getSubjects.mockResolvedValue(subjects)
     getLeaderboard.mockImplementation((subjectId: number) =>
@@ -179,7 +240,7 @@ it('reloads leaderboard after an empty result', async () => {
     expect(await screen.findByText('Average score for Science')).toBeDefined()
     expect(screen.getByText('Number of students per score band for Science.')).toBeDefined()
     await waitFor(() => {
-      expect(getLeaderboard).toHaveBeenLastCalledWith(8) 
+      expect(getLeaderboard).toHaveBeenLastCalledWith(8)
     })
   })
 
@@ -214,5 +275,62 @@ it('reloads leaderboard after an empty result', async () => {
     renderLeaderboardPage()
 
     expect(getLeaderboard).not.toHaveBeenCalled()
+  })
+})
+
+describe('Comparison Card', () => {
+  afterEach(cleanup)
+
+  it('renders the card title, description, and subject', () => {
+    render(<ComparisonCard data={comparisonData} />)
+
+    expect(screen.getByText('You vs Cohort vs Top 5')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Comparison against the top 5 students average and the entire cohort average.',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByText('Average score for Mathematics')).toBeTruthy()
+  })
+
+  it('renders every comparison label and score', () => {
+    render(<ComparisonCard data={comparisonData} />)
+
+    expect(screen.getAllByText('Top 5 avg').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('You').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Cohort avg').length).toBeGreaterThan(0)
+    expect(screen.getByText('92%')).toBeTruthy()
+    expect(screen.getByText('80%')).toBeTruthy()
+    expect(screen.getByText('74%')).toBeTruthy()
+  })
+})
+
+describe('Score Distribution Card', () => {
+  afterEach(cleanup)
+
+  it('renders the card title, description, and subject', () => {
+    render(<ScoreDistributionCard data={distributionData} />)
+
+    expect(screen.getByText('Cohort Score Distribution')).toBeTruthy()
+    expect(
+      screen.getByText('Number of students per score band for Mathematics.'),
+    ).toBeTruthy()
+  })
+
+  it('renders every score band and count', () => {
+    render(<ScoreDistributionCard data={distributionData} />)
+
+    expect(screen.getByText('0-20')).toBeTruthy()
+    expect(screen.getByText('21-40')).toBeTruthy()
+    expect(screen.getByText('81-100')).toBeTruthy()
+    expect(screen.getByText('1')).toBeTruthy()
+    expect(screen.getByText('2')).toBeTruthy()
+    expect(screen.getByText('5')).toBeTruthy()
+  })
+
+  it('labels the user band with the current score', () => {
+    render(<ScoreDistributionCard data={distributionData} />)
+
+    expect(screen.getByText('You: 83%')).toBeTruthy()
   })
 })
