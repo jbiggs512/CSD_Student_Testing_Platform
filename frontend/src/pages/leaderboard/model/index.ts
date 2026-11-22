@@ -2,7 +2,12 @@
 export type {
     LeaderboardEntry,
     LeaderboardProps,
+    EmptyLeaderboardProps,
     LeaderboardResponse,
     SubjectFilter,
-    TopStudentCardProps
+    TopStudentCardProps,
+    ScoreBand,
+    ScoreDistributionResponse,
+    CohortComparisonResponse,
+    ComparisonRow,
 } from "./types"

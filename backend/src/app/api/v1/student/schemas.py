@@ -58,3 +58,19 @@ class GradePoint(BaseModel):
 class GradesOverTimeResponse(BaseModel):
     average: int        
     points: list[GradePoint]
+    
+class CohortComparisonResponse(BaseModel):
+    subject: str
+    top5_average: int | None
+    user_average: int | None
+    cohort_average: int | None
+
+class ScoreBand(BaseModel):
+    band: str
+    count: int
+
+class ScoreDistributionResponse(BaseModel):
+    subject: str
+    bands: list[ScoreBand]
+    user_band: str | None
+    user_score: int | None

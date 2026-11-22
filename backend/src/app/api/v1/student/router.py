@@ -89,7 +89,30 @@ def grades_over_time(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ):
+    """
+    Get the grades over time for the current authenticated user.
+    Returns no content if the user is not enrolled on a course or has no test results.
+    """
     result = service.get_grades_over_time(db, current_user.user_id)
     if result is None:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     return result
+
+@router.get("/{subject_id}/cohortComparison")
+def cohort_comparison(
+    subject_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> schemas.CohortComparisonResponse:
+    """Get the data for the cohort comparison chart for the authenticated user and passed subject"""
+    return service.get_cohort_comparison(db, current_user, subject_id)
+
+
+@router.get("/{subject_id}/scoreDistribution")
+def score_distribution(
+    subject_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> schemas.ScoreDistributionResponse:
+    """Get the data for the score distribution chart for the authenticated user and passed subject"""
+    return service.get_score_distribution(db, current_user, subject_id)
