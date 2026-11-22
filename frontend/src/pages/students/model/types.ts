@@ -1,3 +1,5 @@
+import type { Course } from '@shared/api'
+
 export type StudentStatus = 'active' | 'disabled' | 'pending'
 
 export interface Student {
@@ -10,6 +12,7 @@ export interface Student {
   account_status: StudentStatus
   registration_date: string
   last_login: string | null
+  courses: Course[]
 }
 
 export interface StudentCreateRequest {
@@ -18,6 +21,7 @@ export interface StudentCreateRequest {
   last_name: string
   email: string
   password: string
+  courses?: number[]
 }
 
 export interface StudentUpdateRequest {
@@ -26,4 +30,5 @@ export interface StudentUpdateRequest {
   email?: string
   password?: string
   account_status?: StudentStatus
+  courses?: number[]
 }

@@ -60,8 +60,10 @@ async function studentRequest<T>(
   return (await response.json()) as T
 }
 
-export function getStudents(): Promise<Student[]> {
-  return studentRequest<Student[]>('')
+export function getStudents(courseId?: number): Promise<Student[]> {
+  const query =
+    courseId !== undefined ? `?course_id=${encodeURIComponent(String(courseId))}` : ''
+  return studentRequest<Student[]>(query)
 }
 
 export function createStudent(request: StudentCreateRequest): Promise<Student> {

@@ -64,8 +64,9 @@ def request_create_student(
 def request_get_students(
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN))],
+    course_id: int | None = None,
 ):
-    return service.get_students(db)
+    return service.get_students(db, course_id=course_id)
 
 @router.patch("/student/{username}", response_model=schemas.UserResponse)
 def request_update_student(

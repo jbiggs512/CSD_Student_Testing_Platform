@@ -35,6 +35,7 @@ import {
   SheetTitle,
 } from '@shared/components/ui/sheet'
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog'
+import { getCourses, type Course } from '@shared/api'
 import type { Student } from '../model'
 import {
   approveStudent,
@@ -50,6 +51,7 @@ interface FormValues {
   first_name: string
   last_name: string
   email: string
+  course_id: string
   password: string
 }
 
@@ -63,6 +65,7 @@ const EMPTY_FORM: FormValues = {
   first_name: '',
   last_name: '',
   email: '',
+  course_id: '',
   password: '',
 }
 
@@ -73,6 +76,7 @@ const EMPTY_PASSWORD: PasswordValues = {
 
 interface StudentsPageState {
   students: Student[]
+  courses: Course[]
   isLoading: boolean
   isSaving: boolean
   pageError: string | null
@@ -80,6 +84,7 @@ interface StudentsPageState {
   successMessage: string | null
   searchTerm: string
   statusFilter: 'all' | Student['account_status']
+  courseFilter: string
   isFormOpen: boolean
   editingStudent: Student | null
   passwordStudent: Student | null
@@ -91,6 +96,7 @@ interface StudentsPageState {
 
 const INITIAL_STATE: StudentsPageState = {
   students: [],
+  courses: [],
   isLoading: true,
   isSaving: false,
   pageError: null,
@@ -98,6 +104,7 @@ const INITIAL_STATE: StudentsPageState = {
   successMessage: null,
   searchTerm: '',
   statusFilter: 'all',
+  courseFilter: 'all',
   isFormOpen: false,
   editingStudent: null,
   passwordStudent: null,
@@ -123,6 +130,18 @@ function StatusBadge({ status }: Readonly<{ status: Student['account_status'] }>
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 ring-inset ${styles[status]}`}>
       {status}
+    </span>
+  )
+}
+
+function StudentCourseCell({ student }: Readonly<{ student: Student }>) {
+  if (student.courses.length === 0) {
+    return <span className="italic text-muted-foreground">Unassigned</span>
+  }
+
+  return (
+    <span className="text-foreground">
+      {student.courses.map((course) => course.course_title).join(', ')}
     </span>
   )
 }
@@ -184,6 +203,11 @@ function createStudentColumns(
       cell: ({ row }) => <StudentIdentityCell student={row.original} />,
     },
     {
+      id: 'courses',
+      header: 'Course',
+      cell: ({ row }) => <StudentCourseCell student={row.original} />,
+    },
+    {
       accessorKey: 'email',
       header: 'Email',
       meta: {
@@ -220,6 +244,7 @@ interface StudentListCardProps {
   filteredStudents: Student[]
   onSearch: (value: string) => void
   onStatusFilter: (filter: StudentsPageState['statusFilter']) => void
+  onCourseFilter: (courseId: string) => void
   onCreate: () => void
   onApprove: (student: Student) => void
   onToggleStatus: (student: Student) => void
@@ -233,6 +258,7 @@ function StudentListCard({
   filteredStudents,
   onSearch,
   onStatusFilter,
+  onCourseFilter,
   onCreate,
   onApprove,
   onToggleStatus,
@@ -257,16 +283,30 @@ function StudentListCard({
 
   return (
     <Card className="gap-0 border-0 py-0 shadow-md">
-      <CardHeader className="gap-4 border-b py-5 sm:flex-row sm:items-center sm:justify-between">
+      <CardHeader className="gap-4 border-b py-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <CardTitle className="font-heading text-2xl font-bold text-plum">Students</CardTitle>
           <CardDescription>Search, approve, edit and manage student accounts.</CardDescription>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <div className="relative min-w-0 sm:w-72">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-initial">
             <SearchIcon aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input aria-label="Search students" placeholder="Search students..." value={state.searchTerm} onChange={(event) => onSearch(event.target.value)} className="pl-9" />
           </div>
+          <select
+            aria-label="Filter students by course"
+            value={state.courseFilter}
+            onChange={(event) => onCourseFilter(event.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="all">All courses</option>
+            <option value="unassigned">Unassigned</option>
+            {state.courses.map((course) => (
+              <option key={course.course_id} value={String(course.course_id)}>
+                {course.course_title}
+              </option>
+            ))}
+          </select>
           <div className="flex rounded-md border p-1" aria-label="Filter students by status">
             {(['all', 'active', 'pending', 'disabled'] as const).map((filter) => (
               <Button key={filter} type="button" size="sm" variant={state.statusFilter === filter ? 'secondary' : 'ghost'} aria-pressed={state.statusFilter === filter} onClick={() => onStatusFilter(filter)} className="capitalize">{filter}</Button>
@@ -279,7 +319,7 @@ function StudentListCard({
         {showEmptyState && <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
           <div className="rounded-full bg-muted p-3"><UsersIcon className="size-6 text-muted-foreground" aria-hidden="true" /></div>
           <h2 className="font-medium">{state.students.length === 0 ? 'No students yet' : 'No matching students'}</h2>
-          <p className="max-w-sm text-sm text-muted-foreground">{state.students.length === 0 ? 'Create the first student account to get started.' : 'Try changing your search or status filter.'}</p>
+          <p className="max-w-sm text-sm text-muted-foreground">{state.students.length === 0 ? 'Create the first student account to get started.' : 'Try changing your search, course, or status filter.'}</p>
           {state.students.length === 0 && <Button onClick={onCreate}>Add your first student</Button>}
         </div>}
         {showStudentTable && (
@@ -288,7 +328,7 @@ function StudentListCard({
             data={filteredStudents}
             pageSize={10}
             itemLabel="students"
-            className="min-w-[900px]"
+            className="min-w-[960px]"
           />
         )}
       </CardContent>
@@ -305,7 +345,11 @@ export function StudentsPage() {
   const loadStudents = useCallback(async (silent = false) => {
     updateState(silent ? { pageError: null } : { isLoading: true, pageError: null })
     try {
-      updateState({ students: await getStudents() })
+      const [students, courses] = await Promise.all([
+        getStudents(),
+        getCourses(),
+      ])
+      updateState({ students, courses })
     } catch (error) {
       updateState({ pageError: getDisplayError(error) })
     } finally {
@@ -323,14 +367,28 @@ export function StudentsPage() {
     const search = state.searchTerm.trim().toLocaleLowerCase()
     return state.students.filter((student) => {
       const matchesStatus = state.statusFilter === 'all' || student.account_status === state.statusFilter
+      let matchesCourse = true
+      if (state.courseFilter === 'unassigned') {
+        matchesCourse = student.courses.length === 0
+      } else if (state.courseFilter !== 'all') {
+        matchesCourse = student.courses.some(
+          (course) => String(course.course_id) === state.courseFilter,
+        )
+      }
       const matchesSearch = !search ||
-        [student.username, student.first_name, student.last_name, student.email]
+        [
+          student.username,
+          student.first_name,
+          student.last_name,
+          student.email,
+          ...student.courses.map((course) => course.course_title),
+        ]
           .join(' ')
           .toLocaleLowerCase()
           .includes(search)
-      return matchesStatus && matchesSearch
+      return matchesStatus && matchesCourse && matchesSearch
     })
-  }, [state.searchTerm, state.statusFilter, state.students])
+  }, [state.courseFilter, state.searchTerm, state.statusFilter, state.students])
 
   function openCreateForm() {
     updateState({
@@ -349,6 +407,7 @@ export function StudentsPage() {
         first_name: student.first_name,
         last_name: student.last_name,
         email: student.email,
+        course_id: student.courses[0] ? String(student.courses[0].course_id) : '',
         password: '',
       },
       formError: null,
@@ -387,12 +446,17 @@ export function StudentsPage() {
     event.preventDefault()
     updateState({ formError: null, successMessage: null, isSaving: true })
 
+    const selectedCourses = state.formValues.course_id
+      ? [Number(state.formValues.course_id)]
+      : []
+
     try {
       if (state.editingStudent) {
         await updateStudent(state.editingStudent.username, {
           first_name: state.formValues.first_name.trim(),
           last_name: state.formValues.last_name.trim(),
           email: state.formValues.email.trim(),
+          courses: selectedCourses,
         })
         updateState({ successMessage: 'Student updated successfully.' })
       } else {
@@ -402,6 +466,7 @@ export function StudentsPage() {
           last_name: state.formValues.last_name.trim(),
           email: state.formValues.email.trim(),
           password: state.formValues.password,
+          ...(selectedCourses.length > 0 ? { courses: selectedCourses } : {}),
         })
         updateState({ successMessage: 'Student created successfully.' })
       }
@@ -527,6 +592,7 @@ export function StudentsPage() {
         filteredStudents={filteredStudents}
         onSearch={(searchTerm) => updateState({ searchTerm })}
         onStatusFilter={(statusFilter) => updateState({ statusFilter })}
+        onCourseFilter={(courseFilter) => updateState({ courseFilter })}
         onCreate={openCreateForm}
         onApprove={handleApprove}
         onToggleStatus={toggleStatus}
@@ -544,6 +610,26 @@ export function StudentsPage() {
             <div className="space-y-2"><Label htmlFor="student-first-name">First name</Label><Input id="student-first-name" required value={state.formValues.first_name} onChange={(event) => updateState({ formValues: { ...state.formValues, first_name: event.target.value } })} /></div>
             <div className="space-y-2"><Label htmlFor="student-last-name">Last name</Label><Input id="student-last-name" required value={state.formValues.last_name} onChange={(event) => updateState({ formValues: { ...state.formValues, last_name: event.target.value } })} /></div>
             <div className="space-y-2"><Label htmlFor="student-email">Email</Label><Input id="student-email" type="email" required value={state.formValues.email} onChange={(event) => updateState({ formValues: { ...state.formValues, email: event.target.value } })} /></div>
+            <div className="space-y-2">
+              <Label htmlFor="student-course">Course</Label>
+              <select
+                id="student-course"
+                value={state.formValues.course_id}
+                onChange={(event) =>
+                  updateState({
+                    formValues: { ...state.formValues, course_id: event.target.value },
+                  })
+                }
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Unassigned</option>
+                {state.courses.map((course) => (
+                  <option key={course.course_id} value={String(course.course_id)}>
+                    {course.course_title}
+                  </option>
+                ))}
+              </select>
+            </div>
             {!state.editingStudent && <div className="space-y-2"><Label htmlFor="student-password">Initial password</Label><Input id="student-password" type="password" minLength={8} required value={state.formValues.password} onChange={(event) => updateState({ formValues: { ...state.formValues, password: event.target.value } })} /></div>}
             <SheetFooter className="mt-auto flex-col-reverse border-t px-0 pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={closeForm} disabled={state.isSaving}>Cancel</Button><Button type="submit" disabled={state.isSaving}>{state.isSaving && <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />}{formSubmitLabel}</Button></SheetFooter>
           </form>

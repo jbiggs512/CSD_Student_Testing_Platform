@@ -1013,3 +1013,152 @@ def test_seed_users_is_idempotent(db_session):
         assert user.email == spec.email
         assert user.role.role_name == spec.role.value
         assert user.account_status == spec.account_status
+
+
+def test_list_students_includes_and_filters_by_course(client, db_session):
+    se_course = db_session.scalar(
+        select(Course).where(Course.course_title == "BSc Software Engineering")
+    )
+    cs_course = db_session.scalar(
+        select(Course).where(Course.course_title == "BSc Computer Science")
+    )
+    assert se_course is not None
+    assert cs_course is not None
+
+    lecturer = _seed_user(
+        db_session,
+        username="LC500001",
+        role_name=UserRole.LECTURER,
+    )
+    se_student = _seed_user(
+        db_session,
+        username="WS500001",
+        role_name=UserRole.STUDENT,
+    )
+    cs_student = _seed_user(
+        db_session,
+        username="WS500002",
+        role_name=UserRole.STUDENT,
+    )
+    se_student.courses = [se_course]
+    cs_student.courses = [cs_course]
+    db_session.commit()
+
+    headers = {
+        "Authorization": f"Bearer {create_access_token(subject=lecturer.username)}"
+    }
+
+    all_response = client.get("/api/v1/user/student", headers=headers)
+    assert all_response.status_code == 200
+    all_by_username = {item["username"]: item for item in all_response.json()}
+    assert all_by_username[se_student.username]["courses"] == [
+        {"course_id": se_course.course_id, "course_title": se_course.course_title}
+    ]
+    assert all_by_username[cs_student.username]["courses"] == [
+        {"course_id": cs_course.course_id, "course_title": cs_course.course_title}
+    ]
+
+    filtered_response = client.get(
+        f"/api/v1/user/student?course_id={se_course.course_id}",
+        headers=headers,
+    )
+    assert filtered_response.status_code == 200
+    filtered_usernames = {item["username"] for item in filtered_response.json()}
+    assert se_student.username in filtered_usernames
+    assert cs_student.username not in filtered_usernames
+
+
+def test_lecturer_can_update_and_clear_student_course(client, db_session):
+    se_course = db_session.scalar(
+        select(Course).where(Course.course_title == "BSc Software Engineering")
+    )
+    cs_course = db_session.scalar(
+        select(Course).where(Course.course_title == "BSc Computer Science")
+    )
+    assert se_course is not None
+    assert cs_course is not None
+
+    lecturer = _seed_user(
+        db_session,
+        username="LC500002",
+        role_name=UserRole.LECTURER,
+    )
+    student = _seed_user(
+        db_session,
+        username="WS500003",
+        role_name=UserRole.STUDENT,
+    )
+    student.courses = [se_course]
+    db_session.commit()
+
+    headers = {
+        "Authorization": f"Bearer {create_access_token(subject=lecturer.username)}"
+    }
+
+    reassign_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={"courses": [cs_course.course_id]},
+        headers=headers,
+    )
+    assert reassign_response.status_code == 200
+    assert reassign_response.json()["courses"] == [
+        {"course_id": cs_course.course_id, "course_title": cs_course.course_title}
+    ]
+
+    # Updating unrelated fields when omitting 'courses' must preserve assignment.
+    status_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={"first_name": "Preserved"},
+        headers=headers,
+    )
+    assert status_response.status_code == 200
+    assert status_response.json()["courses"] == [
+        {"course_id": cs_course.course_id, "course_title": cs_course.course_title}
+    ]
+
+    # Explicit empty list clears assigned courses.
+    clear_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={"courses": []},
+        headers=headers,
+    )
+    assert clear_response.status_code == 200
+    assert clear_response.json()["courses"] == []
+
+
+def test_student_course_validation_rejects_missing_course(client, db_session):
+    lecturer = _seed_user(
+        db_session,
+        username="LC500003",
+        role_name=UserRole.LECTURER,
+    )
+    student = _seed_user(
+        db_session,
+        username="WS500004",
+        role_name=UserRole.STUDENT,
+    )
+    headers = {
+        "Authorization": f"Bearer {create_access_token(subject=lecturer.username)}"
+    }
+
+    update_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={"courses": [999999]},
+        headers=headers,
+    )
+    assert update_response.status_code == 400
+    assert update_response.json()["detail"] == service.COURSE_NOT_FOUND_DETAIL
+
+    create_response = client.post(
+        "/api/v1/user/student",
+        json={
+            "username": "WS500005",
+            "first_name": "Invalid",
+            "last_name": "Course",
+            "email": "invalid.course@example.com",
+            "password": "SecurePassword123!",
+            "courses": [999999],
+        },
+    )
+    assert create_response.status_code == 400
+    assert create_response.json()["detail"] == service.COURSE_NOT_FOUND_DETAIL

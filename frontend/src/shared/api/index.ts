@@ -13,3 +13,5 @@ export {
 } from './authSession'
 export type { AccountStatus, AuthUser, UserRole } from './authSession'
 export { createApiClient, ApiError } from './client'
+export { getCourses } from './coursesApi'
+export type { Course } from './coursesApi'
