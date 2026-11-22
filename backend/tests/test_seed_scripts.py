@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 import re
-from types import SimpleNamespace
 
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -21,7 +20,7 @@ from app.db.models import (
 )
 from app.db.scripts import seed_all as seed_all_module
 from app.db.scripts.common import SeedCounts, calculate_attempt_score, verify_schema_ready
-from app.db.scripts.seed_all import SeedReport, main, seed_all
+from app.db.scripts.seed_all import main, seed_all
 from app.db.scripts.seed_roles import seed_roles
 from app.db.scripts.seed_users import DEFAULT_PASSWORD
 from app.enums import AccountStatus, SubjectStatus, UserRole
@@ -453,12 +452,12 @@ def test_seeded_accounts_power_student_lecturer_and_admin_endpoints(client, db_s
     assert results.status_code == 200
     assert len(results.json()["attempts"]) == test_with_attempts["attempt_count"]
 
-    students_res = client.get("/api/v1/user/students", headers=lecturer_headers)
+    students_res = client.get("/api/v1/user/student", headers=lecturer_headers)
     assert students_res.status_code == 200
     assert len(students_res.json()) >= 40
 
     # Admin workflows
-    lecturers_res = client.get("/api/v1/user/lecturers", headers=admin_headers)
+    lecturers_res = client.get("/api/v1/user/lecturer", headers=admin_headers)
     assert lecturers_res.status_code == 200
     assert len(lecturers_res.json()) >= 10
 
