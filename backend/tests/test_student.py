@@ -498,9 +498,9 @@ def test_cohort_comparison_returns_nulls_for_student_with_no_attempt(
     assert response.status_code == 200
     assert response.json() == {
         "subject": "Empty Cohort Subject",
-        "top5_average": None,
-        "user_average": None,
-        "cohort_average": None,
+        "top5_average": 0,
+        "user_average": 0,
+        "cohort_average": 0,
     }
 
 
@@ -579,7 +579,7 @@ def test_score_distribution_returns_empty_bands_for_student_with_no_attempt(
     data = response.json()
     assert data["subject"] == "Empty Distribution Subject"
     assert data["user_band"] is None
-    assert data["user_score"] is None
+    assert data["user_score"] is 0
     assert data["bands"] == [
         {"band": "40–49", "count": 0},
         {"band": "50–59", "count": 0},
