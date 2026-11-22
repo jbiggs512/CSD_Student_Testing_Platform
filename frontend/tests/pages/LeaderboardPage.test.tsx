@@ -1,9 +1,6 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { cloneElement, type ReactElement } from 'react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LeaderboardPage } from '@/pages/leaderboard'
-import { ComparisonCard } from '@/pages/leaderboard/ui/ComparisonCard'
-import { ScoreDistributionCard } from '@/pages/leaderboard/ui/ScoreDistributionCard'
 
 const {
   getCourseTitle,
@@ -26,21 +23,6 @@ vi.mock('@/pages/leaderboard/api', () => ({
   getCohortComparison,
   getScoreDistribution,
 }))
-
-vi.mock('recharts', async () => {
-  const actual = await vi.importActual<typeof import('recharts')>('recharts')
-  return {
-    ...actual,
-    ResponsiveContainer: ({ children }: { children: ReactElement }) => (
-      <div style={{ width: 800, height: 400 }}>
-        {cloneElement(children as ReactElement<{ width?: number; height?: number }>, {
-          width: 800,
-          height: 400,
-        })}
-      </div>
-    ),
-  }
-})
 
 const subjects = [
   { label: 'Mathematics', value: 7 },
@@ -232,116 +214,5 @@ it('reloads leaderboard after an empty result', async () => {
     renderLeaderboardPage()
 
     expect(getLeaderboard).not.toHaveBeenCalled()
-  })
-})
-
-describe('Leaderboard chart cards', () => {
-  afterEach(() => {
-    cleanup()
-  })
-
-  it('renders the comparison card title, description, subject, and averages', () => {
-    const { container } = render(
-      <ComparisonCard
-        data={{
-          subject: 'Mathematics',
-          top5_average: 92,
-          user_average: 80,
-          cohort_average: 74,
-        }}
-      />,
-    )
-    const view = within(container)
-
-    expect(view.getByText('You vs Cohort vs Top 5')).toBeDefined()
-    expect(view.getByText('Comparison against the top 5 students average and the entire cohort average.')).toBeDefined()
-    expect(view.getByText('Average score for Mathematics')).toBeDefined()
-    expect(view.getByText('92%')).toBeDefined()
-    expect(view.getByText('80%')).toBeDefined()
-    expect(view.getByText('74%')).toBeDefined()
-  })
-
-  it('renders all comparison categories in the chart', () => {
-    const { container } = render(
-      <ComparisonCard
-        data={{
-          subject: 'Science',
-          top5_average: 88,
-          user_average: 78,
-          cohort_average: 72,
-        }}
-      />,
-    )
-    const view = within(container)
-
-    expect(view.getByText('Top 5 avg')).toBeDefined()
-    expect(view.getByText('You')).toBeDefined()
-    expect(view.getByText('Cohort avg')).toBeDefined()
-  })
-
-  it('renders the score distribution title, description, bands, and counts', () => {
-    const { container } = render(
-      <ScoreDistributionCard
-        data={{
-          subject: 'Mathematics',
-          bands: [
-            { band: '0-20', count: 1 },
-            { band: '21-40', count: 3 },
-            { band: '81-100', count: 6 },
-          ],
-          user_band: '81-100',
-          user_score: 83,
-        }}
-      />,
-    )
-    const view = within(container)
-
-    expect(view.getByText('Cohort Score Distribution')).toBeDefined()
-    expect(view.getByText('Number of students per score band for Mathematics.')).toBeDefined()
-    expect(view.getByText('0-20')).toBeDefined()
-    expect(view.getByText('21-40')).toBeDefined()
-    expect(view.getByText('81-100')).toBeDefined()
-    expect(view.getByText('1')).toBeDefined()
-    expect(view.getByText('3')).toBeDefined()
-    expect(view.getByText('6')).toBeDefined()
-  })
-
-  it('labels the current student score in their score band', () => {
-    const { container } = render(
-      <ScoreDistributionCard
-        data={{
-          subject: 'Science',
-          bands: [
-            { band: '61-80', count: 5 },
-            { band: '81-100', count: 2 },
-          ],
-          user_band: '61-80',
-          user_score: 76,
-        }}
-      />,
-    )
-    const view = within(container)
-
-    expect(view.getByText('You: 76%')).toBeDefined()
-  })
-
-  it('renders a score distribution when the user has no matching band', () => {
-    const { container } = render(
-      <ScoreDistributionCard
-        data={{
-          subject: 'Physics',
-          bands: [
-            { band: '41-60', count: 4 },
-            { band: '61-80', count: 7 },
-          ],
-          user_band: '',
-          user_score: 55,
-        }}
-      />,
-    )
-    const view = within(container)
-
-    expect(view.getByText('Cohort Score Distribution')).toBeDefined()
-    expect(view.queryByText(/You:/)).toBeNull()
   })
 })

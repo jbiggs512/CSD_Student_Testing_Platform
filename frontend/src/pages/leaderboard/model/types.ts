@@ -71,3 +71,9 @@ export interface ComparisonRow {
     value: number;
     fill: string
 };
+
+export interface SelectSubjectProps {
+    subjects: SubjectFilter[];
+    selectedSubjectId: number;
+    onSubjectChange: (subjectId: number) => void;
+};

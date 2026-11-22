@@ -10,4 +10,5 @@ export type {
     ScoreDistributionResponse,
     CohortComparisonResponse,
     ComparisonRow,
+    SelectSubjectProps
 } from "./types"
