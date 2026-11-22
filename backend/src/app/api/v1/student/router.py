@@ -101,8 +101,8 @@ def grades_over_time(
 @router.get("/{subject_id}/cohortComparison")
 def cohort_comparison(
     subject_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ) -> schemas.CohortComparisonResponse:
     """Get the data for the cohort comparison chart for the authenticated user and passed subject"""
     return service.get_cohort_comparison(db, current_user, subject_id)
@@ -111,8 +111,8 @@ def cohort_comparison(
 @router.get("/{subject_id}/scoreDistribution")
 def score_distribution(
     subject_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ) -> schemas.ScoreDistributionResponse:
     """Get the data for the score distribution chart for the authenticated user and passed subject"""
     return service.get_score_distribution(db, current_user, subject_id)

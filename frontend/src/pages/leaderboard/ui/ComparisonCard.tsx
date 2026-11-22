@@ -14,7 +14,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/shared/components";
-import type { ComparisonRow, CohortComparisonResponse } from "../model";
+import type { ComparisonRow, CohortComparisonResponse, BarSizeProps } from "../model";
 
 const COLORS = {
     navy: "#0A2262",
@@ -23,6 +23,56 @@ const COLORS = {
     grid: "#E8EBF5",
     axis: "#6B7280",
 };
+
+type TickProps = {
+    x?: number;
+    y?: number;
+    index?: number;
+    payload?: { value: string };
+    rows: ComparisonRow[];
+};
+
+// Authenticated users labels are highlighted in pink
+const labelColor = (key: ComparisonRow["key"]) => key === "you" ? COLORS.you : COLORS.navy;
+
+// Label that will show at the end of each bar
+// Users bar will have a bold label, with the pink colour
+function RowLabelTick({ x = 0, y = 0, index = 0, payload, rows }: Readonly<TickProps>) {
+    const row = rows[index];
+    return (
+        <text
+            x={x - 12}
+            y={y}
+            textAnchor="end"
+            dominantBaseline="central"
+            fontSize={13}
+            fontWeight={row.key === "you" ? 700 : 500}
+            fill={labelColor(row.key)}
+        >
+            {payload?.value}
+        </text>
+    );
+}
+
+// Bar made from the comparison data passed
+function ValueBar({ x = 0, y = 0, width = 0, height = 0, payload }: Readonly<BarSizeProps>) {
+    if (!payload) return null;
+    const barWidth = Math.max(width, 0);
+    return (
+        <g>
+            <Rectangle x={x} y={y} width={barWidth} height={height} fill={payload.fill} radius={[0, 12, 12, 0]} />
+            <text
+                x={x + barWidth + 12}
+                y={y + height / 2}
+                dominantBaseline="central"
+                fontSize={14}
+                fontWeight={700}
+                fill={labelColor(payload.key)}>
+                {`${payload.value}%`}
+            </text>
+        </g>
+    );
+}
 
 export function ComparisonCard({
     data,
@@ -33,10 +83,6 @@ export function ComparisonCard({
         { key: "you", label: "You", value: data.user_average, fill: COLORS.you },
         { key: "cohort", label: "Cohort avg", value: data.cohort_average, fill: COLORS.cohort },
     ];
-
-    // Authenticated users labels are highlighted in pink
-    const labelColor = (key: ComparisonRow["key"]) =>
-        key === "you" ? COLORS.you : COLORS.navy;
 
     return (
         <Card className="gap-0 border-0 py-0 shadow-md">
@@ -59,62 +105,11 @@ export function ComparisonCard({
                         data={ComparisonRows}
                         layout="vertical"
                         margin={{ top: 4, right: 56, bottom: 4, left: 0 }}
-                        barCategoryGap={14}
-                    >
-                        {/* Fixed 0–100 scale so bar lengths are comparable between students */}
+                        barCategoryGap={14}>
                         <XAxis type="number" domain={[0, 100]} hide />
-                        <YAxis
-                            type="category"
-                            dataKey="label"
-                            width={100}
-                            tickLine={false}
-                            axisLine={{ stroke: COLORS.grid }}
-                            tick={({ x, y, payload, index }) => (
-                                <text
-                                    x={Number(x) - 12}
-                                    y={Number(y)}
-                                    textAnchor="end"
-                                    dominantBaseline="central"
-                                    fontSize={13}
-                                    fontWeight={ComparisonRows[index].key === "you" ? 700 : 500}
-                                    fill={labelColor(ComparisonRows[index].key)}
-                                >
-                                    {payload.value}
-                                </text>
-                            )}
-                        />
-
-                        <Bar
-                            dataKey="value"
-                            barSize={28}
-                            isAnimationActive={false}
-                            shape={(props: any) => {
-                                const { x, y, width, height, payload } = props;
-                                const row = payload as ComparisonRow;
-                                return (
-                                    <g>
-                                        <Rectangle
-                                            x={x}
-                                            y={y}
-                                            width={Math.max(width, 0)}
-                                            height={height}
-                                            fill={row.fill}
-                                            radius={[0, 12, 12, 0]}
-                                        />
-                                        <text
-                                            x={x + Math.max(width, 0) + 12}
-                                            y={y + height / 2}
-                                            dominantBaseline="central"
-                                            fontSize={14}
-                                            fontWeight={700}
-                                            fill={labelColor(row.key)}
-                                        >
-                                            {`${row.value}%`}
-                                        </text>
-                                    </g>
-                                );
-                            }}
-                        />
+                        <YAxis type="category" dataKey="label" width={100} tickLine={false}
+                            axisLine={{ stroke: COLORS.grid }} tick={<RowLabelTick rows={ComparisonRows} />} />
+                        <Bar dataKey="value" barSize={28} isAnimationActive={false} shape={<ValueBar />} />
                     </BarChart>
                 </ResponsiveContainer>
             </CardContent>

@@ -77,3 +77,38 @@ export interface SelectSubjectProps {
     selectedSubjectId: number;
     onSubjectChange: (subjectId: number) => void;
 };
+
+export interface BarSizeProps {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    payload?: ComparisonRow;
+};
+
+export interface BandTickProps { 
+  x?: number;
+  y?: number;
+  payload?: { value: string }; 
+  userBand: string | null;
+  yourScore: number | null;
+};
+
+export interface BandBarProps { 
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  payload?: ScoreBand; 
+  userBand: string | null;
+};
+
+export interface CountLabelProps { 
+  x?: number;
+  y?: number;
+  width?: number;
+  value?: number;
+  index?: number; 
+  bands: ScoreBand[];
+  userBand: string | null;
+};

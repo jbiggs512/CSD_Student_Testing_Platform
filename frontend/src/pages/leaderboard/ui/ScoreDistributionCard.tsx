@@ -1,9 +1,9 @@
 import {
   Bar,
-  BarChart,
   CartesianGrid,
-  Cell,
+  BarChart,
   LabelList,
+  Rectangle,
   ResponsiveContainer,
   XAxis,
   YAxis,
@@ -12,11 +12,11 @@ import {
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/shared/components";
-import type { ScoreDistributionResponse } from "../model";
+import type { BandBarProps, BandTickProps, CountLabelProps, ScoreDistributionResponse } from "../model";
 
 const COLORS = {
   navy: "#0A2262",
@@ -26,9 +26,76 @@ const COLORS = {
   axis: "#6B7280",
 };
 
-export function ScoreDistributionCard({
-  data,
-}: Readonly<{ data: ScoreDistributionResponse }>) {
+// Axis labels for each score band
+function BandTick({ x = 0, y = 0, payload, userBand, yourScore }: Readonly<BandTickProps>) {
+  const isYou = payload?.value === userBand;
+  return (
+    <g>
+      <text
+        x={x}
+        y={y + 14}
+        textAnchor="middle"
+        fontSize={13}
+        fontWeight={isYou ? 700 : 400}
+        fill={isYou ? COLORS.you : COLORS.axis}>
+        {payload?.value}
+      </text>
+      {isYou && yourScore != null && (
+        <text
+          x={x}
+          y={y + 32}
+          textAnchor="middle"
+          fontSize={12}
+          fontWeight={600}
+          fill={COLORS.you}
+        >
+          {`You: ${yourScore}%`}
+        </text>
+      )}
+    </g>
+  );
+}
+
+// Draws each bar, with either the users or cohorts colour
+function BandBar({ x = 0, y = 0, width = 0, height = 0, payload, userBand }: Readonly<BandBarProps>) {
+  const isYou = payload?.band === userBand;
+  return (
+    <Rectangle
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      fill={isYou ? COLORS.you : COLORS.cohort}
+      radius={[6, 6, 0, 0]}
+    />
+  );
+}
+
+// Label for each bar
+function CountLabel({
+  x = 0,
+  y = 0,
+  width = 0,
+  value,
+  index = 0,
+  bands,
+  userBand,
+}: Readonly<CountLabelProps>) {
+  const isUser = bands[index]?.band === userBand;
+  return (
+    <text
+      x={x + width / 2}
+      y={y - 8}
+      textAnchor="middle"
+      fontSize={13}
+      fontWeight={700}
+      fill={isUser ? COLORS.you : COLORS.navy}>
+      {value}
+    </text>
+  );
+}
+
+export function ScoreDistributionCard({ data }: Readonly<{ data: ScoreDistributionResponse }>) {
   const { bands, user_band, user_score, subject } = data;
   const maxCount = Math.max(...bands.map((b) => b.count));
 
@@ -47,10 +114,8 @@ export function ScoreDistributionCard({
         <ResponsiveContainer width="100%" height={230}>
           <BarChart
             data={bands}
-            // Extra bottom margin leaves room for the "You: 83%" line under the axis
             margin={{ top: 24, right: 8, bottom: 24, left: 8 }}
-            barCategoryGap={10}
-          >
+            barCategoryGap={10}>
             <CartesianGrid vertical={false} horizontal={false} />
             <XAxis
               dataKey="band"
@@ -58,76 +123,17 @@ export function ScoreDistributionCard({
               tickLine={false}
               interval={0}
               height={40}
-              tick={({ x, y, payload }) => {
-                const isYou = payload.value === user_band;
-                return (
-                  <g>
-                    <text
-                      x={Number(x)}
-                      y={Number(y) + 14}
-                      textAnchor="middle"
-                      fontSize={13}
-                      fontWeight={isYou ? 700 : 400}
-                      fill={isYou ? COLORS.you : COLORS.axis}
-                    >
-                      {payload.value}
-                    </text>
-                    {isYou && (
-                      <text
-                        x={Number(x)}
-                        y={Number(y) + 32}
-                        textAnchor="middle"
-                        fontSize={12}
-                        fontWeight={600}
-                        fill={COLORS.you}
-                      >
-                        {`You: ${user_score}%`}
-                      </text>
-                    )}
-                  </g>
-                );
-              }}
-            />
-            {/* Counts are shown as labels, so the Y axis is hidden but keeps headroom for them */}
+              tick={<BandTick userBand={user_band} yourScore={user_score} />} />
             <YAxis hide domain={[0, Math.ceil(maxCount * 1.1)]} />
-
             <Bar
               dataKey="count"
-              radius={[6, 6, 0, 0]}
               isAnimationActive={false}
-            >
-              {bands.map((b) => (
-                <Cell
-                  key={b.band}
-                  fill={b.band === user_band ? COLORS.you : COLORS.cohort}
-                />
-              ))}
+              shape={<BandBar userBand={user_band} />}>
               <LabelList
                 dataKey="count"
                 position="top"
                 offset={8}
-                content={(props) => {
-                  const { x, y, width, value, index } = props as {
-                    x: number;
-                    y: number;
-                    width: number;
-                    value: number;
-                    index: number;
-                  };
-                  const isYou = bands[index].band === user_band;
-                  return (
-                    <text
-                      x={x + width / 2}
-                      y={y - 8}
-                      textAnchor="middle"
-                      fontSize={13}
-                      fontWeight={700}
-                      fill={isYou ? COLORS.you : COLORS.navy}
-                    >
-                      {value}
-                    </text>
-                  );
-                }}
+                content={<CountLabel bands={bands} userBand={user_band} />}
               />
             </Bar>
           </BarChart>
