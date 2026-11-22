@@ -201,6 +201,58 @@ def _seed_baseline_attempt(
     return SeedCounts(created=1, skipped=0)
 
 
+def _load_tests_by_course(db: Session) -> dict[int, list[Test]]:
+    tests = db.scalars(
+        select(Test)
+        .options(selectinload(Test.subject).selectinload(Subject.course))
+        .order_by(Test.test_id.asc())
+    ).all()
+
+    tests_by_course: dict[int, list[Test]] = {}
+    for test in tests:
+        tests_by_course.setdefault(test.subject.course_id, []).append(test)
+    for course_tests in tests_by_course.values():
+        course_tests.sort(key=lambda item: (item.subject.subject_name, item.test_id))
+    return tests_by_course
+
+
+def _load_existing_attempt_counts(db: Session) -> dict[tuple[int, int], int]:
+    existing_rows = db.execute(
+        select(
+            TestAttempt.user_id,
+            TestAttempt.test_id,
+            func.count(TestAttempt.attempt_id),
+        ).group_by(TestAttempt.user_id, TestAttempt.test_id)
+    ).all()
+    return {(row[0], row[1]): int(row[2]) for row in existing_rows}
+
+
+def _collect_missing_attempts_for_student(
+    student: User,
+    plans: list[PlannedAttempt],
+    existing_counts: dict[tuple[int, int], int],
+    now_utc: datetime,
+) -> tuple[list[TestAttempt], SeedCounts]:
+    planned_by_test: dict[int, list[PlannedAttempt]] = {}
+    for plan in plans:
+        planned_by_test.setdefault(plan.test_id, []).append(plan)
+
+    missing_rows: list[TestAttempt] = []
+    counts = SeedCounts()
+
+    for test_id, pair_plans in planned_by_test.items():
+        already_present = existing_counts.get((student.user_id, test_id), 0)
+        to_skip = min(already_present, len(pair_plans))
+        counts.skipped += to_skip
+        for missing_plan in pair_plans[to_skip:]:
+            missing_rows.append(
+                _build_attempt_row(student.user_id, missing_plan, now_utc)
+            )
+            counts.created += 1
+
+    return missing_rows, counts
+
+
 def seed_test_attempt_data(
     db: Session,
     *,
@@ -223,27 +275,8 @@ def seed_test_attempt_data(
             .where(User.username.in_(active_student_usernames))
         ).all()
     }
-
-    tests = db.scalars(
-        select(Test)
-        .options(selectinload(Test.subject).selectinload(Subject.course))
-        .order_by(Test.test_id.asc())
-    ).all()
-
-    tests_by_course: dict[int, list[Test]] = {}
-    for test in tests:
-        tests_by_course.setdefault(test.subject.course_id, []).append(test)
-    for course_tests in tests_by_course.values():
-        course_tests.sort(key=lambda item: (item.subject.subject_name, item.test_id))
-
-    existing_rows = db.execute(
-        select(
-            TestAttempt.user_id,
-            TestAttempt.test_id,
-            func.count(TestAttempt.attempt_id),
-        ).group_by(TestAttempt.user_id, TestAttempt.test_id)
-    ).all()
-    existing_counts = {(row[0], row[1]): int(row[2]) for row in existing_rows}
+    tests_by_course = _load_tests_by_course(db)
+    existing_counts = _load_existing_attempt_counts(db)
 
     now_utc = datetime.now(timezone.utc)
     if baseline_only:
@@ -271,19 +304,11 @@ def seed_test_attempt_data(
             plans = _plan_cohort_student_attempts(cohort_index, course_tests)
             cohort_index += 1
 
-        planned_by_test: dict[int, list[PlannedAttempt]] = {}
-        for plan in plans:
-            planned_by_test.setdefault(plan.test_id, []).append(plan)
-
-        for test_id, pair_plans in planned_by_test.items():
-            already_present = existing_counts.get((student.user_id, test_id), 0)
-            to_skip = min(already_present, len(pair_plans))
-            counts.skipped += to_skip
-            for missing_plan in pair_plans[to_skip:]:
-                new_attempts.append(
-                    _build_attempt_row(student.user_id, missing_plan, now_utc)
-                )
-                counts.created += 1
+        student_attempts, student_counts = _collect_missing_attempts_for_student(
+            student, plans, existing_counts, now_utc
+        )
+        new_attempts.extend(student_attempts)
+        counts += student_counts
 
     if new_attempts:
         db.add_all(new_attempts)

@@ -113,7 +113,8 @@ def test_seed_all_fresh_database_realism_and_idempotency():
                     Question.subject_id == test.subject_id
                 )
             )
-            assert test.description and test.description.strip()
+            assert test.description is not None
+            assert test.description.strip()
             assert test.questions_per_attempt <= pool_size
             assert 100 % test.questions_per_attempt == 0
 
@@ -145,7 +146,8 @@ def test_seed_all_fresh_database_realism_and_idempotency():
         for attempt in attempts:
             assert attempt.completed_at is not None
             assert attempt.started_at < attempt.completed_at
-            assert attempt.total_questions is not None and attempt.total_questions > 0
+            assert attempt.total_questions is not None
+            assert attempt.total_questions > 0
             assert attempt.correct_questions is not None
             assert attempt.score == calculate_attempt_score(
                 attempt.correct_questions, attempt.total_questions
@@ -327,7 +329,8 @@ def test_seed_all_baseline_only_and_password_env_overrides(monkeypatch):
 
         admin_user = db.scalar(select(User).where(User.username == "admin"))
         student_user = db.scalar(select(User).where(User.username == "student"))
-        assert admin_user is not None and student_user is not None
+        assert admin_user is not None
+        assert student_user is not None
         assert verify_password("AdminCustomPass99!", admin_user.password_hash)
         assert verify_password("SharedSeedPass99!", student_user.password_hash)
     finally:
