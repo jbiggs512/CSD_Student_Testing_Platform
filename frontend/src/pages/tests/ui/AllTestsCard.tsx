@@ -71,7 +71,7 @@ export function AllTestsCard({
           >
             <CardHeader className="gap-1 px-4">
               <div className="flex items-start justify-between gap-2">
-                <CardTitle className="font-heading text-lg font-bold text-navy">
+                <CardTitle className="min-w-0 font-heading text-lg font-bold text-navy wrap-break-word">
                   {test.test_name}
                 </CardTitle>
                 <Button
