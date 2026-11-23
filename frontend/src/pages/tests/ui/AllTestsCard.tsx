@@ -24,7 +24,8 @@ import {
 } from '@shared/components'
 import type { LecturerTest } from '../model'
 
-const TESTS_PER_PAGE = 6
+const PAGE_SIZE_OPTIONS = [10, 20, 50] as const
+const DEFAULT_PAGE_SIZE = 10
 
 interface AllTestsCardProps {
   tests: readonly LecturerTest[]
@@ -53,6 +54,7 @@ export function AllTestsCard({
   const [selectedCourse, setSelectedCourse] = useState<string>('all')
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE)
 
   const courseOptions = useMemo(
     () =>
@@ -118,15 +120,15 @@ export function AllTestsCard({
     activeCourse !== 'all' || activeSubjectId !== 'all'
 
   const totalTests = filteredTests.length
-  const pageCount = Math.max(1, Math.ceil(totalTests / TESTS_PER_PAGE))
+  const pageCount = Math.max(1, Math.ceil(totalTests / pageSize))
   const safePage = Math.min(currentPage, pageCount)
-  const startIndex = (safePage - 1) * TESTS_PER_PAGE
+  const startIndex = (safePage - 1) * pageSize
   const paginatedTests = filteredTests.slice(
     startIndex,
-    startIndex + TESTS_PER_PAGE,
+    startIndex + pageSize,
   )
   const startItem = totalTests === 0 ? 0 : startIndex + 1
-  const endItem = Math.min(startIndex + TESTS_PER_PAGE, totalTests)
+  const endItem = Math.min(startIndex + pageSize, totalTests)
 
   function handleCourseChange(value: string) {
     setSelectedCourse(value)
@@ -143,6 +145,14 @@ export function AllTestsCard({
     setSelectedCourse('all')
     setSelectedSubjectId('all')
     setCurrentPage(1)
+  }
+
+  function handlePageSizeChange(value: string) {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed) && parsed > 0) {
+      setPageSize(parsed)
+      setCurrentPage(1)
+    }
   }
 
   let content: React.ReactNode
@@ -335,9 +345,35 @@ export function AllTestsCard({
         {content}
         {filteredTests.length > 0 && (
           <div className="flex flex-col items-center justify-between gap-4 border-t pt-4 text-xs text-muted-foreground sm:flex-row">
-            <div>
-              Showing {startItem}–{endItem} of {totalTests}{' '}
-              {totalTests === 1 ? 'test' : 'tests'}
+            <div className="flex flex-wrap items-center gap-3">
+              <span>
+                Showing {startItem}–{endItem} of {totalTests}{' '}
+                {totalTests === 1 ? 'test' : 'tests'}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span>Per page</span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(value) =>
+                    handlePageSizeChange(value ?? String(DEFAULT_PAGE_SIZE))
+                  }
+                >
+                  <SelectTrigger
+                    aria-label="Tests per page"
+                    size="sm"
+                    className="w-18"
+                  >
+                    <SelectValue>{pageSize}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZE_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={String(option)}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="flex items-center gap-1">
               <button

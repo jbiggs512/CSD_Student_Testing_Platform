@@ -387,8 +387,8 @@ describe('LecturerDashboardPage & TestManagementPage', () => {
     expect(screen.getByText('Algorithms Quiz')).toBeDefined()
   })
 
-  it('paginates tests when more than 6 tests exist', async () => {
-    const manyTests = Array.from({ length: 8 }, (_, index) => ({
+  it('paginates tests and supports changing page size between 10, 20, and 50', async () => {
+    const manyTests = Array.from({ length: 12 }, (_, index) => ({
       ...createdTest,
       test_id: 100 + index,
       test_name: `Paginated Test ${index + 1}`,
@@ -398,21 +398,32 @@ describe('LecturerDashboardPage & TestManagementPage', () => {
     render(<TestManagementPage />)
 
     expect(await screen.findByText('Paginated Test 1')).toBeDefined()
-    expect(screen.getByText('Paginated Test 6')).toBeDefined()
-    expect(screen.queryByText('Paginated Test 7')).toBeNull()
-    expect(screen.getByText('Showing 1–6 of 8 tests')).toBeDefined()
+    expect(screen.getByText('Paginated Test 10')).toBeDefined()
+    expect(screen.queryByText('Paginated Test 11')).toBeNull()
+    expect(screen.getByText('Showing 1–10 of 12 tests')).toBeDefined()
 
     fireEvent.click(screen.getByRole('button', { name: 'Next' }))
 
-    expect(screen.getByText('Paginated Test 7')).toBeDefined()
-    expect(screen.getByText('Paginated Test 8')).toBeDefined()
+    expect(screen.getByText('Paginated Test 11')).toBeDefined()
+    expect(screen.getByText('Paginated Test 12')).toBeDefined()
     expect(screen.queryByText('Paginated Test 1')).toBeNull()
-    expect(screen.getByText('Showing 7–8 of 8 tests')).toBeDefined()
+    expect(screen.getByText('Showing 11–12 of 12 tests')).toBeDefined()
 
     fireEvent.click(screen.getByRole('button', { name: 'Previous' }))
 
     expect(screen.getByText('Paginated Test 1')).toBeDefined()
-    expect(screen.queryByText('Paginated Test 7')).toBeNull()
+    expect(screen.queryByText('Paginated Test 11')).toBeNull()
+
+    fireEvent.click(screen.getByLabelText('Tests per page'))
+    const sizeOption = await screen.findByRole('option', { name: '20' })
+    fireEvent.pointerDown(sizeOption)
+    fireEvent.pointerUp(sizeOption)
+    fireEvent.click(sizeOption)
+
+    await waitFor(() => {
+      expect(screen.getByText('Paginated Test 12')).toBeDefined()
+    })
+    expect(screen.getByText('Showing 1–12 of 12 tests')).toBeDefined()
   })
 
   it('testManagementApi handles unauthenticated and network errors', async () => {
