@@ -1,4 +1,5 @@
 // Shared reusable UI and shadcn components
+export { AccountDisabledDialog } from './account-disabled-dialog'
 export { AuthHeroPanel } from './auth-hero-panel'
 export { AuthSplitLayout } from './auth-split-layout'
 export { Alert, AlertDescription } from './ui/alert'
