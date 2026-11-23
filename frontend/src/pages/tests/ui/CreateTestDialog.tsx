@@ -1,13 +1,15 @@
 import type { FormEvent } from 'react'
-import { AlertCircleIcon, CheckCircle2Icon, LoaderCircleIcon } from 'lucide-react'
+import { AlertCircleIcon, LoaderCircleIcon } from 'lucide-react'
 import {
   Alert,
   AlertDescription,
   Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Input,
   Label,
   Select,
@@ -27,27 +29,29 @@ export interface CreateTestFormValues {
   subjectId: string
 }
 
-interface CreateTestCardProps {
+interface CreateTestDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
   subjects: readonly Subject[]
   formValues: CreateTestFormValues
   isLoadingSubjects: boolean
   isSaving: boolean
   formError: string | null
-  successMessage: string | null
   onFieldChange: (field: keyof CreateTestFormValues, value: string) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
 }
 
-export function CreateTestCard({
+export function CreateTestDialog({
+  open,
+  onOpenChange,
   subjects,
   formValues,
   isLoadingSubjects,
   isSaving,
   formError,
-  successMessage,
   onFieldChange,
   onSubmit,
-}: Readonly<CreateTestCardProps>) {
+}: Readonly<CreateTestDialogProps>) {
   const selectedSubject = subjects.find(
     (subject) => String(subject.subject_id) === formValues.subjectId,
   )
@@ -56,29 +60,22 @@ export function CreateTestCard({
     : undefined
 
   return (
-    <Card className="border-0 shadow-sm">
-      <CardHeader className="px-6 pt-6 text-center">
-        <CardTitle className="font-heading text-2xl font-bold text-navy">
-          Create New Test
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-6 pb-6">
-        <form
-          onSubmit={onSubmit}
-          noValidate
-          className="mx-auto flex max-w-md flex-col gap-4 rounded-xl border border-border p-5"
-        >
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-heading text-2xl font-bold text-navy">
+            Create New Test
+          </DialogTitle>
+          <DialogDescription>
+            Publish a new test from an active subject&apos;s question pool.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
           {formError && (
             <Alert variant="destructive">
               <AlertCircleIcon aria-hidden="true" />
               <AlertDescription>{formError}</AlertDescription>
-            </Alert>
-          )}
-
-          {successMessage && (
-            <Alert>
-              <CheckCircle2Icon aria-hidden="true" />
-              <AlertDescription>{successMessage}</AlertDescription>
             </Alert>
           )}
 
@@ -175,21 +172,31 @@ export function CreateTestCard({
             </Select>
           </div>
 
-          <Button
-            type="submit"
-            disabled={isSaving || isLoadingSubjects}
-            className="mt-2 w-full bg-navy text-white hover:bg-navy/90"
-          >
-            {isSaving && (
-              <LoaderCircleIcon
-                className="size-4 animate-spin"
-                aria-hidden="true"
-              />
-            )}
-            {isSaving ? 'Creating...' : 'Create'}
-          </Button>
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSaving || isLoadingSubjects}
+              className="bg-navy text-white hover:bg-navy/90"
+            >
+              {isSaving && (
+                <LoaderCircleIcon
+                  className="size-4 animate-spin"
+                  aria-hidden="true"
+                />
+              )}
+              {isSaving ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   )
 }

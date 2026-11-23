@@ -135,12 +135,14 @@ describe('LecturerDashboardPage & TestManagementPage', () => {
 
     render(<TestManagementPage />)
 
-    const subjectTrigger = screen.getByLabelText('Subject') as HTMLButtonElement
-    await waitFor(() => expect(subjectTrigger.disabled).toBe(false))
-
-    expect(screen.getByText('24')).toBeDefined()
+    await waitFor(() => expect(screen.getByText('24')).toBeDefined())
     expect(screen.getByText('78%')).toBeDefined()
     expect(screen.getByText('Midterm OOP Exam')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: /create new test/i }))
+
+    const subjectTrigger = screen.getByLabelText('Subject') as HTMLButtonElement
+    await waitFor(() => expect(subjectTrigger.disabled).toBe(false))
 
     fireEvent.change(screen.getByLabelText('Test Name'), {
       target: { value: 'Midterm OOP Exam' },
@@ -281,6 +283,8 @@ describe('LecturerDashboardPage & TestManagementPage', () => {
     })
 
     render(<TestManagementPage />)
+
+    fireEvent.click(screen.getByRole('button', { name: /create new test/i }))
 
     const subjectTrigger = screen.getByLabelText('Subject') as HTMLButtonElement
     await waitFor(() => expect(subjectTrigger.disabled).toBe(false))

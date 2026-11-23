@@ -1,9 +1,9 @@
 import {
   BarChart3Icon,
-  BookOpenIcon,
   ClockIcon,
   HelpCircleIcon,
   LoaderCircleIcon,
+  PlusIcon,
   Trash2Icon,
 } from 'lucide-react'
 import {
@@ -21,6 +21,7 @@ import type { LecturerTest } from '../model'
 interface AllTestsCardProps {
   tests: readonly LecturerTest[]
   isLoading?: boolean
+  onCreateTest: () => void
   onViewResults: (test: LecturerTest) => void
   onDeleteTest: (test: LecturerTest) => void
 }
@@ -37,6 +38,7 @@ function formatAttemptSummary(test: LecturerTest): string {
 export function AllTestsCard({
   tests,
   isLoading = false,
+  onCreateTest,
   onViewResults,
   onDeleteTest,
 }: Readonly<AllTestsCardProps>) {
@@ -56,14 +58,14 @@ export function AllTestsCard({
           No tests available yet
         </p>
         <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-          Use the Create New Test form to publish a test from a subject&apos;s
+          Click Create New Test to publish a test from a subject&apos;s
           question pool.
         </p>
       </div>
     )
   } else {
     content = (
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {tests.map((test) => (
           <Card
             key={test.test_id}
@@ -132,11 +134,18 @@ export function AllTestsCard({
 
   return (
     <Card className="border-0 shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between px-6 pt-6">
+      <CardHeader className="flex flex-row items-center justify-between gap-4 px-6 pt-6">
         <CardTitle className="font-heading text-2xl font-bold text-navy">
           All Tests
         </CardTitle>
-        <BookOpenIcon className="size-6 text-coral" aria-hidden="true" />
+        <Button
+          type="button"
+          onClick={onCreateTest}
+          className="bg-navy text-white hover:bg-navy/90"
+        >
+          <PlusIcon className="size-4" aria-hidden="true" />
+          Create New Test
+        </Button>
       </CardHeader>
       <CardContent className="px-6 pb-6">{content}</CardContent>
     </Card>
