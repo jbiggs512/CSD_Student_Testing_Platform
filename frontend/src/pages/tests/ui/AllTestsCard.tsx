@@ -24,6 +24,8 @@ import {
 } from '@shared/components'
 import type { LecturerTest } from '../model'
 
+const TESTS_PER_PAGE = 6
+
 interface AllTestsCardProps {
   tests: readonly LecturerTest[]
   isLoading?: boolean
@@ -50,6 +52,7 @@ export function AllTestsCard({
 }: Readonly<AllTestsCardProps>) {
   const [selectedCourse, setSelectedCourse] = useState<string>('all')
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all')
+  const [currentPage, setCurrentPage] = useState(1)
 
   const courseOptions = useMemo(
     () =>
@@ -114,14 +117,32 @@ export function AllTestsCard({
   const hasActiveFilters =
     activeCourse !== 'all' || activeSubjectId !== 'all'
 
+  const totalTests = filteredTests.length
+  const pageCount = Math.max(1, Math.ceil(totalTests / TESTS_PER_PAGE))
+  const safePage = Math.min(currentPage, pageCount)
+  const startIndex = (safePage - 1) * TESTS_PER_PAGE
+  const paginatedTests = filteredTests.slice(
+    startIndex,
+    startIndex + TESTS_PER_PAGE,
+  )
+  const startItem = totalTests === 0 ? 0 : startIndex + 1
+  const endItem = Math.min(startIndex + TESTS_PER_PAGE, totalTests)
+
   function handleCourseChange(value: string) {
     setSelectedCourse(value)
     setSelectedSubjectId('all')
+    setCurrentPage(1)
+  }
+
+  function handleSubjectChange(value: string) {
+    setSelectedSubjectId(value)
+    setCurrentPage(1)
   }
 
   function handleClearFilters() {
     setSelectedCourse('all')
     setSelectedSubjectId('all')
+    setCurrentPage(1)
   }
 
   let content: React.ReactNode
@@ -168,7 +189,7 @@ export function AllTestsCard({
   } else {
     content = (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredTests.map((test) => (
+        {paginatedTests.map((test) => (
           <Card
             key={test.test_id}
             className="justify-between gap-3 py-4 shadow-2xs"
@@ -276,7 +297,7 @@ export function AllTestsCard({
 
             <Select
               value={activeSubjectId}
-              onValueChange={(value) => setSelectedSubjectId(value ?? 'all')}
+              onValueChange={(value) => handleSubjectChange(value ?? 'all')}
             >
               <SelectTrigger
                 aria-label="Filter by subject"
@@ -312,6 +333,49 @@ export function AllTestsCard({
           </div>
         )}
         {content}
+        {filteredTests.length > 0 && (
+          <div className="flex flex-col items-center justify-between gap-4 border-t pt-4 text-xs text-muted-foreground sm:flex-row">
+            <div>
+              Showing {startItem}–{endItem} of {totalTests}{' '}
+              {totalTests === 1 ? 'test' : 'tests'}
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={safePage <= 1}
+                onClick={() => setCurrentPage(safePage - 1)}
+                className="cursor-pointer rounded-md px-2.5 py-1.5 font-medium text-muted-foreground hover:text-navy disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Previous
+              </button>
+              {Array.from({ length: pageCount }, (_, index) => index + 1).map(
+                (pageNumber) => (
+                  <button
+                    key={pageNumber}
+                    type="button"
+                    onClick={() => setCurrentPage(pageNumber)}
+                    aria-current={pageNumber === safePage ? 'page' : undefined}
+                    className={
+                      pageNumber === safePage
+                        ? 'cursor-pointer rounded-md bg-navy px-2.5 py-1.5 font-semibold text-white'
+                        : 'cursor-pointer rounded-md px-2.5 py-1.5 font-medium text-navy hover:bg-muted'
+                    }
+                  >
+                    {pageNumber}
+                  </button>
+                ),
+              )}
+              <button
+                type="button"
+                disabled={safePage >= pageCount}
+                onClick={() => setCurrentPage(safePage + 1)}
+                className="cursor-pointer rounded-md px-2.5 py-1.5 font-medium text-navy hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

@@ -387,6 +387,34 @@ describe('LecturerDashboardPage & TestManagementPage', () => {
     expect(screen.getByText('Algorithms Quiz')).toBeDefined()
   })
 
+  it('paginates tests when more than 6 tests exist', async () => {
+    const manyTests = Array.from({ length: 8 }, (_, index) => ({
+      ...createdTest,
+      test_id: 100 + index,
+      test_name: `Paginated Test ${index + 1}`,
+    }))
+    mockDashboardFetch({ tests: manyTests })
+
+    render(<TestManagementPage />)
+
+    expect(await screen.findByText('Paginated Test 1')).toBeDefined()
+    expect(screen.getByText('Paginated Test 6')).toBeDefined()
+    expect(screen.queryByText('Paginated Test 7')).toBeNull()
+    expect(screen.getByText('Showing 1–6 of 8 tests')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+
+    expect(screen.getByText('Paginated Test 7')).toBeDefined()
+    expect(screen.getByText('Paginated Test 8')).toBeDefined()
+    expect(screen.queryByText('Paginated Test 1')).toBeNull()
+    expect(screen.getByText('Showing 7–8 of 8 tests')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous' }))
+
+    expect(screen.getByText('Paginated Test 1')).toBeDefined()
+    expect(screen.queryByText('Paginated Test 7')).toBeNull()
+  })
+
   it('testManagementApi handles unauthenticated and network errors', async () => {
     clearAccessToken()
     await expect(getSubjects()).rejects.toEqual(
