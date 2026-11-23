@@ -318,6 +318,75 @@ describe('LecturerDashboardPage & TestManagementPage', () => {
     })
   })
 
+  it('filters tests by course and subject and clears filters', async () => {
+    const oopTest = {
+      ...createdTest,
+      test_id: 21,
+      test_name: 'OOP Quiz',
+      subject_id: 1,
+      subject_name: 'Object Oriented Programming',
+      course_title: 'BSc Software Engineering',
+    }
+    const algoTest = {
+      ...createdTest,
+      test_id: 22,
+      test_name: 'Algorithms Quiz',
+      subject_id: 2,
+      subject_name: 'Data Structures & Algorithms',
+      course_title: 'BSc Software Engineering',
+    }
+    const cloudTest = {
+      ...createdTest,
+      test_id: 23,
+      test_name: 'Cloud Security Quiz',
+      subject_id: 3,
+      subject_name: 'Cloud Security',
+      course_title: 'BSc Cloud Computing',
+    }
+    mockDashboardFetch({ tests: [oopTest, algoTest, cloudTest] })
+
+    render(<TestManagementPage />)
+
+    expect(await screen.findByText('OOP Quiz')).toBeDefined()
+    expect(screen.getByText('Algorithms Quiz')).toBeDefined()
+    expect(screen.getByText('Cloud Security Quiz')).toBeDefined()
+
+    fireEvent.click(screen.getByLabelText('Filter by course'))
+    const courseOption = await screen.findByRole('option', {
+      name: 'BSc Software Engineering',
+    })
+    fireEvent.pointerDown(courseOption)
+    fireEvent.pointerUp(courseOption)
+    fireEvent.click(courseOption)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Cloud Security Quiz')).toBeNull()
+    })
+    expect(screen.getByText('OOP Quiz')).toBeDefined()
+    expect(screen.getByText('Algorithms Quiz')).toBeDefined()
+
+    fireEvent.click(screen.getByLabelText('Filter by subject'))
+    const subjectOption = await screen.findByRole('option', {
+      name: 'Data Structures & Algorithms',
+    })
+    fireEvent.pointerDown(subjectOption)
+    fireEvent.pointerUp(subjectOption)
+    fireEvent.click(subjectOption)
+
+    await waitFor(() => {
+      expect(screen.queryByText('OOP Quiz')).toBeNull()
+    })
+    expect(screen.getByText('Algorithms Quiz')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Cloud Security Quiz')).toBeDefined()
+    })
+    expect(screen.getByText('OOP Quiz')).toBeDefined()
+    expect(screen.getByText('Algorithms Quiz')).toBeDefined()
+  })
+
   it('testManagementApi handles unauthenticated and network errors', async () => {
     clearAccessToken()
     await expect(getSubjects()).rejects.toEqual(

@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import {
   BarChart3Icon,
   ClockIcon,
@@ -15,6 +16,11 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@shared/components'
 import type { LecturerTest } from '../model'
 
@@ -42,6 +48,82 @@ export function AllTestsCard({
   onViewResults,
   onDeleteTest,
 }: Readonly<AllTestsCardProps>) {
+  const [selectedCourse, setSelectedCourse] = useState<string>('all')
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all')
+
+  const courseOptions = useMemo(
+    () =>
+      Array.from(new Set(tests.map((test) => test.course_title))).sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [tests],
+  )
+
+  const subjectOptions = useMemo(() => {
+    const byId = new Map<number, { subject_id: number; subject_name: string }>()
+    for (const test of tests) {
+      if (selectedCourse !== 'all' && test.course_title !== selectedCourse) {
+        continue
+      }
+      if (!byId.has(test.subject_id)) {
+        byId.set(test.subject_id, {
+          subject_id: test.subject_id,
+          subject_name: test.subject_name,
+        })
+      }
+    }
+    return Array.from(byId.values()).sort((a, b) =>
+      a.subject_name.localeCompare(b.subject_name),
+    )
+  }, [tests, selectedCourse])
+
+  const activeCourse =
+    selectedCourse !== 'all' && !courseOptions.includes(selectedCourse)
+      ? 'all'
+      : selectedCourse
+
+  const activeSubjectId =
+    selectedSubjectId !== 'all' &&
+    !subjectOptions.some(
+      (subject) => String(subject.subject_id) === selectedSubjectId,
+    )
+      ? 'all'
+      : selectedSubjectId
+
+  const selectedSubjectName = subjectOptions.find(
+    (subject) => String(subject.subject_id) === activeSubjectId,
+  )?.subject_name
+
+  const filteredTests = useMemo(
+    () =>
+      tests.filter((test) => {
+        if (activeCourse !== 'all' && test.course_title !== activeCourse) {
+          return false
+        }
+        if (
+          activeSubjectId !== 'all' &&
+          String(test.subject_id) !== activeSubjectId
+        ) {
+          return false
+        }
+        return true
+      }),
+    [tests, activeCourse, activeSubjectId],
+  )
+
+  const hasActiveFilters =
+    activeCourse !== 'all' || activeSubjectId !== 'all'
+
+  function handleCourseChange(value: string) {
+    setSelectedCourse(value)
+    setSelectedSubjectId('all')
+  }
+
+  function handleClearFilters() {
+    setSelectedCourse('all')
+    setSelectedSubjectId('all')
+  }
+
   let content: React.ReactNode
 
   if (isLoading && tests.length === 0) {
@@ -63,10 +145,30 @@ export function AllTestsCard({
         </p>
       </div>
     )
+  } else if (filteredTests.length === 0) {
+    content = (
+      <div className="flex min-h-56 flex-col items-center justify-center rounded-xl border border-dashed border-border p-8 text-center">
+        <p className="font-heading text-base font-semibold text-navy">
+          No tests match the selected filters
+        </p>
+        <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+          Try changing or clearing your course and subject filters.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleClearFilters}
+          className="mt-4"
+        >
+          Clear filters
+        </Button>
+      </div>
+    )
   } else {
     content = (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {tests.map((test) => (
+        {filteredTests.map((test) => (
           <Card
             key={test.test_id}
             className="justify-between gap-3 py-4 shadow-2xs"
@@ -147,7 +249,70 @@ export function AllTestsCard({
           Create New Test
         </Button>
       </CardHeader>
-      <CardContent className="px-6 pb-6">{content}</CardContent>
+      <CardContent className="space-y-4 px-6 pb-6">
+        {tests.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3">
+            <Select
+              value={activeCourse}
+              onValueChange={(value) => handleCourseChange(value ?? 'all')}
+            >
+              <SelectTrigger
+                aria-label="Filter by course"
+                className="h-9 w-full sm:w-64"
+              >
+                <SelectValue placeholder="All courses">
+                  {activeCourse === 'all' ? 'All courses' : activeCourse}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All courses</SelectItem>
+                {courseOptions.map((course) => (
+                  <SelectItem key={course} value={course}>
+                    {course}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={activeSubjectId}
+              onValueChange={(value) => setSelectedSubjectId(value ?? 'all')}
+            >
+              <SelectTrigger
+                aria-label="Filter by subject"
+                className="h-9 w-full sm:w-64"
+              >
+                <SelectValue placeholder="All subjects">
+                  {selectedSubjectName ?? 'All subjects'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All subjects</SelectItem>
+                {subjectOptions.map((subject) => (
+                  <SelectItem
+                    key={subject.subject_id}
+                    value={String(subject.subject_id)}
+                  >
+                    {subject.subject_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {hasActiveFilters && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+        )}
+        {content}
+      </CardContent>
     </Card>
   )
 }
