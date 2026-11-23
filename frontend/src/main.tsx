@@ -124,8 +124,8 @@ createRoot(document.getElementById('root')!).render(
               <Route element={<ProtectedRoute allowedRoles={['student']} />}>
                 <Route path="/test/:id" element={<TestPage />} />
               </Route>
+              <Route path="*" element={<NotFoundPage />} />
             </Route>
-            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
       </AppProtection>
