@@ -144,11 +144,11 @@ export function DashboardContent({
               <div className="flex gap-4">
                 <div className="flex flex-col gap-1">
                   <label htmlFor="outstandingSort" className="text-xs font-medium text-muted-foreground">Sort by</label>
-                  <Select id="outstandingSort" items={SORT_OPTIONS_OUTSTANDING} value={outstandingSort} onValueChange={(v) => v && setOutstandingSort(v)}>
-                    <SelectTrigger className="h-8 w-[160px] bg-background"><SelectValue placeholder="Sort Option" /></SelectTrigger>
+                  <Select items={SORT_OPTIONS_OUTSTANDING} value={outstandingSort} onValueChange={(v) => v && setOutstandingSort(v)}>
+                    <SelectTrigger id="outstandingSort" className="h-8 w-[160px] bg-background"><SelectValue placeholder="Sort Option" /></SelectTrigger>
                     <SelectContent>
                       {SORT_OPTIONS_OUTSTANDING.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
+                        <SelectItem data-testid={`outstanding-sort-${option.value}`} key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
                       ))}
@@ -157,11 +157,11 @@ export function DashboardContent({
                 </div>
                 <div className="flex flex-col gap-1">
                   <label htmlFor="outstandingFilter" className="text-xs font-medium text-muted-foreground">Filter by</label>
-                  <Select id="outstandingFilter" items={outstandingFilterOptions} value={outstandingFilter} onValueChange={(v) => v && setOutstandingFilter(v)}>
-                    <SelectTrigger className="h-8 w-[160px] bg-background"><SelectValue placeholder="Filter option" /></SelectTrigger>
+                  <Select items={outstandingFilterOptions} value={outstandingFilter} onValueChange={(v) => v && setOutstandingFilter(v)}>
+                    <SelectTrigger id="outstandingFilter" className="h-8 w-[160px] bg-background"><SelectValue placeholder="Filter option" /></SelectTrigger>
                     <SelectContent>
                       {outstandingFilterOptions.map((option) => (
-                        <SelectItem key={String(option.value)} value={option.value}>
+                        <SelectItem data-testid={`outstanding-filter-${option.value}`} key={String(option.value)} value={option.value}>
                           {option.label}
                         </SelectItem>
                       ))}
@@ -210,11 +210,11 @@ export function DashboardContent({
               <div className="flex gap-4">
                 <div className="flex flex-col gap-1">
                   <label htmlFor="completedSort" className="text-xs font-medium text-muted-foreground">Sort by</label>
-                  <Select id="completedSort" items={SORT_OPTIONS_COMPLETED} value={completedSort} onValueChange={(v) => v && setCompletedSort(v)}>
-                    <SelectTrigger className="h-8 w-[160px] bg-background"><SelectValue placeholder="Sort Option" /></SelectTrigger>
+                  <Select items={SORT_OPTIONS_COMPLETED} value={completedSort} onValueChange={(v) => v && setCompletedSort(v)}>
+                    <SelectTrigger id="completedSort" className="h-8 w-[160px] bg-background"><SelectValue placeholder="Sort Option" /></SelectTrigger>
                     <SelectContent>
                       {SORT_OPTIONS_COMPLETED.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
+                        <SelectItem data-testid={`completed-sort-${option.value}`} key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
                       ))}
@@ -223,11 +223,11 @@ export function DashboardContent({
                 </div>
                 <div className="flex flex-col gap-1">
                   <label htmlFor="completedFilter" className="text-xs font-medium text-muted-foreground">Filter by</label>
-                  <Select id="completedFilter" items={completedFilterOptions} value={completedFilter} onValueChange={(v) => v && setCompletedFilter(v)}>
-                    <SelectTrigger className="h-8 w-[160px] bg-background"><SelectValue placeholder="Filter option" /></SelectTrigger>
+                  <Select items={completedFilterOptions} value={completedFilter} onValueChange={(v) => v && setCompletedFilter(v)}>
+                    <SelectTrigger id="completedFilter" className="h-8 w-[160px] bg-background"><SelectValue placeholder="Filter option" /></SelectTrigger>
                     <SelectContent>
                       {completedFilterOptions.map((option) => (
-                        <SelectItem key={String(option.value)} value={option.value}>
+                        <SelectItem data-testid={`completed-filter-${option.value}`} key={String(option.value)} value={option.value}>
                           {option.label}
                         </SelectItem>
                       ))}

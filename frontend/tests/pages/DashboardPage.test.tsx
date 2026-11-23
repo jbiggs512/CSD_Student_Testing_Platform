@@ -1,8 +1,13 @@
 import { cleanup, render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DashboardPage, DashboardContent } from '@/pages/dashboard' 
-import type { DashboardContentProps } from '@/pages/dashboard/model' 
+import { DashboardPage, DashboardContent } from '@/pages/dashboard'
+import {
+  type DashboardContentProps,
+  buildFilterOptions,
+  sortAndFilterCompleted,
+  sortAndFilterOutstanding
+} from '@/pages/dashboard/model'
 import { DashboardApiError } from '@/pages/dashboard/api/dashboardApi'
 
 const {
@@ -27,14 +32,14 @@ vi.mock('@/pages/dashboard/api', () => ({
 
 // Mock data for testing
 const mockCompletedTests = [
-  { id: 1, test_id: 1, test_name: 'Test 1', score_percentage: 80, questions_correct: 8, questions_total: 10, completed_date: '2026-10-01', score_points: 280 },
-  { id: 2, test_id: 2, test_name: 'Test 2', score_percentage: 90, questions_correct: 9, questions_total: 10, completed_date: '2026-10-05', score_points: 300 },
-  { id: 3, test_id: 3, test_name: 'Test 3', score_percentage: 84, questions_correct: 42, questions_total: 50, completed_date: '2026-10-10', score_points: 400 },
+  { id: 1, test_id: 1, test_name: 'Test 1', subject_name: 'Software', score_percentage: 80, questions_correct: 8, questions_total: 10, completed_date: '2026-10-01', score_points: 280 },
+  { id: 2, test_id: 2, test_name: 'Test 2', subject_name: 'Software 2', score_percentage: 90, questions_correct: 9, questions_total: 10, completed_date: '2026-10-05', score_points: 300 },
+  { id: 3, test_id: 3, test_name: 'Test 3', subject_name: 'Software', score_percentage: 84, questions_correct: 42, questions_total: 50, completed_date: '2026-10-10', score_points: 400 },
 ]
 
 const mockOutstandingTests = [
   { id: 4, test_name: 'Test 4', subject_name: 'Software', description: 'Intro to Software', questions_per_attempt: 10 },
-  { id: 5, test_name: 'Test 5', subject_name: 'Software', description: 'OOP', questions_per_attempt: 20 },
+  { id: 5, test_name: 'Test 5', subject_name: 'Software 2', description: 'OOP', questions_per_attempt: 20 },
 ]
 
 const mockCohortRank = { rank: 12, size: 48 }
@@ -63,6 +68,14 @@ afterEach(() => {
 })
 
 describe('Dashboard Page', () => {
+  function pressAndRelease(el: HTMLElement) {
+    fireEvent.pointerDown(el, { button: 0, pointerType: 'mouse' })
+    fireEvent.mouseDown(el, { button: 0 })
+    fireEvent.pointerUp(el, { button: 0, pointerType: 'mouse' })
+    fireEvent.mouseUp(el, { button: 0 })
+    fireEvent.click(el, { button: 0 })
+  }
+
   it('renders the dashboard page with the correct heading', async () => {
     getOutstandingTests.mockResolvedValue(mockOutstandingTests)
     getCompletedTests.mockResolvedValue(mockCompletedTests)
@@ -163,7 +176,46 @@ describe('Dashboard Page', () => {
 
     // Wait for the dropdown options to appear
     await waitFor(() => {
-      expect(screen.getByText("Created Date Desc")).toBeDefined()
+      expect(screen.getByText("Test Name (A - Z)")).toBeDefined()
+    })
+  })
+
+  it('sorts outstanding test cards by test name', async () => {
+    renderDashboardContentWithRoutes({ outstandingTests: mockOutstandingTests, courseTitle: "" })
+
+    const sortTrigger = document.querySelector('#outstandingSort') as HTMLElement
+    fireEvent.click(sortTrigger)
+    pressAndRelease(await screen.findByText('Test Name (A - Z)'))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Test 4')).toBeDefined()
+      expect(screen.getByText('Test 5')).toBeDefined()
+    })
+  })
+
+  it('filters outstanding test cards by subject', async () => {
+    renderDashboardContentWithRoutes({ outstandingTests: mockOutstandingTests, courseTitle: "" })
+
+    const filterTrigger = document.querySelector('#outstandingFilter') as HTMLElement
+    fireEvent.click(filterTrigger)
+    pressAndRelease(await screen.findByTestId('outstanding-filter-Software 2'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Test 5')).toBeDefined()
+      expect(screen.queryByText('Test 4')).toBeNull()
+    })
+  })
+
+  it('filters completed test cards by subject', async () => {
+    renderDashboardContentWithRoutes({ completedTests: mockCompletedTests, courseTitle: "" })
+
+    const filterTrigger = document.querySelector('#completedFilter') as HTMLElement
+    fireEvent.click(filterTrigger)
+    pressAndRelease(await screen.findByTestId('completed-filter-Software 2'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Test 2')).toBeDefined()
+      expect(screen.queryByText('Test 1')).toBeNull()
     })
   })
 
@@ -178,30 +230,93 @@ describe('Dashboard Page', () => {
     expect(screen.getByText("12")).toBeDefined()
     expect(screen.getByText("of 48")).toBeDefined()
   })
-})
 
-it('renders the correct number of test cards', () => {
-  renderDashboardContentWithRoutes({
-    outstandingTests: mockOutstandingTests,
-    completedTests: mockCompletedTests,
-    courseTitle: ""
+
+  it('renders the correct number of test cards', () => {
+    renderDashboardContentWithRoutes({
+      outstandingTests: mockOutstandingTests,
+      completedTests: mockCompletedTests,
+      courseTitle: ""
+    })
+
+    // Hero section dynamic text
+    expect(screen.getByText("You have 2 outstanding tests to complete.")).toBeDefined()
+
+    // Outstanding cards - check by counting the number of "Start Test" buttons rendered
+    const startButtons = screen.getAllByRole('button', { name: 'Start Test' })
+    expect(startButtons).toHaveLength(2)
   })
 
-  // Hero section dynamic text
-  expect(screen.getByText("You have 2 outstanding tests to complete.")).toBeDefined()
+  it('renders the completed tests dialog', async () => {
+    renderDashboardContentWithRoutes({ completedTests: mockCompletedTests, courseTitle: "" })
 
-  // Outstanding cards - check by counting the number of "Start Test" buttons rendered
-  const startButtons = screen.getAllByRole('button', { name: 'Start Test' })
-  expect(startButtons).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: 'View All Completed Tests...' }))
+
+    expect(await screen.findByRole('dialog')).toBeDefined()
+    expect(screen.getByText('3 tests completed')).toBeDefined()
+  })
+
 })
 
-it('renders the completed tests dialog', async () => {
-  renderDashboardContentWithRoutes({ completedTests: mockCompletedTests, courseTitle: "" })
+describe('Dashboard sort and filter options', () => {
+  it('orders subjects alpahbetically and only includes them once', () => {
+    expect(buildFilterOptions(['Software', 'Algorithms', 'Software'])).toEqual([
+      { label: 'Filter by...', value: null },
+      { label: 'All', value: 'all' },
+      { label: 'Algorithms', value: 'Algorithms' },
+      { label: 'Software', value: 'Software' },
+    ])
+  })
 
-  fireEvent.click(screen.getByRole('button', { name: 'View All Completed Tests...' }))
+  it('returns no subject options for an empty list', () => {
+    expect(buildFilterOptions([])).toEqual([
+      { label: 'Filter by...', value: null },
+      { label: 'All', value: 'all' },
+    ])
+  })
 
-  expect(await screen.findByRole('dialog')).toBeDefined()
-  expect(screen.getByText('3 tests completed')).toBeDefined()
+  it('filters by subject and supports the all filter for outstanding tests', () => {
+    expect(
+      sortAndFilterOutstanding(mockOutstandingTests, null, 'Software').map((test) => test.test_name),
+    ).toEqual(['Test 4'])
+    expect(
+      sortAndFilterOutstanding(mockOutstandingTests, null, 'all').map((test) => test.test_name),
+    ).toEqual(['Test 4', 'Test 5'])
+  })
+
+  it.each([
+    [1, ['Test 4', 'Test 5']],
+    [2, ['Test 5', 'Test 4']],
+    [3, ['Test 4', 'Test 5']],
+    [4, ['Test 5', 'Test 4']],
+    [5, ['Test 4', 'Test 5']],
+    [6, ['Test 5', 'Test 4']],
+  ])('applies outstanding sort option %i', (sort, expectedNames) => {
+    expect(
+      sortAndFilterOutstanding(mockOutstandingTests, sort as number, null).map((test) => test.test_name),
+    ).toEqual(expectedNames)
+  })
+
+  it('filters by subject and supports the all filter for completed tests', () => {
+    expect(
+      sortAndFilterCompleted(mockCompletedTests, null, 'Software').map((test) => test.test_name),
+    ).toEqual(['Test 1', 'Test 3'])
+    expect(
+      sortAndFilterCompleted(mockCompletedTests, null, 'all').map((test) => test.test_name),
+    ).toEqual(['Test 1', 'Test 2', 'Test 3'])
+  })
+
+  it.each([
+    [1, ['Test 1', 'Test 2', 'Test 3']],
+    [2, ['Test 3', 'Test 2', 'Test 1']],
+    [3, ['Test 1', 'Test 3', 'Test 2']],
+    [4, ['Test 2', 'Test 1', 'Test 3']],
+    [5, ['Test 1', 'Test 2', 'Test 3']],
+    [6, ['Test 3', 'Test 2', 'Test 1']],
+  ])('applies completed sort option %i', (sort, expectedNames) => {
+    expect(
+      sortAndFilterCompleted(mockCompletedTests, sort as number, null).map((test) => test.test_name),
+    ).toEqual(expectedNames)
+  })
 })
-
 
