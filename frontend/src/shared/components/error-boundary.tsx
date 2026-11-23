@@ -9,7 +9,7 @@ interface ErrorBoundaryProps {
 }
 
 interface ErrorBoundaryState {
-  hasError: boolean
+  readonly hasError: boolean
 }
 
 /**
@@ -20,7 +20,7 @@ export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState
 > {
-  state: ErrorBoundaryState = { hasError: false }
+  readonly state: ErrorBoundaryState = { hasError: false }
 
   static getDerivedStateFromError(): ErrorBoundaryState {
     return { hasError: true }
@@ -36,12 +36,12 @@ export class ErrorBoundary extends Component<
     console.error('Unhandled application error:', error, info)
   }
 
-  private handleTryAgain = () => {
+  private readonly handleTryAgain = () => {
     this.setState({ hasError: false })
     this.props.onReset?.()
   }
 
-  private handleReturnToLogin = async () => {
+  private readonly handleReturnToLogin = async () => {
     await this.props.onReturnToLogin?.()
   }
 
