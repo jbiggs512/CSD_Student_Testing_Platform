@@ -68,6 +68,7 @@ def get_completed_tests(
                 id=attempt.attempt_id,
                 test_id=attempt.test.test_id,
                 test_name=attempt.test.test_name,
+                subject_name=attempt.test.subject.subject_name,
                 score_percentage=(attempt.correct_questions/attempt.total_questions)*100,
                 questions_correct=attempt.correct_questions,
                 questions_total=attempt.total_questions,

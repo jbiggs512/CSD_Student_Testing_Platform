@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -16,7 +17,14 @@ import {
 } from "@/shared/components";
 import { LoaderCircle, CircleCheckBig, BookCheck } from 'lucide-react'
 import { Link } from 'react-router'
-import { SORT_OPTIONS, FILTER_OPTIONS, type DashboardContentProps } from "../model";
+import {
+  type DashboardContentProps,
+  SORT_OPTIONS_OUTSTANDING,
+  SORT_OPTIONS_COMPLETED,
+  buildFilterOptions,
+  sortAndFilterOutstanding,
+  sortAndFilterCompleted
+} from "../model";
 import { CompletedTestsDialog } from './CompletedTestsDialog'
 
 export function LoadingDashboardContent() {
@@ -41,7 +49,12 @@ export function LoadingDashboardContent() {
   );
 }
 
-export function DashboardContent({ completedTests = [], outstandingTests = [], cohortRank = { rank: 0, size: 0 }, courseTitle = "" }: DashboardContentProps) {
+export function DashboardContent({
+  outstandingTests = [],
+  completedTests = [],
+  cohortRank = { rank: 0, size: 0 },
+  courseTitle = ""
+}: DashboardContentProps) {
 
   // Calculate the average score percentage, rounding to the nearest whole number
   const averageScore = completedTests.length > 0
@@ -50,6 +63,36 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
 
   // Plural placeholder for outstanding tests caption
   const testPlural = outstandingTests.length === 1 ? "" : "s";
+
+  // Track and update sort and filter options 
+  const [outstandingSort, setOutstandingSort] = useState<number | null>(null);
+  const [outstandingFilter, setOutstandingFilter] = useState<string | null>(null);
+  const [completedSort, setCompletedSort] = useState<number | null>(null);
+  const [completedFilter, setCompletedFilter] = useState<string | null>(null);
+
+  // Get the list of potential filter options for outstanding tests
+  const outstandingFilterOptions = useMemo(
+    () => buildFilterOptions(outstandingTests.map((t) => t.subject_name)),
+    [outstandingTests],
+  );
+
+  // Get the list of potential filter options for completed tests
+  const completedFilterOptions = useMemo(
+    () => buildFilterOptions(completedTests.map((t) => t.subject_name)),
+    [completedTests],
+  );
+
+  // Update the outstanding tests based on the applied filter and sort
+  const filteredOutstandingTests = useMemo(
+    () => sortAndFilterOutstanding(outstandingTests, outstandingSort, outstandingFilter),
+    [outstandingTests, outstandingSort, outstandingFilter],
+  );
+
+  // Update the completed tests based on the applied filter and sort
+  const filteredCompletedTests = useMemo(
+    () => sortAndFilterCompleted(completedTests, completedSort, completedFilter),
+    [completedTests, completedSort, completedFilter],
+  );
 
   return (
     <main id="dashboard-page" className="p-4">
@@ -101,10 +144,10 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
               <div className="flex gap-4">
                 <div className="flex flex-col gap-1">
                   <label htmlFor="outstandingSort" className="text-xs font-medium text-muted-foreground">Sort by</label>
-                  <Select id="outstandingSort" items={SORT_OPTIONS}>
-                    <SelectTrigger className="h-8 w-[120px] bg-background"><SelectValue placeholder="Sort Option" /></SelectTrigger>
+                  <Select id="outstandingSort" items={SORT_OPTIONS_OUTSTANDING} value={outstandingSort} onValueChange={(v) => v && setOutstandingSort(v)}>
+                    <SelectTrigger className="h-8 w-[160px] bg-background"><SelectValue placeholder="Sort Option" /></SelectTrigger>
                     <SelectContent>
-                      {SORT_OPTIONS.map((option) => (
+                      {SORT_OPTIONS_OUTSTANDING.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
@@ -114,11 +157,11 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
                 </div>
                 <div className="flex flex-col gap-1">
                   <label htmlFor="outstandingFilter" className="text-xs font-medium text-muted-foreground">Filter by</label>
-                  <Select id="outstandingFilter" items={FILTER_OPTIONS}>
-                    <SelectTrigger className="h-8 w-[120px] bg-background"><SelectValue placeholder="Filter option" /></SelectTrigger>
+                  <Select id="outstandingFilter" items={outstandingFilterOptions} value={outstandingFilter} onValueChange={(v) => v && setOutstandingFilter(v)}>
+                    <SelectTrigger className="h-8 w-[160px] bg-background"><SelectValue placeholder="Filter option" /></SelectTrigger>
                     <SelectContent>
-                      {FILTER_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
+                      {outstandingFilterOptions.map((option) => (
+                        <SelectItem key={String(option.value)} value={option.value}>
                           {option.label}
                         </SelectItem>
                       ))}
@@ -138,7 +181,7 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
               />} />
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {outstandingTests.map((test) => (
+              {filteredOutstandingTests.map((test) => (
                 <Card key={test.id} className="shadow-sm">
                   <CardHeader>
                     <CardTitle className="font-heading text-2xl font-bold text-navy">{test.test_name}</CardTitle>
@@ -167,10 +210,10 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
               <div className="flex gap-4">
                 <div className="flex flex-col gap-1">
                   <label htmlFor="completedSort" className="text-xs font-medium text-muted-foreground">Sort by</label>
-                  <Select id="completedSort" items={SORT_OPTIONS}>
-                    <SelectTrigger className="h-8 w-[120px] bg-background"><SelectValue placeholder="Sort Option" /></SelectTrigger>
+                  <Select id="completedSort" items={SORT_OPTIONS_COMPLETED} value={completedSort} onValueChange={(v) => v && setCompletedSort(v)}>
+                    <SelectTrigger className="h-8 w-[160px] bg-background"><SelectValue placeholder="Sort Option" /></SelectTrigger>
                     <SelectContent>
-                      {SORT_OPTIONS.map((option) => (
+                      {SORT_OPTIONS_COMPLETED.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
@@ -180,11 +223,11 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
                 </div>
                 <div className="flex flex-col gap-1">
                   <label htmlFor="completedFilter" className="text-xs font-medium text-muted-foreground">Filter by</label>
-                  <Select id="completedFilter" items={FILTER_OPTIONS}>
-                    <SelectTrigger className="h-8 w-[120px] bg-background"><SelectValue placeholder="Filter option" /></SelectTrigger>
+                  <Select id="completedFilter" items={completedFilterOptions} value={completedFilter} onValueChange={(v) => v && setCompletedFilter(v)}>
+                    <SelectTrigger className="h-8 w-[160px] bg-background"><SelectValue placeholder="Filter option" /></SelectTrigger>
                     <SelectContent>
-                      {FILTER_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
+                      {completedFilterOptions.map((option) => (
+                        <SelectItem key={String(option.value)} value={option.value}>
                           {option.label}
                         </SelectItem>
                       ))}
@@ -205,7 +248,7 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
           ) : (
             <>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {completedTests.slice(0, 4).map((test) => (
+                {filteredCompletedTests.slice(0, 4).map((test) => (
                   <Card key={test.id} className="shadow-sm">
                     <CardHeader className="pb-2">
                       <CardTitle className="font-heading text-2xl font-bold text-navy">{test.test_name}</CardTitle>
@@ -225,9 +268,9 @@ export function DashboardContent({ completedTests = [], outstandingTests = [], c
                 ))}
               </div>
               {/* Only show view all tests link if there are completed tests */}
-              {completedTests.length > 0 && (
+              {filteredCompletedTests.length > 0 && (
                 <div className="mt-6 flex justify-end">
-                  <CompletedTestsDialog tests={completedTests} />
+                  <CompletedTestsDialog tests={filteredCompletedTests} />
                 </div>
               )}
             </>)}
