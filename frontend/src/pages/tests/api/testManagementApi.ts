@@ -67,6 +67,10 @@ async function apiRequest<T>(
     )
   }
 
+  if (response.status === 204) {
+    return undefined as T
+  }
+
   return (await response.json()) as T
 }
 
@@ -90,5 +94,11 @@ export function createTest(request: TestCreateRequest): Promise<LecturerTest> {
   return apiRequest<LecturerTest>(TESTS_URL, {
     method: 'POST',
     body: JSON.stringify(request),
+  })
+}
+
+export function deleteTest(testId: number): Promise<void> {
+  return apiRequest<void>(`${TESTS_URL}/${testId}`, {
+    method: 'DELETE',
   })
 }
