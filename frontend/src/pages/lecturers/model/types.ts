@@ -10,6 +10,8 @@ export interface Lecturer {
   account_status: LecturerStatus
   registration_date: string
   last_login: string | null
+  failed_login_attempts?: number
+  locked_until?: string | null
 }
 
 export interface LecturerCreateRequest {

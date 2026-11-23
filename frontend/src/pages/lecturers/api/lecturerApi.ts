@@ -107,6 +107,13 @@ export function updateLecturerPassword(
   return patchLecturer(username, request)
 }
 
+export function unlockLecturer(username: string): Promise<Lecturer> {
+  return lecturerRequest<Lecturer>(
+    `/${encodeURIComponent(username)}/unlock`,
+    { method: 'PATCH' },
+  )
+}
+
 export function deleteLecturer(username: string): Promise<void> {
   return lecturerRequest<void>(`/${encodeURIComponent(username)}`, {
     method: 'DELETE',

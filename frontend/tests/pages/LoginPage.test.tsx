@@ -219,6 +219,35 @@ describe('LoginPage', () => {
       )
     })
 
+    // 423 locked account with JSON detail
+    fetchSpy.mockResolvedValueOnce({
+      ok: false,
+      status: 423,
+      json: async () => ({
+        detail:
+          'Account is temporarily locked due to too many failed login attempts. Please try again in 15 minutes.',
+      }),
+    } as Response)
+    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }))
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toContain(
+        'Account is temporarily locked due to too many failed login attempts. Please try again in 15 minutes.',
+      )
+    })
+
+    // 423 locked account without JSON detail fallback
+    fetchSpy.mockResolvedValueOnce({
+      ok: false,
+      status: 423,
+      json: async () => ({}),
+    } as Response)
+    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }))
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toContain(
+        'Your account is temporarily locked due to too many failed login attempts. Please try again in 15 minutes.',
+      )
+    })
+
     // 500 non-JSON response
     fetchSpy.mockResolvedValueOnce({
       ok: false,

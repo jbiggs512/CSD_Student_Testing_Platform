@@ -8,12 +8,14 @@ const {
   createStudent,
   updateStudent,
   approveStudent,
+  unlockStudent,
   deleteStudent,
 } = vi.hoisted(() => ({
   getStudents: vi.fn(),
   createStudent: vi.fn(),
   updateStudent: vi.fn(),
   approveStudent: vi.fn(),
+  unlockStudent: vi.fn(),
   deleteStudent: vi.fn(),
 }))
 
@@ -22,6 +24,7 @@ vi.mock('@/pages/students/api', () => ({
   createStudent,
   updateStudent,
   approveStudent,
+  unlockStudent,
   deleteStudent,
   StudentApiError: class StudentApiError extends Error {},
 }))
@@ -205,5 +208,59 @@ describe('StudentsPage', () => {
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Unable to load students.',
     )
+  })
+
+  it('shows locked badge, filters by locked status, and unlocks a locked student', async () => {
+    const futureLock = new Date(Date.now() + 12 * 60_000).toISOString()
+    const expiredLock = new Date(Date.now() - 60_000).toISOString()
+    const lockedStudent = {
+      ...activeStudent,
+      user_id: 3,
+      username: 'ws100003',
+      first_name: 'Locked',
+      last_name: 'Learner',
+      failed_login_attempts: 5,
+      locked_until: futureLock,
+    }
+    const expiredStudent = {
+      ...activeStudent,
+      user_id: 4,
+      username: 'ws100004',
+      first_name: 'Expired',
+      last_name: 'Learner',
+      failed_login_attempts: 5,
+      locked_until: expiredLock,
+    }
+
+    getStudents.mockResolvedValue([activeStudent, lockedStudent, expiredStudent])
+    unlockStudent.mockResolvedValue({
+      ...lockedStudent,
+      failed_login_attempts: 0,
+      locked_until: null,
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Locked Learner')).toBeDefined()
+    expect(screen.getByText('Locked (12m)')).toBeDefined()
+    expect(
+      screen.getByRole('button', { name: 'Unlock ws100003' }),
+    ).toBeDefined()
+    expect(
+      screen.queryByRole('button', { name: 'Unlock ws100004' }),
+    ).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'locked' }))
+    expect(screen.queryByText('Alex Student')).toBeNull()
+    expect(screen.queryByText('Expired Learner')).toBeNull()
+    expect(screen.getByText('Locked Learner')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Unlock ws100003' }))
+    await waitFor(() => {
+      expect(unlockStudent).toHaveBeenCalledWith('ws100003')
+    })
+    expect(
+      await screen.findByText('Student unlocked successfully.'),
+    ).toBeDefined()
   })
 })

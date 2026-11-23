@@ -173,9 +173,23 @@ def update_lecturer(
         lecturer.last_name = changes.last_name
     if changes.password is not None:
         lecturer.password_hash = hash_password(changes.password)
+        _reset_lockout_fields(lecturer)
     if changes.account_status is not None:
         lecturer.account_status = changes.account_status
 
+    db.commit()
+    db.refresh(lecturer)
+    return lecturer
+
+
+def _reset_lockout_fields(user: User) -> None:
+    user.failed_login_attempts = 0
+    user.locked_until = None
+
+
+def unlock_lecturer(db: Session, username: str) -> User:
+    lecturer = _get_lecturer_or_404(db, username)
+    _reset_lockout_fields(lecturer)
     db.commit()
     db.refresh(lecturer)
     return lecturer
@@ -226,9 +240,18 @@ def update_student(
         student.last_name = changes.last_name
     if changes.password is not None:
         student.password_hash = hash_password(changes.password)
+        _reset_lockout_fields(student)
     if changes.account_status is not None:
         student.account_status = changes.account_status
 
+    db.commit()
+    db.refresh(student)
+    return student
+
+
+def unlock_student(db: Session, username: str) -> User:
+    student = _get_student_or_404(db, username)
+    _reset_lockout_fields(student)
     db.commit()
     db.refresh(student)
     return student

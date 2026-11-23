@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -1013,3 +1014,139 @@ def test_seed_users_is_idempotent(db_session):
         assert user.email == spec.email
         assert user.role.role_name == spec.role.value
         assert user.account_status == spec.account_status
+
+
+def test_unlock_student_clears_lockout_and_allows_login(client, db_session):
+    lecturer = _seed_user(db_session, username="LC900001", role_name=UserRole.LECTURER)
+    student = _seed_user(
+        db_session,
+        username="WS900001",
+        role_name=UserRole.STUDENT,
+        password="StudentPass123!",
+    )
+    other_student = _seed_user(
+        db_session, username="WS900002", role_name=UserRole.STUDENT
+    )
+
+    lecturer_headers = {
+        "Authorization": f"Bearer {create_access_token(subject=lecturer.username)}"
+    }
+    student_headers = {
+        "Authorization": f"Bearer {create_access_token(subject=other_student.username)}"
+    }
+
+    for _ in range(5):
+        client.post(
+            "/api/v1/auth/login",
+            json={"username": student.username, "password": "WrongPassword!"},
+        )
+
+    listed = client.get("/api/v1/user/student", headers=lecturer_headers)
+    assert listed.status_code == 200
+    matched = next(item for item in listed.json() if item["username"] == student.username)
+    assert matched["failed_login_attempts"] == 5
+    assert matched["locked_until"] is not None
+
+    forbidden = client.patch(
+        f"/api/v1/user/student/{student.username}/unlock",
+        headers=student_headers,
+    )
+    assert forbidden.status_code == 403
+
+    not_found = client.patch(
+        "/api/v1/user/student/UNKNOWN99/unlock",
+        headers=lecturer_headers,
+    )
+    assert not_found.status_code == 404
+
+    unlocked = client.patch(
+        f"/api/v1/user/student/{student.username}/unlock",
+        headers=lecturer_headers,
+    )
+    assert unlocked.status_code == 200
+    body = unlocked.json()
+    assert body["failed_login_attempts"] == 0
+    assert body["locked_until"] is None
+
+    login_res = client.post(
+        "/api/v1/auth/login",
+        json={"username": student.username, "password": "StudentPass123!"},
+    )
+    assert login_res.status_code == 200
+
+
+def test_unlock_lecturer_and_password_reset_clear_lockout(client, db_session):
+    admin = _seed_user(db_session, username="AD900001", role_name=UserRole.ADMIN)
+    lecturer = _seed_user(
+        db_session,
+        username="LC900002",
+        role_name=UserRole.LECTURER,
+        password="LecturerPass123!",
+    )
+    student = _seed_user(db_session, username="WS900003", role_name=UserRole.STUDENT)
+
+    admin_headers = {
+        "Authorization": f"Bearer {create_access_token(subject=admin.username)}"
+    }
+    lecturer_headers = {
+        "Authorization": f"Bearer {create_access_token(subject=lecturer.username)}"
+    }
+    student_headers = {
+        "Authorization": f"Bearer {create_access_token(subject=student.username)}"
+    }
+
+    lecturer.failed_login_attempts = 5
+    lecturer.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+    db_session.commit()
+
+    assert (
+        client.patch(
+            f"/api/v1/user/lecturer/{lecturer.username}/unlock",
+            headers=lecturer_headers,
+        ).status_code
+        == 403
+    )
+    assert (
+        client.patch(
+            f"/api/v1/user/lecturer/{lecturer.username}/unlock",
+            headers=student_headers,
+        ).status_code
+        == 403
+    )
+    assert (
+        client.patch(
+            "/api/v1/user/lecturer/UNKNOWN99/unlock",
+            headers=admin_headers,
+        ).status_code
+        == 404
+    )
+
+    unlocked = client.patch(
+        f"/api/v1/user/lecturer/{lecturer.username}/unlock",
+        headers=admin_headers,
+    )
+    assert unlocked.status_code == 200
+    assert unlocked.json()["failed_login_attempts"] == 0
+    assert unlocked.json()["locked_until"] is None
+
+    # Password reset should also unlock a locked account
+    lecturer.failed_login_attempts = 5
+    lecturer.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+    db_session.commit()
+
+    reset_res = client.patch(
+        f"/api/v1/user/lecturer/{lecturer.username}",
+        json={"password": "NewLecturerPass123!"},
+        headers=admin_headers,
+    )
+    assert reset_res.status_code == 200
+    assert reset_res.json()["failed_login_attempts"] == 0
+    assert reset_res.json()["locked_until"] is None
+
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            json={"username": lecturer.username, "password": "NewLecturerPass123!"},
+        ).status_code
+        == 200
+    )
