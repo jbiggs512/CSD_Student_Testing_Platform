@@ -1,6 +1,4 @@
-import type { Course } from '@shared/api'
-
-export type { Course }
+export type { Course } from '@shared/api'
 
 export type SubjectStatus = 'active' | 'disabled'
 
