@@ -3,12 +3,7 @@ import {
     Card,
     CardContent,
     CardHeader,
-    CardTitle,
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
+    CardTitle
 } from "@/shared/components";
 import type { TopStudentCardProps, LeaderboardEntry } from "../model"
 import { getCurrentUser } from '@shared/api';
@@ -70,37 +65,19 @@ function CurrentUserRow({ user }: Readonly<{ user: LeaderboardEntry }>) {
 
 
 export function TopStudentsCard(props: Readonly<TopStudentCardProps>) {
-    const subject = props.subjects[0];
+    const selectedSubject = props.subjects.find(
+        (option) => option.value === props.selectedSubjectId,
+    );
 
     return (
         <Card className="gap-0 border-0 py-0 shadow-md">
             <CardHeader className="gap-1 border-b py-5">
-                <CardTitle>
-                    <div className="mb-1 flex items-centre justify-between">
-                        <h2 className="font-heading text-2xl font-bold text-plum">Top 5 Students</h2>
-                        {/* Only show dropdowns if there are multiple subjects */}
-                        {props.subjects.length > 0 && (
-                            <div className="flex gap-4">
-                                <div className="flex flex-col gap-1">
-                                    <label htmlFor="subjectFilter" className="text-xs font-medium text-muted-foreground">Subject</label>
-                                    <Select id="subjectFilter" items={props.subjects} defaultValue={props.subjects[0]}>
-                                        <SelectTrigger className="h-8 w-[200px] bg-background"><SelectValue placeholder="Select Subject" /></SelectTrigger>
-                                        <SelectContent>
-                                            {props.subjects.map((option) => (
-                                                <SelectItem key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                <CardTitle> 
+                        <h2 className="font-heading text-2xl font-bold text-plum">Top 5 Students</h2> 
                 </CardTitle>
             </CardHeader>
 
-            <CardContent className="p-4"> 
+            <CardContent className="p-4">
                 <div className="grid grid-cols-[3rem_1fr_4.5rem_4.5rem] px-3 pb-1 text-xs text-navy" aria-hidden="true" >
                     <span className="text-center">RANK</span>
                     <span>STUDENT</span>
@@ -108,7 +85,7 @@ export function TopStudentsCard(props: Readonly<TopStudentCardProps>) {
                     <span className="text-right">POINTS</span>
                 </div>
 
-                <ol className="space-y-2" aria-label={`Top 5 students in ${subject.label}`}>
+                <ol className="space-y-2" aria-label={`Top 5 students in ${selectedSubject?.label ?? ""}`}>
                     {props.topFive.map((entry) => (
                         <LeaderboardRow key={entry.rank} entry={entry} />
                     ))}

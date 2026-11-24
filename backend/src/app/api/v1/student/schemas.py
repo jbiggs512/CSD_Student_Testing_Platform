@@ -11,6 +11,7 @@ class CompletedTestResponse(BaseModel):
     id: int
     test_id: int
     test_name: str
+    subject_name: str
     score_percentage: int
     questions_correct: int
     questions_total: int
@@ -58,3 +59,19 @@ class GradePoint(BaseModel):
 class GradesOverTimeResponse(BaseModel):
     average: int        
     points: list[GradePoint]
+    
+class CohortComparisonResponse(BaseModel):
+    subject: str
+    top5_average: int | None
+    user_average: int | None
+    cohort_average: int | None
+
+class ScoreBand(BaseModel):
+    band: str
+    count: int
+
+class ScoreDistributionResponse(BaseModel):
+    subject: str
+    bands: list[ScoreBand]
+    user_band: str | None
+    user_score: int | None

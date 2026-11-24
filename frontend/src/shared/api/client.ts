@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../config'
-import { getAccessToken } from '../api/authSession'
+import { getAccessToken, notifyIfAccountDisabled } from '../api/authSession'
 
 export class ApiError extends Error {
     readonly status: number
@@ -60,6 +60,7 @@ export function createApiClient({
             }
 
             if (response.status === 403) {
+                notifyIfAccountDisabled(response.status, detailMessage)
                 throw new ErrorClass(
                     detailMessage ?? 'Your account is not permitted to access this resource.',
                     403,
