@@ -1,4 +1,6 @@
 import {
+    Alert,
+    AlertDescription,
     Button,
     Card,
     CardContent,
@@ -11,13 +13,29 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/shared/components";
-import type { GradesOverTimeResponse } from "../model";
+import { exportResultsToExcel, type GradesOverTimeResponse } from "../model";
+import { useState } from "react";
+import { AlertCircleIcon } from "lucide-react";
 
 export function ExportResultsCard({ data }: Readonly<{ data: GradesOverTimeResponse }>) {
     const exportOptions = [
         { label: "Excel (.xlsx)", value: 0 }
     ];
+    const [exportError, setExportError] = useState<string | null>(null);
+    const [isExporting, setIsExporting] = useState(false);
 
+    const handleExport = async () => {
+        try {
+            setExportError(null);
+            setIsExporting(true);
+            await exportResultsToExcel(data.points);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "An unexpected error occurred";
+            setExportError(`Export failed: ${message}`)
+        } finally {
+            setIsExporting(false);
+        }
+    };
     return (
         <Card className="gap-0 border-0 py-0 shadow-md">
             <CardHeader className="gap-1 border-b py-5">
@@ -46,7 +64,18 @@ export function ExportResultsCard({ data }: Readonly<{ data: GradesOverTimeRespo
                             </SelectContent>
                         </Select>
                     </div>
-                    <Button className="w-full" disabled={data.points.length == 0}>Export Results</Button>
+                    <Button
+                        className="w-full"
+                        disabled={data.points.length === 0 || isExporting}
+                        onClick={handleExport}>
+                        {isExporting ? "Exporting..." : "Export Results"}
+                    </Button>
+                    {exportError && (
+                        <Alert variant="destructive">
+                            <AlertCircleIcon aria-hidden="true" />
+                            <AlertDescription>{exportError}</AlertDescription>
+                        </Alert>
+                    )}
                 </div>
             </CardContent>
         </Card>
