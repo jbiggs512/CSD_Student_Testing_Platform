@@ -1,4 +1,4 @@
-import { getAccessToken } from '@shared/api'
+import { getAccessToken, notifyIfAccountDisabled } from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type {
   LecturerTest,
@@ -61,10 +61,16 @@ async function apiRequest<T>(
       // Fallback to generic error message if response is not JSON
     }
 
+    notifyIfAccountDisabled(response.status, detailMessage)
+
     throw new TestManagementApiError(
       detailMessage ?? 'Something went wrong. Please try again.',
       response.status,
     )
+  }
+
+  if (response.status === 204) {
+    return undefined as T
   }
 
   return (await response.json()) as T
@@ -90,5 +96,11 @@ export function createTest(request: TestCreateRequest): Promise<LecturerTest> {
   return apiRequest<LecturerTest>(TESTS_URL, {
     method: 'POST',
     body: JSON.stringify(request),
+  })
+}
+
+export function deleteTest(testId: number): Promise<void> {
+  return apiRequest<void>(`${TESTS_URL}/${testId}`, {
+    method: 'DELETE',
   })
 }

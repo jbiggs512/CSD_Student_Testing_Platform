@@ -12,6 +12,7 @@ connect_args = (
 engine = create_engine(
     settings.DATABASE_URL,
     connect_args=connect_args,
+    pool_pre_ping=True,
 )
 
 # Enable foreign key support for SQLite databases only.

@@ -1,4 +1,8 @@
-import { fetchWithAuthRetry, getAccessToken } from '@shared/api'
+import {
+  fetchWithAuthRetry,
+  getAccessToken,
+  notifyIfAccountDisabled,
+} from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type {
   Question,
@@ -57,6 +61,8 @@ async function apiRequest<T>(
     } catch {
       // Fallback to generic error message if response is not JSON
     }
+
+    notifyIfAccountDisabled(response.status, detailMessage)
 
     throw new QuestionPoolApiError(
       detailMessage ?? 'Something went wrong. Please try again.',

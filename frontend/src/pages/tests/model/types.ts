@@ -27,6 +27,7 @@ export interface LecturerTest {
   questions_per_attempt: number
   pool_size: number
   attempt_count?: number
+  attempted_student_count?: number
   average_percentage?: number | null
 }
 

@@ -228,6 +228,35 @@ Review the generated migration carefully before applying it. Autogeneration does
 
 Apply the migration using `uv run alembic upgrade head` in the environment you intend to update.
 
+### Database seeding
+
+Use the orchestrated seeding CLI to idempotently populate roles, courses, subjects, question pools, tests, users, enrollments, and sample test attempts:
+
+When using Docker Compose, from the repository root:
+
+```bash
+docker compose exec backend uv run python -m app.db.scripts.seed_all --migrate
+```
+
+When running locally from `backend/`:
+
+```bash
+uv run python -m app.db.scripts.seed_all --migrate
+```
+
+Supported CLI options:
+
+- `--migrate` — Apply pending Alembic migrations (`alembic upgrade head`) before seeding.
+- `--dry-run` — Execute seeding inside a transaction and roll back without persisting changes.
+- `--baseline-only` — Seed only minimal baseline records (4 courses, 4 users, and the core OOP quiz).
+- `--require-custom-passwords` — Fail unless custom password environment variables are supplied (`SEED_DEFAULT_PASSWORD` or `SEED_ADMIN_PASSWORD`, `SEED_LECTURER_PASSWORD`, and `SEED_STUDENT_PASSWORD`).
+
+Default development demo accounts use password `Password123!` unless overridden via environment variables:
+
+- **Admin:** `admin`
+- **Lecturer:** `lecturer`
+- **Student:** `student` (and `student.pending` for testing account approval workflows)
+
 ### Team workflow
 
 1. Update the relevant SQLAlchemy model.

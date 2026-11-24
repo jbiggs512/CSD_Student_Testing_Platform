@@ -7,6 +7,8 @@ import {
   Edit2Icon,
   KeyRoundIcon,
   LoaderCircleIcon,
+  LockIcon,
+  LockOpenIcon,
   PlusIcon,
   PowerIcon,
   SearchIcon,
@@ -36,6 +38,10 @@ import {
 } from '@shared/components/ui/sheet'
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog'
 import { getCourses, type Course } from '@shared/api'
+import {
+  getLockoutRemainingMinutes,
+  isAccountLocked,
+} from '@shared/lib/utils'
 import type { Student } from '../model'
 import {
   approveStudent,
@@ -43,6 +49,7 @@ import {
   deleteStudent,
   getStudents,
   StudentApiError,
+  unlockStudent,
   updateStudent,
 } from '../api'
 
@@ -83,7 +90,7 @@ interface StudentsPageState {
   formError: string | null
   successMessage: string | null
   searchTerm: string
-  statusFilter: 'all' | Student['account_status']
+  statusFilter: 'all' | Student['account_status'] | 'locked'
   courseFilter: string
   isFormOpen: boolean
   editingStudent: Student | null
@@ -120,17 +127,32 @@ function getDisplayError(error: unknown): string {
   return 'Something went wrong. Please try again.'
 }
 
-function StatusBadge({ status }: Readonly<{ status: Student['account_status'] }>) {
+function StatusBadge({
+  status,
+  lockedUntil,
+}: Readonly<{
+  status: Student['account_status']
+  lockedUntil?: string | null
+}>) {
   const styles = {
     active: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
     disabled: 'bg-muted text-muted-foreground ring-border',
     pending: 'bg-yellow/20 text-navy ring-yellow/40',
   } as const
+  const remainingMinutes = getLockoutRemainingMinutes(lockedUntil)
 
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 ring-inset ${styles[status]}`}>
-      {status}
-    </span>
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 ring-inset ${styles[status]}`}>
+        {status}
+      </span>
+      {remainingMinutes !== null && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+          <LockIcon className="size-3" aria-hidden="true" />
+          Locked ({remainingMinutes}m)
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -149,6 +171,7 @@ function StudentCourseCell({ student }: Readonly<{ student: Student }>) {
 interface StudentActionsProps {
   student: Student
   onApprove: (student: Student) => void
+  onUnlock: (student: Student) => void
   onToggleStatus: (student: Student) => void
   onPassword: (student: Student) => void
   onEdit: (student: Student) => void
@@ -158,15 +181,18 @@ interface StudentActionsProps {
 function StudentActions({
   student,
   onApprove,
+  onUnlock,
   onToggleStatus,
   onPassword,
   onEdit,
   onDelete,
 }: Readonly<StudentActionsProps>) {
   const statusActionLabel = student.account_status === 'active' ? 'Disable' : 'Enable'
+  const isLocked = isAccountLocked(student.locked_until)
 
   return (
     <div className="flex items-center justify-end gap-1">
+      {isLocked && <Button type="button" variant="ghost" size="sm" onClick={() => onUnlock(student)} aria-label={`Unlock ${student.username}`}><LockOpenIcon aria-hidden="true" /><span className="hidden lg:inline">Unlock</span></Button>}
       {student.account_status === 'pending' && <Button type="button" variant="ghost" size="sm" onClick={() => onApprove(student)} aria-label={`Approve ${student.username}`}><UserCheckIcon aria-hidden="true" /><span className="hidden lg:inline">Approve</span></Button>}
       {student.account_status !== 'pending' && <Button type="button" variant="ghost" size="sm" onClick={() => onToggleStatus(student)} aria-label={`${statusActionLabel} ${student.username}`}><PowerIcon aria-hidden="true" /><span className="hidden lg:inline">{statusActionLabel}</span></Button>}
       <Button type="button" variant="ghost" size="sm" onClick={() => onPassword(student)} aria-label={`Reset password for ${student.username}`}><KeyRoundIcon aria-hidden="true" /><span className="hidden lg:inline">Password</span></Button>
@@ -191,6 +217,7 @@ function StudentIdentityCell({ student }: Readonly<{ student: Student }>) {
 
 function createStudentColumns(
   onApprove: (student: Student) => void,
+  onUnlock: (student: Student) => void,
   onToggleStatus: (student: Student) => void,
   onPassword: (student: Student) => void,
   onEdit: (student: Student) => void,
@@ -217,7 +244,12 @@ function createStudentColumns(
     {
       accessorKey: 'account_status',
       header: 'Status',
-      cell: ({ row }) => <StatusBadge status={row.original.account_status} />,
+      cell: ({ row }) => (
+        <StatusBadge
+          status={row.original.account_status}
+          lockedUntil={row.original.locked_until}
+        />
+      ),
     },
     {
       id: 'actions',
@@ -229,6 +261,7 @@ function createStudentColumns(
         <StudentActions
           student={row.original}
           onApprove={onApprove}
+          onUnlock={onUnlock}
           onToggleStatus={onToggleStatus}
           onPassword={onPassword}
           onEdit={onEdit}
@@ -247,6 +280,7 @@ interface StudentListCardProps {
   onCourseFilter: (courseId: string) => void
   onCreate: () => void
   onApprove: (student: Student) => void
+  onUnlock: (student: Student) => void
   onToggleStatus: (student: Student) => void
   onPassword: (student: Student) => void
   onEdit: (student: Student) => void
@@ -261,6 +295,7 @@ function StudentListCard({
   onCourseFilter,
   onCreate,
   onApprove,
+  onUnlock,
   onToggleStatus,
   onPassword,
   onEdit,
@@ -273,12 +308,13 @@ function StudentListCard({
     () =>
       createStudentColumns(
         onApprove,
+        onUnlock,
         onToggleStatus,
         onPassword,
         onEdit,
         onDelete,
       ),
-    [onApprove, onDelete, onEdit, onPassword, onToggleStatus],
+    [onApprove, onDelete, onEdit, onPassword, onToggleStatus, onUnlock],
   )
 
   return (
@@ -307,8 +343,8 @@ function StudentListCard({
               </option>
             ))}
           </select>
-          <div className="flex rounded-md border p-1" aria-label="Filter students by status">
-            {(['all', 'active', 'pending', 'disabled'] as const).map((filter) => (
+          <div className="flex flex-wrap rounded-md border p-1" aria-label="Filter students by status">
+            {(['all', 'active', 'pending', 'disabled', 'locked'] as const).map((filter) => (
               <Button key={filter} type="button" size="sm" variant={state.statusFilter === filter ? 'secondary' : 'ghost'} aria-pressed={state.statusFilter === filter} onClick={() => onStatusFilter(filter)} className="capitalize">{filter}</Button>
             ))}
           </div>
@@ -366,7 +402,11 @@ export function StudentsPage() {
   const filteredStudents = useMemo(() => {
     const search = state.searchTerm.trim().toLocaleLowerCase()
     return state.students.filter((student) => {
-      const matchesStatus = state.statusFilter === 'all' || student.account_status === state.statusFilter
+      const matchesStatus =
+        state.statusFilter === 'all' ||
+        (state.statusFilter === 'locked'
+          ? isAccountLocked(student.locked_until)
+          : student.account_status === state.statusFilter)
       let matchesCourse = true
       if (state.courseFilter === 'unassigned') {
         matchesCourse = student.courses.length === 0
@@ -518,6 +558,17 @@ export function StudentsPage() {
     }
   }
 
+  const handleUnlock = useCallback(async (student: Student) => {
+    updateState({ pageError: null, successMessage: null })
+    try {
+      await unlockStudent(student.username)
+      updateState({ successMessage: 'Student unlocked successfully.' })
+      await loadStudents(true)
+    } catch (error) {
+      updateState({ pageError: getDisplayError(error) })
+    }
+  }, [loadStudents, updateState])
+
   async function handleApprove(student: Student) {
     updateState({ pageError: null, successMessage: null })
     try {
@@ -547,6 +598,7 @@ export function StudentsPage() {
   const activeCount = state.students.filter(({ account_status }) => account_status === 'active').length
   const pendingCount = state.students.filter(({ account_status }) => account_status === 'pending').length
   const disabledCount = state.students.filter(({ account_status }) => account_status === 'disabled').length
+  const lockedCount = state.students.filter(({ locked_until }) => isAccountLocked(locked_until)).length
   let formSubmitLabel = 'Create student'
   if (state.editingStudent) formSubmitLabel = 'Save changes'
   if (state.isSaving) formSubmitLabel = 'Saving...'
@@ -570,12 +622,13 @@ export function StudentsPage() {
       {state.pageError && <Alert variant="destructive"><AlertCircleIcon aria-hidden="true" /><AlertDescription>{state.pageError}</AlertDescription></Alert>}
       {state.successMessage && <Alert><CheckCircle2Icon aria-hidden="true" /><AlertDescription>{state.successMessage}</AlertDescription></Alert>}
 
-      <section aria-label="Student statistics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Student statistics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {[
           ['Total students', state.students.length, 'All student accounts'],
           ['Active students', activeCount, 'Approved and available'],
           ['Pending students', pendingCount, 'Awaiting approval'],
           ['Disabled students', disabledCount, 'Accounts unavailable for sign in'],
+          ['Locked accounts', lockedCount, 'Temporarily locked after failed logins'],
         ].map(([title, value, description]) => (
           <Card key={title as string} className="gap-3 border-0 py-5 shadow-sm">
             <CardHeader className="gap-1 px-5">
@@ -595,6 +648,7 @@ export function StudentsPage() {
         onCourseFilter={(courseFilter) => updateState({ courseFilter })}
         onCreate={openCreateForm}
         onApprove={handleApprove}
+        onUnlock={handleUnlock}
         onToggleStatus={toggleStatus}
         onPassword={openPasswordForm}
         onEdit={openEditForm}

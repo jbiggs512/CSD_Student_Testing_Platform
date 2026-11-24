@@ -42,8 +42,8 @@ export function DashboardPage() {
 
   return (
     <DashboardContent
-      completedTests={completedTests}
-      outstandingTests={outstandingTests}
+      outstandingTests={outstandingTests} 
+      completedTests={completedTests} 
       cohortRank={cohortRank}
       courseTitle={courseTitle}
     />

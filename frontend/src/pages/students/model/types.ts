@@ -13,6 +13,8 @@ export interface Student {
   registration_date: string
   last_login: string | null
   courses: Course[]
+  failed_login_attempts?: number
+  locked_until?: string | null
 }
 
 export interface StudentCreateRequest {

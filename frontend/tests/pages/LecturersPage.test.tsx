@@ -8,12 +8,14 @@ const {
   createLecturer,
   updateLecturer,
   updateLecturerPassword,
+  unlockLecturer,
   deleteLecturer,
 } = vi.hoisted(() => ({
   getLecturers: vi.fn(),
   createLecturer: vi.fn(),
   updateLecturer: vi.fn(),
   updateLecturerPassword: vi.fn(),
+  unlockLecturer: vi.fn(),
   deleteLecturer: vi.fn(),
 }))
 
@@ -22,6 +24,7 @@ vi.mock('@/pages/lecturers/api', () => ({
   createLecturer,
   updateLecturer,
   updateLecturerPassword,
+  unlockLecturer,
   deleteLecturer,
   LecturerApiError: class LecturerApiError extends Error {},
 }))
@@ -62,13 +65,14 @@ describe('LecturersPage', () => {
     vi.clearAllMocks()
   })
 
-  it('displays lecturers returned by the API', async () => {
+  it('displays accounts returned by the API including their role', async () => {
     getLecturers.mockResolvedValue([lecturer])
 
     renderPage()
 
     expect(await screen.findByText('Jane Lecturer')).toBeDefined()
     expect(screen.getByText('jane@example.com')).toBeDefined()
+    expect(screen.getByText('lecturer')).toBeDefined()
   })
 
   it('shows an API error when lecturers cannot be loaded', async () => {
@@ -87,13 +91,13 @@ describe('LecturersPage', () => {
     renderPage()
 
     expect(await screen.findByText('Jane Lecturer')).toBeDefined()
-    fireEvent.change(screen.getByLabelText('Search lecturers'), {
+    fireEvent.change(screen.getByLabelText('Search accounts'), {
       target: { value: 'alex' },
     })
     expect(screen.queryByText('Jane Lecturer')).toBeNull()
     expect(screen.getByText('Alex Disabled')).toBeDefined()
 
-    fireEvent.change(screen.getByLabelText('Search lecturers'), {
+    fireEvent.change(screen.getByLabelText('Search accounts'), {
       target: { value: '' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'disabled' }))
@@ -101,28 +105,50 @@ describe('LecturersPage', () => {
     expect(screen.getByText('Alex Disabled')).toBeDefined()
   })
 
+  it('filters accounts by role', async () => {
+    const admin = {
+      ...lecturer,
+      user_id: 3,
+      username: 'admin.user',
+      first_name: 'Ad',
+      last_name: 'Min',
+      role: 'admin' as const,
+    }
+    getLecturers.mockResolvedValue([lecturer, admin])
+
+    renderPage()
+
+    expect(await screen.findByText('Jane Lecturer')).toBeDefined()
+    fireEvent.change(screen.getByLabelText('Filter accounts by role'), {
+      target: { value: 'admin' },
+    })
+    expect(screen.queryByText('Jane Lecturer')).toBeNull()
+    expect(screen.getByText('Ad Min')).toBeDefined()
+    expect(screen.getByText('admin')).toBeDefined()
+  })
+
   it('shows the empty and no-match states', async () => {
     getLecturers.mockResolvedValue([])
 
     renderPage()
 
-    expect(await screen.findByText('No lecturers yet')).toBeDefined()
-    fireEvent.click(screen.getByRole('button', { name: 'Add your first lecturer' }))
-    expect(screen.getByRole('heading', { name: 'Create lecturer' })).toBeDefined()
+    expect(await screen.findByText('No accounts yet')).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Add your first account' }))
+    expect(screen.getByRole('heading', { name: 'Create account' })).toBeDefined()
   })
 
-  it('creates a lecturer from the admin form', async () => {
+  it('creates a lecturer account from the admin form', async () => {
     getLecturers.mockResolvedValue([])
     createLecturer.mockResolvedValue(lecturer)
 
     renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: 'Add lecturer' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Add account' }))
     fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'jane.lecturer' } })
     fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Jane' } })
     fireEvent.change(screen.getByLabelText('Last name'), { target: { value: 'Lecturer' } })
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'jane@example.com' } })
     fireEvent.change(screen.getByLabelText('Initial password'), { target: { value: 'Password123!' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create lecturer' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
     await waitFor(() => {
       expect(createLecturer).toHaveBeenCalledWith({
@@ -131,10 +157,36 @@ describe('LecturersPage', () => {
         last_name: 'Lecturer',
         email: 'jane@example.com',
         password: 'Password123!',
+        role: 'lecturer',
       })
     })
   })
 
+  it('creates an admin account when Admin is selected', async () => {
+    getLecturers.mockResolvedValue([])
+    createLecturer.mockResolvedValue({ ...lecturer, role: 'admin' })
+
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'Add account' }))
+    fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'new.admin' } })
+    fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'New' } })
+    fireEvent.change(screen.getByLabelText('Last name'), { target: { value: 'Admin' } })
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new.admin@example.com' } })
+    fireEvent.change(screen.getByLabelText('Initial password'), { target: { value: 'Password123!' } })
+    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'admin' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
+
+    await waitFor(() => {
+      expect(createLecturer).toHaveBeenCalledWith({
+        username: 'new.admin',
+        first_name: 'New',
+        last_name: 'Admin',
+        email: 'new.admin@example.com',
+        password: 'Password123!',
+        role: 'admin',
+      })
+    })
+  })
   it('requires matching passwords before resetting a lecturer password', async () => {
     getLecturers.mockResolvedValue([lecturer])
 
@@ -254,5 +306,59 @@ describe('LecturersPage', () => {
     await waitFor(() => {
       expect(deleteLecturer).toHaveBeenCalledWith('jane.lecturer')
     })
+  })
+
+  it('shows locked badge, filters by locked status, and unlocks a locked lecturer', async () => {
+    const lockedLecturer = {
+      ...lecturer,
+      user_id: 3,
+      username: 'locked.lecturer',
+      first_name: 'Sam',
+      last_name: 'Locked',
+      failed_login_attempts: 5,
+      locked_until: new Date(Date.now() + 9 * 60_000).toISOString(),
+    }
+    const expiredLecturer = {
+      ...lecturer,
+      user_id: 4,
+      username: 'expired.lecturer',
+      first_name: 'Pat',
+      last_name: 'Expired',
+      failed_login_attempts: 5,
+      locked_until: new Date(Date.now() - 60_000).toISOString(),
+    }
+
+    getLecturers.mockResolvedValue([lecturer, lockedLecturer, expiredLecturer])
+    unlockLecturer.mockResolvedValue({
+      ...lockedLecturer,
+      failed_login_attempts: 0,
+      locked_until: null,
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Sam Locked')).toBeDefined()
+    expect(screen.getByText('Locked (9m)')).toBeDefined()
+    expect(
+      screen.getByRole('button', { name: 'Unlock locked.lecturer' }),
+    ).toBeDefined()
+    expect(
+      screen.queryByRole('button', { name: 'Unlock expired.lecturer' }),
+    ).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'locked' }))
+    expect(screen.queryByText('Jane Lecturer')).toBeNull()
+    expect(screen.queryByText('Pat Expired')).toBeNull()
+    expect(screen.getByText('Sam Locked')).toBeDefined()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Unlock locked.lecturer' }),
+    )
+    await waitFor(() => {
+      expect(unlockLecturer).toHaveBeenCalledWith('locked.lecturer')
+    })
+    expect(
+      await screen.findByText('Account unlocked successfully.'),
+    ).toBeDefined()
   })
 })

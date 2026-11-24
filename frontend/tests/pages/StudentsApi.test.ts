@@ -6,6 +6,7 @@ import {
   deleteStudent,
   getStudents,
   StudentApiError,
+  unlockStudent,
   updateStudent,
 } from '@/pages/students/api/studentApi'
 
@@ -57,6 +58,13 @@ describe('Students API clients', () => {
     await expect(updateStudent(student.username, { account_status: 'disabled', courses: [2] })).resolves.toEqual(student)
     await expect(approveStudent(student.username)).resolves.toEqual(student)
     await expect(deleteStudent(student.username)).resolves.toBeUndefined()
+
+    fetchSpy.mockResolvedValueOnce(Response.json(student))
+    await expect(unlockStudent(student.username)).resolves.toEqual(student)
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      expect.stringContaining('/student/ws100001/unlock'),
+      expect.objectContaining({ method: 'PATCH' }),
+    )
 
     expect(fetchSpy).toHaveBeenNthCalledWith(
       2,

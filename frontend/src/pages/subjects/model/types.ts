@@ -10,6 +10,10 @@ export interface Subject {
   status: SubjectStatus
 }
 
+export type {
+  CourseCreateRequest,
+  CourseUpdateRequest,
+} from '@shared/api'
 export interface SubjectCreateRequest {
   subject_name: string
   course_id: number
