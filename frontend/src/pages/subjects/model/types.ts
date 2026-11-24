@@ -13,6 +13,14 @@ export interface Course {
   course_title: string
 }
 
+export interface CourseCreateRequest {
+  course_title: string
+}
+
+export interface CourseUpdateRequest {
+  course_title: string
+}
+
 export interface SubjectCreateRequest {
   subject_name: string
   course_id: number

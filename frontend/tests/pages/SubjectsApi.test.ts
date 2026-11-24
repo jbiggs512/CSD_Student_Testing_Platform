@@ -11,7 +11,12 @@ import {
   SubjectApiError,
   updateSubject,
 } from '@/pages/subjects/api/subjectApi'
-import { getCourses } from '@/pages/subjects/api/courseApi'
+import {
+  createCourse,
+  CourseApiError,
+  getCourses,
+  updateCourse,
+} from '@/pages/subjects/api/courseApi'
 
 const subject = {
   subject_id: 1,
@@ -63,6 +68,55 @@ describe('Subjects API clients', () => {
 
     await expect(getCourses()).rejects.toThrow(
       'Unable to load courses. Please try again.',
+    )
+  })
+
+  it('creates and updates courses with JSON and authorization headers', async () => {
+    setAccessToken('test-token')
+    const course = { course_id: 2, course_title: 'Computing' }
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(Response.json(course, { status: 201 }))
+      .mockResolvedValueOnce(Response.json(course))
+
+    await expect(
+      createCourse({ course_title: course.course_title }),
+    ).resolves.toEqual(course)
+    await expect(
+      updateCourse(2, { course_title: course.course_title }),
+    ).resolves.toEqual(course)
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    const [createUrl, createOptions] = fetchSpy.mock.calls[0]
+    expect(String(createUrl)).toContain('/course')
+    expect(createOptions?.method).toBe('POST')
+    expect(createOptions?.headers).toHaveProperty('Authorization')
+    expect(createOptions?.headers).toMatchObject({
+      'Content-Type': 'application/json',
+    })
+    expect(createOptions?.body).toBe(
+      JSON.stringify({ course_title: 'Computing' }),
+    )
+
+    const [updateUrl, updateOptions] = fetchSpy.mock.calls[1]
+    expect(String(updateUrl)).toContain('/course/2')
+    expect(updateOptions).toMatchObject({
+      method: 'PATCH',
+      body: JSON.stringify({ course_title: 'Computing' }),
+    })
+  })
+
+  it('surfaces course API error details', async () => {
+    setAccessToken('test-token')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      Response.json({ detail: 'A course with this title already exists.' }, {
+        status: 400,
+      }),
+    )
+
+    await expect(
+      createCourse({ course_title: 'Computing' }),
+    ).rejects.toEqual(
+      new CourseApiError('A course with this title already exists.', 400),
     )
   })
 
