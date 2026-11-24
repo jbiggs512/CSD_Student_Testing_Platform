@@ -1,4 +1,4 @@
-import { getAccessToken } from '@shared/api'
+import { getAccessToken, notifyIfAccountDisabled } from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type {
   LecturerTest,
@@ -60,6 +60,8 @@ async function apiRequest<T>(
     } catch {
       // Fallback to generic error message if response is not JSON
     }
+
+    notifyIfAccountDisabled(response.status, detailMessage)
 
     throw new TestManagementApiError(
       detailMessage ?? 'Something went wrong. Please try again.',
