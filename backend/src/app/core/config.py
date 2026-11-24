@@ -43,6 +43,12 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
+    # Azure Communication Services Email Configuration
+    AZURE_COMMUNICATION_CONNECTION_STRING: str | None = None
+    AZURE_COMMUNICATION_SENDER_EMAIL: str | None = None
+    EMAIL_ENABLED: bool = True
+    EMAIL_TIMEOUT_SECONDS: int = 30
+
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str]) -> list[str] | str:
