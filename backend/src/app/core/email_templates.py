@@ -1,10 +1,13 @@
 import base64
 from functools import lru_cache
 from html import escape
+import logging
 from pathlib import Path
 
 from app.core.config import settings
-from app.core.email import EmailAttachment
+from app.core.email import EmailAttachment, EmailServiceError, email_service
+
+logger = logging.getLogger(__name__)
 
 _ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 ALTIUS_LOGO_CID = "altius-logo"
@@ -18,26 +21,20 @@ def _load_asset_base64(filename: str) -> str:
 
 def get_branded_email_attachments() -> list[EmailAttachment]:
     """Return inline CID image attachments for the Altius and Trivium logos."""
-    attachments: list[EmailAttachment] = []
-    if not settings.EMAIL_LOGO_URL and (_ASSETS_DIR / "altius-logo.png").is_file():
-        attachments.append(
-            EmailAttachment(
-                name="altius-logo.png",
-                content_type="image/png",
-                content_in_base64=_load_asset_base64("altius-logo.png"),
-                content_id=ALTIUS_LOGO_CID,
-            )
+    specs = (
+        ("altius-logo.png", ALTIUS_LOGO_CID, not settings.EMAIL_LOGO_URL),
+        ("trivium-logo.png", TRIVIUM_LOGO_CID, True),
+    )
+    return [
+        EmailAttachment(
+            name=filename,
+            content_type="image/png",
+            content_in_base64=_load_asset_base64(filename),
+            content_id=cid,
         )
-    if (_ASSETS_DIR / "trivium-logo.png").is_file():
-        attachments.append(
-            EmailAttachment(
-                name="trivium-logo.png",
-                content_type="image/png",
-                content_in_base64=_load_asset_base64("trivium-logo.png"),
-                content_id=TRIVIUM_LOGO_CID,
-            )
-        )
-    return attachments
+        for filename, cid, include in specs
+        if include and (_ASSETS_DIR / filename).is_file()
+    ]
 
 
 def render_branded_email(
@@ -167,3 +164,51 @@ def render_branded_email(
   </table>
 </body>
 </html>"""
+
+
+def send_branded_email(
+    *,
+    to_email: str,
+    subject: str,
+    plain_text: str,
+    badge_text: str,
+    badge_bg: str,
+    badge_color: str,
+    heading: str,
+    greeting: str,
+    body_paragraphs: list[str],
+    username: str | None = None,
+    cta_label: str | None = None,
+    cta_url: str | None = None,
+) -> None:
+    """Render and send a branded Altius email, skipping/logging if unconfigured or failing."""
+    if not email_service.enabled or not email_service.is_configured:
+        logger.info(
+            "Skipping email '%s' to %s because email service is disabled or unconfigured.",
+            subject,
+            to_email,
+        )
+        return
+
+    html = render_branded_email(
+        badge_text=badge_text,
+        badge_bg=badge_bg,
+        badge_color=badge_color,
+        heading=heading,
+        greeting=greeting,
+        body_paragraphs=body_paragraphs,
+        username=username,
+        cta_label=cta_label,
+        cta_url=cta_url,
+    )
+
+    try:
+        email_service.send_email(
+            to=to_email,
+            subject=subject,
+            plain_text=plain_text,
+            html=html,
+            attachments=get_branded_email_attachments(),
+        )
+    except EmailServiceError:
+        logger.exception("Failed to send email '%s' to %s.", subject, to_email)
