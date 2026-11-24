@@ -19,9 +19,9 @@ from app.api.v1.test.schemas import (
     QuestionOptionResponse,
     QuestionResponse,
     StudentTestAttemptItem,
-    TestAnswerSubmission,
-    TestAttemptCreateRequest,
+    TestAnswerSubmission, 
     TestAttemptResponse,
+    TestCompletedRequest,
     TestCreateRequest,
     TestManagementStatsResponse,
     TestResponse,
@@ -414,6 +414,37 @@ def get_test_data(
         ],
     )
 
+def create_test_attempt(
+    db: Session,
+    test_id: int,
+    current_user: User,
+) -> TestAttemptResponse:
+    test = _ensure_student_can_access_test(db, test_id, current_user)
+    
+    new_test_attempt = TestAttempt(
+        test_id=test.test_id,
+        user_id=current_user.user_id,
+        started_at=datetime.now(timezone.utc),  
+    )
+    
+    db.add(new_test_attempt)
+    db.commit()
+    db.refresh(new_test_attempt)
+    
+    return new_test_attempt
+
+def _get_test_attempt(
+    db: Session,
+    target_test_attempt_id: int
+   ) -> TestAttempt:
+       test_attempt = db.get(TestAttempt, target_test_attempt_id)
+       if test_attempt is None:
+           raise HTTPException(
+               status_code=404,
+               detail=f"Test Attempt with ID '{target_test_attempt_id}' not found.",
+           )
+
+       return test_attempt
 
 def _grade_attempt_answers(
     db: Session,
@@ -467,32 +498,28 @@ def _grade_attempt_answers(
     return max(0, raw_score), correct_questions
 
 
-def save_test_attempt(
+def complete_test_attempt(
     db: Session,
-    request: TestAttemptCreateRequest,
+    request: TestCompletedRequest,
     current_user: User,
 ) -> TestAttemptResponse:
     test = _ensure_student_can_access_test(db, request.test_id, current_user)
+    test_attempt = _get_test_attempt(db, request.attempt_id)
     score, correct_questions = _grade_attempt_answers(
         db,
         test.subject_id,
         request.answers,
     )
+    
+    # Update fields for the user's test attempt
+    test_attempt.completed_at = datetime.now(timezone.utc)
+    test_attempt.score = score
+    test_attempt.total_questions=test.questions_per_attempt
+    test_attempt.correct_questions=correct_questions
 
-    new_test_attempt = TestAttempt(
-        test_id=test.test_id,
-        user_id=current_user.user_id,
-        started_at=request.started_at,
-        completed_at=request.completed_at,
-        score=score,
-        total_questions=test.questions_per_attempt,
-        correct_questions=correct_questions,
-    )
-
-    db.add(new_test_attempt)
     db.commit()
-    db.refresh(new_test_attempt)
+    db.refresh(test_attempt)
 
-    return new_test_attempt
+    return test_attempt
     
     
