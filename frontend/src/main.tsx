@@ -105,6 +105,10 @@ createRoot(document.getElementById('root')!).render(
                     element={<SubjectsPage />}
                   />
                   <Route
+                    path="/courses"
+                    element={<CoursesPage />}
+                  />
+                  <Route
                     path="/lecturers"
                     element={<LecturersPage />}
                   />
@@ -123,38 +127,6 @@ createRoot(document.getElementById('root')!).render(
                     path="/questionPool"
                     element={<QuestionPoolPage />} />
                 </Route>
-              </Route>
-              <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-                <Route
-                  path="/adminDashboard"
-                  element={<AdminDashboardPage />}
-                />
-                <Route
-                  path="/subjects"
-                  element={<SubjectsPage />}
-                />
-                <Route
-                  path="/courses"
-                  element={<CoursesPage />}
-                />
-                <Route
-                  path="/lecturers"
-                  element={<LecturersPage />}
-                />
-              </Route>
-              <Route element={<ProtectedRoute allowedRoles={['lecturer']} />}>
-                <Route 
-                  path="/lecturerDashboard"
-                  element={<LecturerDashboardPage />} />
-                <Route 
-                  path="/students"
-                  element={<StudentsPage />} />
-                <Route 
-                  path="/tests"
-                  element={<TestManagementPage />} />
-                <Route 
-                  path="/questionPool"
-                  element={<QuestionPoolPage />} />
               </Route>
               <Route element={<ProtectedRoute allowedRoles={['student']} />}>
                 <Route path="/test/:id" element={<TestPage />} />
