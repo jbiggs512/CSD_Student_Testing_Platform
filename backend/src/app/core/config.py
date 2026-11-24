@@ -23,7 +23,7 @@ def _default_secret_key() -> str:
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "CSD Student Testing Platform"
+    PROJECT_NAME: str = "Altius"
     API_V1_STR: str = "/api/v1"
     DATABASE_URL: str = "sqlite:///./dev.db"
 
@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     AZURE_COMMUNICATION_SENDER_EMAIL: str | None = None
     EMAIL_ENABLED: bool = True
     EMAIL_TIMEOUT_SECONDS: int = 30
+    FRONTEND_URL: str = "https://myaltius.app"
+    EMAIL_LOGO_URL: str | None = None
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
