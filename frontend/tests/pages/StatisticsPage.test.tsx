@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { StatisticsPage, GradesChartCard } from '@/pages/statistics'
 import { cloneElement, type ReactElement } from 'react'
-import { type GradesOverTimeResponse, exportResultsToExcel as actualExportResultsToExcel, type GradePoint, buildResultsWorkbook } from '@/pages/statistics/model'
+import { type GradesOverTimeResponse, buildResultsWorkbook } from '@/pages/statistics/model'
 
 const { getCourseTitle } = vi.hoisted(() => ({
   getCourseTitle: vi.fn(),
