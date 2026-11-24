@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from fastapi import HTTPException, status
 
 from typing import TypeAlias
@@ -21,6 +21,7 @@ USERNAME_EXISTS_DETAIL = "Username is already in use."
 EMAIL_EXISTS_DETAIL = "Email is already registered."
 LECTURER_NOT_FOUND_DETAIL = "Lecturer not found."
 STUDENT_NOT_FOUND_DETAIL = "Student not found."
+COURSE_NOT_FOUND_DETAIL = "One or more selected courses do not exist."
 
 UserCreateRequest: TypeAlias = (
     LecturerCreateRequest | AccountCreateRequest | StudentCreateRequest
@@ -47,10 +48,26 @@ def _get_managed_account_or_404(db: Session, username: str) -> User:
     return account
 
 
+def _resolve_courses(db: Session, course_ids: list[int]) -> list[Course]:
+    unique_ids = list(dict.fromkeys(course_ids))
+    if not unique_ids:
+        return []
+
+    selected_courses = list(
+        db.scalars(select(Course).where(Course.course_id.in_(unique_ids))).all()
+    )
+    if len(selected_courses) != len(unique_ids):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=COURSE_NOT_FOUND_DETAIL,
+        )
+    return selected_courses
+
+
 def _get_lecturer_or_404(db: Session, username: str) -> User:
     lecturer = db.scalar(
         select(User)
-        .options(joinedload(User.role))
+        .options(joinedload(User.role), selectinload(User.courses))
         .join(User.role)
         .where(
             User.username == username,
@@ -68,7 +85,7 @@ def _get_lecturer_or_404(db: Session, username: str) -> User:
 def _get_student_or_404(db: Session, username: str) -> User:
     student = db.scalar(
         select(User)
-        .options(joinedload(User.role))
+        .options(joinedload(User.role), selectinload(User.courses))
         .join(User.role)
         .where(
             User.username == username,
@@ -141,12 +158,7 @@ def create_user(
     )
 
     if user_data.courses:
-        selected_courses = list(
-            db.scalars(
-                select(Course).where(Course.course_id.in_(user_data.courses))
-            ).all()
-        )
-        user.courses = selected_courses
+        user.courses = _resolve_courses(db, user_data.courses)
 
     # Save the user to the database.
     db.add(user)
@@ -160,7 +172,7 @@ def get_lecturers(db: Session) -> list[User]:
     return list(
         db.scalars(
             select(User)
-            .options(joinedload(User.role))
+            .options(joinedload(User.role), selectinload(User.courses))
             .join(User.role)
             .where(Role.role_name == UserRole.LECTURER.value)
             .order_by(User.last_name, User.first_name, User.username)
@@ -297,14 +309,22 @@ def delete_lecturer(db: Session, username: str) -> None:
     db.commit()
 
 
-def get_students(db: Session) -> list[User]:
+def get_students(
+    db: Session,
+    course_id: int | None = None,
+) -> list[User]:
+    stmt = (
+        select(User)
+        .options(joinedload(User.role), selectinload(User.courses))
+        .join(User.role)
+        .where(Role.role_name == UserRole.STUDENT.value)
+    )
+    if course_id is not None:
+        stmt = stmt.where(User.courses.any(Course.course_id == course_id))
+
     return list(
         db.scalars(
-            select(User)
-            .options(joinedload(User.role))
-            .join(User.role)
-            .where(Role.role_name == UserRole.STUDENT.value)
-            .order_by(User.last_name, User.first_name, User.username)
+            stmt.order_by(User.last_name, User.first_name, User.username)
         ).all()
     )
 
@@ -339,6 +359,8 @@ def update_student(
         _reset_lockout_fields(student)
     if changes.account_status is not None:
         student.account_status = changes.account_status
+    if changes.courses is not None:
+        student.courses = _resolve_courses(db, changes.courses)
 
     db.commit()
     db.refresh(student)
@@ -367,7 +389,7 @@ def delete_user(
     # Check if the user exists in the database and retrieve it.
     target_user = db.scalar(
         select(User)
-        .options(joinedload(User.role))
+        .options(joinedload(User.role), selectinload(User.courses))
         .where(User.username == target_username)
     )
 
@@ -430,7 +452,7 @@ def approve_student(
 
     target_user = db.scalar(
         select(User)
-        .options(joinedload(User.role))
+        .options(joinedload(User.role), selectinload(User.courses))
         .where(User.username == target_username)
     )
 

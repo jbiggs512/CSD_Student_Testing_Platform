@@ -1,10 +1,18 @@
-import { getAccessToken } from '@shared/api'
-import { API_BASE_URL } from '@shared/config'
-import type {
-  Course,
-  CourseCreateRequest,
-  CourseUpdateRequest,
-} from '../model'
+import { getAccessToken } from './authSession'
+import { API_BASE_URL } from '../config'
+
+export interface Course {
+  course_id: number
+  course_title: string
+}
+
+export interface CourseCreateRequest {
+  course_title: string
+}
+
+export interface CourseUpdateRequest {
+  course_title: string
+}
 
 const COURSES_URL = `${API_BASE_URL}/course`
 

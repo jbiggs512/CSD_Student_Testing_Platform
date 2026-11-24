@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr, Field, AliasPath
 from datetime import date, datetime
 from typing import Literal
 
+from app.api.v1.course.schemas import CourseResponse
 from app.enums import UserRole, AccountStatus
 
 class BaseUserCreateRequest(BaseModel, ABC):
@@ -66,6 +67,7 @@ class StudentUpdateRequest(BaseModel):
     email: EmailStr | None = None
     password: str | None = None
     account_status: AccountStatus | None = None
+    courses: list[int] | None = None
 
 class StudentCreateRequest(BaseUserCreateRequest):
     @property
@@ -86,6 +88,7 @@ class UserResponse(BaseModel):
     account_status: AccountStatus
     registration_date: date
     last_login: datetime | None
+    courses: list[CourseResponse] = Field(default_factory=list)
     failed_login_attempts: int = 0
     locked_until: datetime | None = None
 

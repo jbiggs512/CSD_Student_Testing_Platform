@@ -2,6 +2,7 @@ services:
   backend:
     build:
       context: ./backend
+      target: dev
     ports:
       - "8000:8000"
     environment:
@@ -12,6 +13,8 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
     volumes:
       - ./backend/src:/app/src
+      - ./backend/alembic:/app/alembic
+      - ./backend/tests:/app/tests
     depends_on:
       db:
         condition: service_healthy

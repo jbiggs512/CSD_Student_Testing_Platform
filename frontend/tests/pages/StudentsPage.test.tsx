@@ -5,6 +5,7 @@ import { StudentsPage } from '@/pages/students'
 
 const {
   getStudents,
+  getCourses,
   createStudent,
   updateStudent,
   approveStudent,
@@ -12,12 +13,21 @@ const {
   deleteStudent,
 } = vi.hoisted(() => ({
   getStudents: vi.fn(),
+  getCourses: vi.fn(),
   createStudent: vi.fn(),
   updateStudent: vi.fn(),
   approveStudent: vi.fn(),
   unlockStudent: vi.fn(),
   deleteStudent: vi.fn(),
 }))
+
+vi.mock('@shared/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shared/api')>()
+  return {
+    ...actual,
+    getCourses,
+  }
+})
 
 vi.mock('@/pages/students/api', () => ({
   getStudents,
@@ -29,6 +39,18 @@ vi.mock('@/pages/students/api', () => ({
   StudentApiError: class StudentApiError extends Error {},
 }))
 
+const softwareCourse = {
+  course_id: 1,
+  course_title: 'BSc Software Engineering',
+}
+
+const cyberCourse = {
+  course_id: 2,
+  course_title: 'BSc Cyber Security',
+}
+
+const defaultCourses = [softwareCourse, cyberCourse]
+
 const activeStudent = {
   user_id: 1,
   username: 'ws100001',
@@ -39,6 +61,7 @@ const activeStudent = {
   account_status: 'active' as const,
   registration_date: '2026-01-01',
   last_login: null,
+  courses: [softwareCourse],
 }
 
 const pendingStudent = {
@@ -46,10 +69,22 @@ const pendingStudent = {
   user_id: 2,
   username: 'ws100002',
   first_name: 'Pending',
+  email: 'pending@example.com',
   account_status: 'pending' as const,
+  courses: [cyberCourse],
+}
+
+const unassignedStudent = {
+  ...activeStudent,
+  user_id: 3,
+  username: 'ws100003',
+  first_name: 'NoCourse',
+  email: 'unassigned@example.com',
+  courses: [],
 }
 
 function renderPage() {
+  getCourses.mockResolvedValue(defaultCourses)
   return render(
     <MemoryRouter>
       <StudentsPage />
@@ -63,17 +98,19 @@ describe('StudentsPage', () => {
     vi.clearAllMocks()
   })
 
-  it('displays students returned by the API', async () => {
-    getStudents.mockResolvedValue([activeStudent])
+  it('displays students and their assigned courses returned by the API', async () => {
+    getStudents.mockResolvedValue([activeStudent, unassignedStudent])
 
     renderPage()
 
     expect(await screen.findByText('Alex Student')).toBeDefined()
     expect(screen.getByText('alex@example.com')).toBeDefined()
+    expect(screen.getAllByText('BSc Software Engineering').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Unassigned').length).toBeGreaterThan(0)
     expect(screen.getAllByText('active').length).toBeGreaterThan(0)
   })
 
-  it('creates a student from the lecturer form', async () => {
+  it('creates a student with an optional course from the lecturer form', async () => {
     getStudents.mockResolvedValue([])
     createStudent.mockResolvedValue(pendingStudent)
 
@@ -83,6 +120,7 @@ describe('StudentsPage', () => {
     fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Pending' } })
     fireEvent.change(screen.getByLabelText('Last name'), { target: { value: 'Student' } })
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'pending@example.com' } })
+    fireEvent.change(screen.getByLabelText('Course'), { target: { value: '2' } })
     fireEvent.change(screen.getByLabelText('Initial password'), { target: { value: 'Password123!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create student' }))
 
@@ -93,17 +131,26 @@ describe('StudentsPage', () => {
         last_name: 'Student',
         email: 'pending@example.com',
         password: 'Password123!',
+        courses: [2],
       })
     })
   })
 
-  it('edits student details', async () => {
+  it('edits student details and changes or clears assigned course', async () => {
     getStudents.mockResolvedValue([activeStudent])
-    updateStudent.mockResolvedValue({ ...activeStudent, first_name: 'Updated' })
+    updateStudent.mockResolvedValue({
+      ...activeStudent,
+      first_name: 'Updated',
+      courses: [cyberCourse],
+    })
 
     renderPage()
     fireEvent.click(await screen.findByRole('button', { name: 'Edit ws100001' }))
+    const courseSelect = screen.getByLabelText('Course') as HTMLSelectElement
+    expect(courseSelect.value).toBe('1')
+
     fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Updated' } })
+    fireEvent.change(courseSelect, { target: { value: '2' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => {
@@ -111,6 +158,26 @@ describe('StudentsPage', () => {
         first_name: 'Updated',
         last_name: 'Student',
         email: 'alex@example.com',
+        courses: [2],
+      })
+    })
+  })
+
+  it('clears a student course when set to unassigned while editing', async () => {
+    getStudents.mockResolvedValue([activeStudent])
+    updateStudent.mockResolvedValue({ ...activeStudent, courses: [] })
+
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit ws100001' }))
+    fireEvent.change(screen.getByLabelText('Course'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => {
+      expect(updateStudent).toHaveBeenCalledWith('ws100001', {
+        first_name: 'Alex',
+        last_name: 'Student',
+        email: 'alex@example.com',
+        courses: [],
       })
     })
   })
@@ -171,15 +238,27 @@ describe('StudentsPage', () => {
     expect(updateStudent).not.toHaveBeenCalled()
   })
 
-  it('filters students by search and account status', async () => {
-    getStudents.mockResolvedValue([activeStudent, pendingStudent])
+  it('filters students by search, course, and account status', async () => {
+    getStudents.mockResolvedValue([activeStudent, pendingStudent, unassignedStudent])
 
     renderPage()
     await screen.findByText('Alex Student')
-    fireEvent.click(screen.getByRole('button', { name: 'pending' }))
 
+    const courseFilter = screen.getByLabelText('Filter students by course')
+    fireEvent.change(courseFilter, { target: { value: '1' } })
+    expect(screen.getByText('Alex Student')).toBeDefined()
+    expect(screen.queryByText('Pending Student')).toBeNull()
+    expect(screen.queryByText('NoCourse Student')).toBeNull()
+
+    fireEvent.change(courseFilter, { target: { value: 'unassigned' } })
+    expect(screen.queryByText('Alex Student')).toBeNull()
+    expect(screen.getByText('NoCourse Student')).toBeDefined()
+
+    fireEvent.change(courseFilter, { target: { value: 'all' } })
+    fireEvent.click(screen.getByRole('button', { name: 'pending' }))
     expect(screen.queryByText('Alex Student')).toBeNull()
     expect(screen.getByText('Pending Student')).toBeDefined()
+
     fireEvent.change(screen.getByPlaceholderText('Search students...'), {
       target: { value: 'missing' },
     })

@@ -10,4 +10,4 @@ export {
   createCourse,
   updateCourse,
   CourseApiError,
-} from './courseApi'
+} from '@shared/api'

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   clearAccessToken,
+  getCourses,
   setAccessToken,
 } from '@shared/api'
 import {
@@ -13,9 +14,8 @@ import {
 import {
   createCourse,
   CourseApiError,
-  getCourses,
   updateCourse,
-} from '@/pages/subjects/api/courseApi'
+} from '@/shared/api/coursesApi'
 
 const subject = {
   subject_id: 1,
