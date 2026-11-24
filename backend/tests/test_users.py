@@ -341,6 +341,61 @@ def test_lecturer_can_delete_student(client, db_session):
     assert db_session.get(User, student.user_id) is None
 
 
+def test_admin_can_manage_student_accounts(client, db_session, auth_headers):
+    headers = auth_headers(UserRole.ADMIN)
+    student = _seed_user(
+        db_session,
+        username="WS_ADMIN_MANAGED",
+        role_name=UserRole.STUDENT,
+        account_status=AccountStatus.PENDING,
+    )
+    student.failed_login_attempts = 5
+    student.locked_until = datetime.now(timezone.utc) + timedelta(minutes=10)
+    db_session.commit()
+
+    list_response = client.get("/api/v1/user/student", headers=headers)
+    assert list_response.status_code == 200
+    assert any(
+        account["username"] == student.username
+        for account in list_response.json()
+    )
+
+    unlock_response = client.patch(
+        f"/api/v1/user/student/{student.username}/unlock",
+        headers=headers,
+    )
+    assert unlock_response.status_code == 200
+    assert unlock_response.json()["failed_login_attempts"] == 0
+    assert unlock_response.json()["locked_until"] is None
+
+    update_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={
+            "first_name": "AdminUpdated",
+            "account_status": AccountStatus.ACTIVE.value,
+        },
+        headers=headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["first_name"] == "AdminUpdated"
+    assert update_response.json()["account_status"] == AccountStatus.ACTIVE.value
+
+    disable_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={"account_status": AccountStatus.DISABLED.value},
+        headers=headers,
+    )
+    assert disable_response.status_code == 200
+    assert disable_response.json()["account_status"] == AccountStatus.DISABLED.value
+
+    delete_response = client.delete(
+        f"/api/v1/user/student/{student.username}",
+        headers=headers,
+    )
+    assert delete_response.status_code == 204
+    assert db_session.get(User, student.user_id) is None
+
+
 def test_create_duplicate_student_username_and_email_return_409(client, db_session):
     lecturer = _seed_user(
         db_session,
