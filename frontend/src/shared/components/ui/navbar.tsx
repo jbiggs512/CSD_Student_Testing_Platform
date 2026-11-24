@@ -5,9 +5,11 @@ import { getCurrentUser, logoutUser, type UserRole } from "@/shared/api";
 import {
   Button,
   NavigationMenu,
+  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
+  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
   Sheet,
   SheetContent,
@@ -21,6 +23,13 @@ interface NavItem {
   to: string;
   label: string;
 }
+
+const teachingItems: NavItem[] = [
+  { to: "/lecturerDashboard", label: "Teaching dashboard" },
+  { to: "/students", label: "Students" },
+  { to: "/tests", label: "Tests" },
+  { to: "/questionPool", label: "Question Pool" },
+];
 
 // One list per role. Desktop and mobile menus both render from this, so a link only ever has to be added in one place
 const navItems: Record<UserRole, NavItem[]> = {
@@ -40,7 +49,7 @@ const navItems: Record<UserRole, NavItem[]> = {
   admin: [
     { to: "/adminDashboard", label: "Dashboard" },
     { to: "/courses", label: "Courses" },
-    { to: "/lecturers", label: "Lecturers" },
+    { to: "/accounts", label: "Accounts" },
     { to: "/subjects", label: "Subjects" },
     { to: "/profile", label: "Profile" },
   ],
@@ -102,6 +111,39 @@ export function NavBar() {
                     />
                   </NavigationMenuItem>
                 ))}
+                {userType === "admin" && (
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger
+                      className={
+                        teachingItems.some((item) => location.pathname === item.to)
+                          ? "bg-muted font-semibold text-plum hover:bg-muted"
+                          : ""
+                      }
+                    >
+                      Teaching
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent className="min-w-52">
+                      <div className="flex flex-col gap-1">
+                        {teachingItems.map((item) => (
+                          <NavigationMenuLink
+                            key={item.to}
+                            active={location.pathname === item.to}
+                            render={
+                              <Link
+                                to={item.to}
+                                aria-current={
+                                  location.pathname === item.to ? "page" : undefined
+                                }
+                              >
+                                {item.label}
+                              </Link>
+                            }
+                          />
+                        ))}
+                      </div>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                )}
                 <NavigationMenuItem>
                   <Button
                     variant="default"
@@ -142,6 +184,33 @@ export function NavBar() {
                       {item.label}
                     </Link>
                   ))}
+                  {userType === "admin" && (
+                    <section
+                      aria-label="Teaching"
+                      className="mt-2 flex flex-col gap-1 border-t pt-3"
+                    >
+                      <h2 className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Teaching
+                      </h2>
+                      {teachingItems.map((item) => (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => setOpen(false)}
+                          aria-current={
+                            location.pathname === item.to ? "page" : undefined
+                          }
+                          className={
+                            location.pathname === item.to
+                              ? "rounded-md bg-muted px-3 py-2 font-semibold text-plum"
+                              : "rounded-md px-3 py-2"
+                          }
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </section>
+                  )}
                   <Button
                     variant="default"
                     onClick={handleLogout}

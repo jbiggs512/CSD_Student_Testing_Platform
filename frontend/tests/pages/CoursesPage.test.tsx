@@ -27,11 +27,14 @@ describe('CoursesPage', () => {
   })
 
   it('creates a course and refreshes the list', async () => {
-    getCourses.mockResolvedValue(courses)
-    createCourse.mockResolvedValue({
+    const newCourse = {
       course_id: 3,
       course_title: 'BSc Mathematics',
-    })
+    }
+    getCourses
+      .mockResolvedValueOnce(courses)
+      .mockResolvedValueOnce([...courses, newCourse])
+    createCourse.mockResolvedValue(newCourse)
 
     render(<CoursesPage />)
     fireEvent.click(await screen.findByRole('button', { name: 'Add course' }))
@@ -47,6 +50,23 @@ describe('CoursesPage', () => {
       expect(getCourses).toHaveBeenCalledTimes(2)
     })
     expect(await screen.findByText('Course created successfully.')).toBeDefined()
+    expect(await screen.findByText('BSc Mathematics')).toBeDefined()
+  })
+
+  it('rejects a whitespace-only course title without calling the API', async () => {
+    getCourses.mockResolvedValue([])
+
+    render(<CoursesPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Add course' }))
+    fireEvent.change(screen.getByLabelText('Course title'), {
+      target: { value: '   ' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create course' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Enter a course title.',
+    )
+    expect(createCourse).not.toHaveBeenCalled()
   })
 
   it('edits a course and displays duplicate-title errors', async () => {

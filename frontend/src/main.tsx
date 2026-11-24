@@ -100,32 +100,22 @@ createRoot(document.getElementById('root')!).render(
                     path="/adminDashboard"
                     element={<AdminDashboardPage />}
                   />
-                  <Route
-                    path="/subjects"
-                    element={<SubjectsPage />}
-                  />
-                  <Route
-                    path="/courses"
-                    element={<CoursesPage />}
-                  />
-                  <Route
-                    path="/lecturers"
-                    element={<LecturersPage />}
-                  />
+                  <Route path="/subjects" element={<SubjectsPage />} />
+                  <Route path="/courses" element={<CoursesPage />} />
+                  <Route path="/accounts" element={<LecturersPage />} />
                 </Route>
-                <Route element={<ProtectedRoute allowedRoles={['lecturer']} />}>
-                  <Route 
+                <Route
+                  element={
+                    <ProtectedRoute allowedRoles={['lecturer', 'admin']} />
+                  }
+                >
+                  <Route
                     path="/lecturerDashboard"
-                    element={<LecturerDashboardPage />} />
-                  <Route 
-                    path="/students"
-                    element={<StudentsPage />} />
-                  <Route 
-                    path="/tests"
-                    element={<TestManagementPage />} />
-                  <Route 
-                    path="/questionPool"
-                    element={<QuestionPoolPage />} />
+                    element={<LecturerDashboardPage />}
+                  />
+                  <Route path="/students" element={<StudentsPage />} />
+                  <Route path="/tests" element={<TestManagementPage />} />
+                  <Route path="/questionPool" element={<QuestionPoolPage />} />
                 </Route>
               </Route>
               <Route element={<ProtectedRoute allowedRoles={['student']} />}>

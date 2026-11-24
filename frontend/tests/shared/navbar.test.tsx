@@ -53,7 +53,7 @@ describe('NavBar', () => {
   it.each([
     ['student', ['Dashboard', 'Leaderboards', 'Statistics', 'Profile']],
     ['lecturer', ['Dashboard', 'Students', 'Tests', 'Question Pool', 'Profile']],
-    ['admin', ['Dashboard', 'Courses', 'Lecturers', 'Subjects', 'Profile']],
+    ['admin', ['Dashboard', 'Courses', 'Accounts', 'Subjects', 'Teaching', 'Profile']],
   ] as const)(
     'renders %s navigation headings based on the authenticated user role',
     (role, expectedHeadings) => {
@@ -66,6 +66,18 @@ describe('NavBar', () => {
       }
     },
   )
+
+  it('groups lecturer tools under Teaching for admins', async () => {
+    seedRole('admin')
+
+    renderNavBar()
+    fireEvent.click(screen.getByRole('button', { name: 'Teaching' }))
+
+    expect(await screen.findByText('Teaching dashboard')).toBeDefined()
+    expect(screen.getByText('Students')).toBeDefined()
+    expect(screen.getByText('Tests')).toBeDefined()
+    expect(screen.getByText('Question Pool')).toBeDefined()
+  })
 
   it('clears the auth session when Logout is clicked', () => {
     seedRole('student')

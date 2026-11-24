@@ -102,9 +102,3 @@ export function updateSubject(
     body: JSON.stringify(request),
   })
 }
-
-export function deleteSubject(subjectId: number): Promise<void> {
-  return subjectRequest<void>(`/${subjectId}`, {
-    method: 'DELETE',
-  })
-}
