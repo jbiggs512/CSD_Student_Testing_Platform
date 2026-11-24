@@ -46,6 +46,8 @@ import { SubjectsHeroPanel } from './SubjectsHeroPanel'
 type StatusFilter = 'all' | SubjectStatus
 type SortOption = 'name-asc' | 'name-desc' | 'course-asc' | 'status'
 
+const MAX_SUBJECT_NAME_LENGTH = 50
+
 interface SubjectFormValues {
   subject_name: string
   course_id: string
@@ -215,7 +217,14 @@ export function SubjectsPage() {
     const courseId = Number(formValues.course_id)
 
     if (!subjectName) {
-      setFormError('Enter a subject name.')
+      setFormError('Subject name cannot be empty or contain only spaces.')
+      return
+    }
+
+    if (subjectName.length > MAX_SUBJECT_NAME_LENGTH) {
+      setFormError(
+        `Subject name must be ${MAX_SUBJECT_NAME_LENGTH} characters or fewer.`,
+      )
       return
     }
 
@@ -406,7 +415,10 @@ export function SubjectsPage() {
                   {filteredSubjects.map((subject) => (
                     <tr key={subject.subject_id} className="transition-colors hover:bg-pink/5">
                       <td className="px-6 py-4">
-                        <div className="font-medium text-foreground">
+                        <div
+                          className="block max-w-[16rem] truncate font-medium text-foreground"
+                          title={subject.subject_name}
+                        >
                           {subject.subject_name}
                         </div>
                         <div className="mt-1 text-xs text-muted-foreground">
@@ -467,7 +479,11 @@ export function SubjectsPage() {
             </SheetDescription>
           </SheetHeader>
 
-          <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-5 px-4">
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            className="flex flex-1 flex-col gap-5 px-4"
+          >
             {formError && (
               <Alert variant="destructive">
                 <AlertCircleIcon aria-hidden="true" />
@@ -484,7 +500,6 @@ export function SubjectsPage() {
                 name="subject_name"
                 autoFocus
                 required
-                maxLength={150}
                 placeholder="e.g. Software Engineering"
                 value={formValues.subject_name}
                 onChange={(event) =>
@@ -494,6 +509,10 @@ export function SubjectsPage() {
                   }))
                 }
               />
+              <p id="subject-name-hint" className="text-xs text-muted-foreground">
+                Maximum {MAX_SUBJECT_NAME_LENGTH} characters (
+                {formValues.subject_name.length}/{MAX_SUBJECT_NAME_LENGTH}).
+              </p>
             </div>
 
             <div className="space-y-2">

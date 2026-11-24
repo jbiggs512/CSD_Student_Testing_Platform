@@ -147,6 +147,60 @@ describe('SubjectsPage', () => {
     )
   })
 
+  it('rejects a subject name containing only spaces with an alert', async () => {
+    getSubjects.mockResolvedValue([])
+    getCourses.mockResolvedValue(courses)
+
+    renderSubjectsPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'Add subject' }))
+    fireEvent.change(screen.getByLabelText('Subject name'), {
+      target: { value: '   ' },
+    })
+    fireEvent.change(screen.getByLabelText('Course'), {
+      target: { value: '1' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create subject' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Subject name cannot be empty or contain only spaces.',
+    )
+    expect(createSubject).not.toHaveBeenCalled()
+  })
+
+  it('rejects subject names longer than 50 characters with an alert', async () => {
+    getSubjects.mockResolvedValue([])
+    getCourses.mockResolvedValue(courses)
+
+    renderSubjectsPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'Add subject' }))
+    fireEvent.change(screen.getByLabelText('Subject name'), {
+      target: { value: 'a'.repeat(51) },
+    })
+    fireEvent.change(screen.getByLabelText('Course'), {
+      target: { value: '1' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create subject' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Subject name must be 50 characters or fewer.',
+    )
+    expect(createSubject).not.toHaveBeenCalled()
+  })
+
+  it('truncates long subject names in the list and keeps the full name available', async () => {
+    const longSubjectName = 'Introduction to Cybersecurity and Network Defence'
+    getSubjects.mockResolvedValue([
+      { ...subjects[0], subject_name: longSubjectName },
+    ])
+    getCourses.mockResolvedValue(courses)
+
+    renderSubjectsPage()
+
+    const subjectName = await screen.findByText(longSubjectName)
+    expect(subjectName.className).toContain('truncate')
+    expect(subjectName.getAttribute('title')).toBe(longSubjectName)
+  })
+
   it('does not offer a delete action for subjects', async () => {
     getSubjects.mockResolvedValue(subjects)
     getCourses.mockResolvedValue(courses)
