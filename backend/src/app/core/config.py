@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_COOKIE_NAME: str = "refresh_token"
     COOKIE_SECURE: bool = False
     MAX_FAILED_LOGIN_ATTEMPTS: int = 5

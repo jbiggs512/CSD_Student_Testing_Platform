@@ -2,12 +2,12 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
-from app.api.v1.auth import schemas, service
+from app.api.v1.auth import emails, schemas, service
 from app.api.v1.user.schemas import UserResponse
 from app.core.config import settings
 from app.db.models import User
@@ -90,3 +90,35 @@ def read_current_user(
 ) -> User:
     """Return the profile of the currently authenticated user."""
     return current_user
+
+
+@router.post("/forgot-password")
+def forgot_password(
+    payload: schemas.ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Annotated[Session, Depends(get_db)],
+) -> schemas.MessageResponse:
+    """Send a password reset email if an active account matches the given email."""
+    reset_info = service.request_password_reset(db, str(payload.email))
+    if reset_info is not None:
+        user, reset_token = reset_info
+        background_tasks.add_task(
+            emails.send_password_reset_email,
+            to_email=user.email,
+            first_name=user.first_name,
+            username=user.username,
+            reset_token=reset_token,
+        )
+    return schemas.MessageResponse(
+        message="If an account with that email exists, a password reset link has been sent."
+    )
+
+
+@router.post("/reset-password")
+def reset_password(
+    payload: schemas.ResetPasswordRequest,
+    db: Annotated[Session, Depends(get_db)],
+) -> schemas.MessageResponse:
+    """Reset the user's password using a valid password reset token."""
+    service.reset_password(db, payload.token, payload.new_password)
+    return schemas.MessageResponse(message="Password has been reset successfully.")

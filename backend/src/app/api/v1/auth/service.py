@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import math
+import secrets
 from typing import NoReturn
 
 import jwt
@@ -15,10 +16,14 @@ from app.api.v1.user.schemas import UserResponse
 from app.core.config import settings
 from app.core.security import (
     DUMMY_PASSWORD_HASH,
+    TOKEN_TYPE_PASSWORD_RESET,
     TOKEN_TYPE_REFRESH,
     create_access_token,
+    create_password_reset_token,
     create_refresh_token,
     decode_token,
+    hash_password,
+    password_fingerprint,
     verify_password,
 )
 from app.db.models import User
@@ -177,3 +182,46 @@ def refresh_user_session(db: Session, refresh_token: str | None) -> AuthSessionR
     _ensure_user_is_active(user)
 
     return _issue_session_tokens(user)
+
+
+def request_password_reset(db: Session, email: str) -> tuple[User, str] | None:
+    """Look up an active user by email and issue a short-lived password reset token."""
+    cleaned_email = email.strip().lower()
+    user = db.scalar(select(User).where(func.lower(User.email) == cleaned_email))
+    if user is None or user.account_status != AccountStatus.ACTIVE:
+        return None
+    token = create_password_reset_token(user.username, user.password_hash)
+    return user, token
+
+
+def reset_password(db: Session, token: str, new_password: str) -> None:
+    """Validate a password reset token, update the password, and clear any lockout."""
+    invalid_token_exc = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Invalid or expired password reset token.",
+    )
+
+    try:
+        payload = decode_token(token)
+    except jwt.InvalidTokenError as exc:
+        raise invalid_token_exc from exc
+
+    if payload.get("type") != TOKEN_TYPE_PASSWORD_RESET:
+        raise invalid_token_exc
+
+    username = payload.get("sub")
+    if not isinstance(username, str) or not username:
+        raise invalid_token_exc
+
+    user = db.scalar(select(User).where(func.lower(User.username) == username.lower()))
+    if user is None or user.account_status != AccountStatus.ACTIVE:
+        raise invalid_token_exc
+
+    expected_fp = password_fingerprint(user.password_hash)
+    if not secrets.compare_digest(str(payload.get("pwd_fp", "")), expected_fp):
+        raise invalid_token_exc
+
+    user.password_hash = hash_password(new_password)
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    db.commit()
