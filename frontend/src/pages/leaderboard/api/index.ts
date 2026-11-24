@@ -2,6 +2,8 @@
 export {
     getCourseTitle,
     getSubjects,
-    getLeaderboard
+    getLeaderboard,
+    getCohortComparison,
+    getScoreDistribution
 } from "./leaderboardApi"
 

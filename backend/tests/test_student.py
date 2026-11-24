@@ -388,6 +388,214 @@ def test_student_leaderboard_returns_unauthorised(client):
     assert response.status_code == 401
 
 
+@pytest.fixture
+def cohort_comparison_test_setup(db_session, student_with_course):
+    student, headers, course = student_with_course
+    subject = Subject(
+        subject_name="Cohort Comparison Subject",
+        course=course,
+    )
+    test = Test(
+        subject=subject,
+        test_name="Cohort Comparison Test",
+        description="A test for cohort chart endpoint coverage.",
+        questions_per_attempt=10,
+    )
+    peer = User(
+        username=f"TEST_peer_{uuid.uuid4().hex[:8]}",
+        first_name="Peer",
+        last_name="Student",
+        email=f"TEST_peer_{uuid.uuid4().hex[:8]}@example.com",
+        password_hash="unused",
+        role_id=student.role_id,
+        account_status=AccountStatus.ACTIVE,
+    )
+    peer.courses.append(course)
+    db_session.add_all([test, peer])
+    db_session.flush()
+    db_session.add_all(
+        [
+            TestAttempt(
+                user_id=student.user_id,
+                test_id=test.test_id,
+                completed_at=datetime.now(timezone.utc),
+                score=800,
+                total_questions=10,
+                correct_questions=8,
+            ),
+            TestAttempt(
+                user_id=peer.user_id,
+                test_id=test.test_id,
+                completed_at=datetime.now(timezone.utc),
+                score=900,
+                total_questions=10,
+                correct_questions=9,
+            ),
+        ]
+    )
+    db_session.commit()
+    return student, headers, subject, test
+
+
+def test_cohort_comparison_returns_averages(
+    client, db_session, cohort_comparison_test_setup
+):
+    student, headers, subject, test = cohort_comparison_test_setup
+    low_score_peer = User(
+        username=f"TEST_peer_{uuid.uuid4().hex[:8]}",
+        first_name="Low",
+        last_name="Student",
+        email=f"TEST_peer_{uuid.uuid4().hex[:8]}@example.com",
+        password_hash="unused",
+        role_id=student.role_id,
+        account_status=AccountStatus.ACTIVE,
+    )
+    low_score_peer.courses.append(subject.course)
+    db_session.add(low_score_peer)
+    db_session.flush()
+    db_session.add(
+        TestAttempt(
+            user_id=low_score_peer.user_id,
+            test_id=test.test_id,
+            completed_at=datetime.now(timezone.utc),
+            score=700,
+            total_questions=10,
+            correct_questions=7,
+        )
+    )
+    db_session.commit()
+
+    response = client.get(
+        f"/api/v1/student/{subject.subject_id}/cohortComparison",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "subject": "Cohort Comparison Subject",
+        "top5_average": 80,
+        "user_average": 80,
+        "cohort_average": 80,
+    }
+
+
+def test_cohort_comparison_returns_nulls_for_student_with_no_attempt(
+    client, db_session, student_with_course
+):
+    student, headers, course = student_with_course
+    subject = Subject(
+        subject_name="Empty Cohort Subject",
+        course=course,
+    )
+    db_session.add(subject)
+    db_session.commit()
+
+    response = client.get(
+        f"/api/v1/student/{subject.subject_id}/cohortComparison",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "subject": "Empty Cohort Subject",
+        "top5_average": 0,
+        "user_average": 0,
+        "cohort_average": 0,
+    }
+
+
+def test_cohort_comparison_returns_unauthorised(client):
+    response = client.get("/api/v1/student/1/cohortComparison")
+
+    assert response.status_code == 401
+
+
+def test_score_distribution_returns_all_bands_and_current_user_band(
+    client, db_session, cohort_comparison_test_setup
+):
+    student, headers, subject, test = cohort_comparison_test_setup
+    low_score_peer = User(
+        username=f"TEST_peer_{uuid.uuid4().hex[:8]}",
+        first_name="Low",
+        last_name="Student",
+        email=f"TEST_peer_{uuid.uuid4().hex[:8]}@example.com",
+        password_hash="unused",
+        role_id=student.role_id,
+        account_status=AccountStatus.ACTIVE,
+    )
+    low_score_peer.courses.append(subject.course)
+    db_session.add(low_score_peer)
+    db_session.flush()
+    db_session.add(
+        TestAttempt(
+            user_id=low_score_peer.user_id,
+            test_id=test.test_id,
+            completed_at=datetime.now(timezone.utc),
+            score=700,
+            total_questions=10,
+            correct_questions=7,
+        )
+    )
+    db_session.commit()
+
+    response = client.get(
+        f"/api/v1/student/{subject.subject_id}/scoreDistribution",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "subject": "Cohort Comparison Subject",
+        "bands": [
+            {"band": "40–49", "count": 0},
+            {"band": "50–59", "count": 0},
+            {"band": "60–69", "count": 0},
+            {"band": "70–79", "count": 1},
+            {"band": "80–89", "count": 1},
+            {"band": "90–100", "count": 1},
+        ],
+        "user_band": "80–89",
+        "user_score": 80,
+    }
+
+
+def test_score_distribution_returns_empty_bands_for_student_with_no_attempt(
+    client, db_session, student_with_course
+):
+    _, headers, course = student_with_course
+    subject = Subject(
+        subject_name="Empty Distribution Subject",
+        course=course,
+    )
+    db_session.add(subject)
+    db_session.commit()
+
+    response = client.get(
+        f"/api/v1/student/{subject.subject_id}/scoreDistribution",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["subject"] == "Empty Distribution Subject"
+    assert data["user_band"] is None
+    assert data["user_score"] is 0
+    assert data["bands"] == [
+        {"band": "40–49", "count": 0},
+        {"band": "50–59", "count": 0},
+        {"band": "60–69", "count": 0},
+        {"band": "70–79", "count": 0},
+        {"band": "80–89", "count": 0},
+        {"band": "90–100", "count": 0},
+    ]
+
+
+def test_score_distribution_returns_unauthorised(client):
+    response = client.get("/api/v1/student/1/scoreDistribution")
+
+    assert response.status_code == 401
+
+
 def test_statistics_returns_no_content(client, auth_headers):
     """
     Test the statistics endpoint returns no content when user has not yet completed any tests
