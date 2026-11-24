@@ -225,3 +225,26 @@ def reset_password(db: Session, token: str, new_password: str) -> None:
     user.failed_login_attempts = 0
     user.locked_until = None
     db.commit()
+
+
+def change_user_password(
+    db: Session,
+    user: User,
+    current_password: str,
+    new_password: str,
+) -> None:
+    """Verify the user's current password and update it to a new password."""
+    if not verify_password(current_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+
+    if new_password == current_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from your current password.",
+        )
+
+    user.password_hash = hash_password(new_password)
+    db.commit()
