@@ -163,17 +163,10 @@ def test_save_test_attempt_grades_answers_server_side(
     assert len(questions) >= 3
 
     student_headers = auth_headers(UserRole.STUDENT)
-
+    
     # Unenrolled student is rejected
-    attempt_payload_base = {
-        "test_id": test.test_id,
-        "started_at": "2026-11-16T21:00:00Z",
-        "completed_at": "2026-11-16T21:05:00Z",
-        "answers": [],
-    }
     unenrolled = client.post(
-        "/api/v1/test/attempt", json=attempt_payload_base, headers=student_headers
-    )
+        f"/api/v1/test/attempt/{test.test_id}", headers=student_headers)
     assert unenrolled.status_code == 401
 
     student = db_session.scalar(
@@ -188,23 +181,26 @@ def test_save_test_attempt_grades_answers_server_side(
 
     # Unknown test returns 404
     missing_test = client.post(
-        "/api/v1/test/attempt",
-        json={**attempt_payload_base, "test_id": 999999},
+        "/api/v1/test/attempt/999999", 
         headers=student_headers,
     )
     assert missing_test.status_code == 404
 
+    # Successfully create test attempt 
+    test_attempt = client.post(f"/api/v1/test/attempt/{test.test_id}", headers=student_headers)
+    assert test_attempt.status_code == 201, test_attempt.text
+    attempt = test_attempt.json()
+    
     q1, q2, q3 = questions[0], questions[1], questions[2]
     q1_correct = next(opt for opt in q1.options if opt.is_correct)
     q2_wrong = next(opt for opt in q2.options if not opt.is_correct)
 
     # 1 correct (+30), 1 duplicate attempt for q1 (ignored), 1 wrong (-10), 1 unanswered (0) => score 20
-    graded_res = client.post(
-        "/api/v1/test/attempt",
+    graded_res = client.patch(
+        "/api/v1/test/complete",
         json={
-            "test_id": test.test_id,
-            "started_at": "2026-11-16T21:00:00Z",
-            "completed_at": "2026-11-16T21:05:00Z",
+            "attempt_id": attempt["attempt_id"],
+            "test_id": test.test_id, 
             "answers": [
                 {"question_id": q1.question_id, "selected_option_id": q1_correct.option_id},
                 {"question_id": q1.question_id, "selected_option_id": q1_correct.option_id},
@@ -214,20 +210,24 @@ def test_save_test_attempt_grades_answers_server_side(
         },
         headers=student_headers,
     )
-    assert graded_res.status_code == 201, graded_res.text
+    assert graded_res.status_code == 200, graded_res.text
     graded = graded_res.json()
     assert graded["score"] == 20
     assert graded["correct_questions"] == 1
     assert graded["total_questions"] == test.questions_per_attempt
 
+    # Create another test attempt
+    test_attempt_2 = client.post(f"/api/v1/test/attempt/{test.test_id}", headers=student_headers)
+    assert test_attempt_2.status_code == 201, test_attempt.text
+    attempt_2 = test_attempt_2.json()
+    
     # Net negative score is clamped to 0
     q1_wrong = next(opt for opt in q1.options if not opt.is_correct)
-    clamped_res = client.post(
-        "/api/v1/test/attempt",
+    clamped_res = client.patch(
+        "/api/v1/test/complete",
         json={
-            "test_id": test.test_id,
-            "started_at": "2026-11-16T21:06:00Z",
-            "completed_at": "2026-11-16T21:07:00Z",
+            "attempt_id": attempt_2["attempt_id"],
+            "test_id": test.test_id, 
             "answers": [
                 {"question_id": q1.question_id, "selected_option_id": q1_wrong.option_id},
                 {"question_id": q2.question_id, "selected_option_id": q2_wrong.option_id},
@@ -235,7 +235,7 @@ def test_save_test_attempt_grades_answers_server_side(
         },
         headers=student_headers,
     )
-    assert clamped_res.status_code == 201, clamped_res.text
+    assert clamped_res.status_code == 200, clamped_res.text
     clamped = clamped_res.json()
     assert clamped["score"] == 0
     assert clamped["correct_questions"] == 0
