@@ -15,23 +15,26 @@ import {
   RadioIndicator,
 } from '@shared/components'
 import { Clock, TriangleAlert } from "lucide-react";
-import type { TestPageContentProps } from "../model";
+import { useServerTimer, type TestPageContentProps } from "../model";
 import logo from '@shared/assets/altius-transparent.png'
 import { useNavigate } from 'react-router';
 
 export function TestPageContent(props: Readonly<TestPageContentProps>) {
   const navigate = useNavigate();
 
+  // Only use a server timer if the test is timed
+  const secondsLeft = useServerTimer({
+  startedAt: props.testDetails.timed ? props.testAttempt?.started_at : null,
+  durationSeconds: props.testDetails.time_limit_minutes * 60,
+  onExpire: props.testDetails.timed ? props.onSubmit : undefined,
+});
+
   const toMMSS = (secs: number) => {
-    const secNum = Number.parseInt(secs.toString(), 10);
-    const minutes = Math.floor(secNum / 60) % 60;
+    const secNum = Math.max(0, Math.floor(secs));
+    const minutes = Math.floor(secNum / 60);
     const seconds = secNum % 60;
 
-    return [minutes, seconds]
-      .map((val) => (val < 10 ? `0${val}` : val))
-      .filter((val, index) => val !== "00" || index > 0)
-      .join(":")
-      .replace(/^0/, "");
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
   };
 
   const currentIndex = props.testDetails.questions.findIndex(
@@ -59,8 +62,8 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
               </DialogHeader>
               <DialogFooter className="gap-2 sm:gap-0">
                 <DialogClose render={<Button variant="outline">
-                    Cancel
-                  </Button>} />
+                  Cancel
+                </Button>} />
                 <DialogClose render={
                   <Button data-testid="continue-exit-test" onClick={() => navigate('/dashboard')}>
                     Exit
@@ -85,9 +88,9 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
           <Card className="flex items-center justify-center rounded-xl bg-white px-8 py-4 text-navy">
             <div className="flex flex-col items-center">
               <p className="mb-1 text-sm font-semibold uppercase text-navy/80">Time Remaining</p>
-              <div className="flex items-center gap-3 font-heading text-4xl font-bold">
+              <div className={secondsLeft <= 60 ? 'flex items-center gap-3 font-heading text-4xl font-bold text-red-600' : 'flex items-center gap-3 font-heading text-4xl font-bold'}>
                 <Clock className="h-8 w-8" strokeWidth={2.5} />
-                {toMMSS(props.testDetails.time_limit_minutes * 60)}
+                {toMMSS(secondsLeft)}
               </div>
             </div>
           </Card>
@@ -136,10 +139,10 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
             {/* Navigation Buttons */}
             <div className="flex items-center justify-between">
               <Button variant="outline" className="border-border text-navy hover:bg-muted"
-                onClick={() => props.onNavigateQuestion(props.testDetails.questions[currentIndex-1].question_id)} disabled={isFirstQuestion}>
+                onClick={() => props.onNavigateQuestion(props.testDetails.questions[currentIndex - 1].question_id)} disabled={isFirstQuestion}>
                 Previous Question
               </Button>
-              <Button onClick={() => props.onNavigateQuestion(props.testDetails.questions[currentIndex+1].question_id)} disabled={isLastQuestion}>
+              <Button onClick={() => props.onNavigateQuestion(props.testDetails.questions[currentIndex + 1].question_id)} disabled={isLastQuestion}>
                 Next Question
               </Button>
             </div>

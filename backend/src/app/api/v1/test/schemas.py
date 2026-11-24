@@ -30,21 +30,21 @@ class TestAnswerSubmission(BaseModel):
     selected_option_id: int | None = None
 
 
-class TestAttemptCreateRequest(BaseModel):
-    test_id: int
-    started_at: datetime
-    completed_at: datetime
+class TestCompletedRequest(BaseModel):
+    attempt_id: int
+    test_id: int  
     answers: list[TestAnswerSubmission] = Field(default_factory=list)
+    
     
 class TestAttemptResponse(BaseModel):
     attempt_id: int
     user_id: int
     test_id: int
     started_at: datetime
-    completed_at: datetime
-    score: int
-    total_questions: int
-    correct_questions: int
+    completed_at: datetime | None = None
+    score: int | None = None
+    total_questions: int | None = None
+    correct_questions: int | None = None
 
     model_config = {"from_attributes": True}
     
