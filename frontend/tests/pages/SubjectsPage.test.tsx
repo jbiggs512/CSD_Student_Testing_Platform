@@ -3,12 +3,11 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SubjectsPage } from '@/pages/subjects'
 
-const { getSubjects, getCourses, createSubject, updateSubject, deleteSubject } = vi.hoisted(() => ({
+const { getSubjects, getCourses, createSubject, updateSubject } = vi.hoisted(() => ({
   getSubjects: vi.fn(),
   getCourses: vi.fn(),
   createSubject: vi.fn(),
   updateSubject: vi.fn(),
-  deleteSubject: vi.fn(),
 }))
 
 vi.mock('@/pages/subjects/api', () => ({
@@ -16,7 +15,6 @@ vi.mock('@/pages/subjects/api', () => ({
   getCourses,
   createSubject,
   updateSubject,
-  deleteSubject,
   SubjectApiError: class SubjectApiError extends Error {},
 }))
 
@@ -149,34 +147,15 @@ describe('SubjectsPage', () => {
     )
   })
 
-  it('confirms subject deletion in the shared dialog', async () => {
-    getSubjects.mockResolvedValue(subjects)
-    getCourses.mockResolvedValue(courses)
-    deleteSubject.mockResolvedValue(undefined)
-
-    renderSubjectsPage()
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete Software Testing' }))
-
-    expect(screen.getByRole('dialog')).toBeDefined()
-    expect(screen.getByText('Delete "Software Testing"? This action cannot be undone.')).toBeDefined()
-    expect(deleteSubject).not.toHaveBeenCalled()
-
-    fireEvent.click(screen.getByRole('button', { name: /^Delete$/ }))
-
-    await waitFor(() => {
-      expect(deleteSubject).toHaveBeenCalledWith(1)
-    })
-  })
-
-  it('does not delete a subject when deletion is cancelled', async () => {
+  it('does not offer a delete action for subjects', async () => {
     getSubjects.mockResolvedValue(subjects)
     getCourses.mockResolvedValue(courses)
 
     renderSubjectsPage()
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete Algorithms' }))
-    fireEvent.click(screen.getByRole('button', { name: /^Cancel$/ }))
 
-    expect(deleteSubject).not.toHaveBeenCalled()
+    expect(await screen.findByText('Software Testing')).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Delete Software Testing' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Delete Algorithms' })).toBeNull()
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

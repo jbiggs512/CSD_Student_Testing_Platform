@@ -8,7 +8,6 @@ import {
   LoaderCircleIcon,
   PowerIcon,
   SearchIcon,
-  Trash2Icon,
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@shared/components/ui/alert'
 import { Button } from '@shared/components/ui/button'
@@ -28,7 +27,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@shared/components/ui/sheet'
-import { ConfirmDialog } from '@shared/components/ui/confirm-dialog'
 import type {
   SubjectCreateRequest,
   Subject,
@@ -38,7 +36,6 @@ import type {
 } from '../model/types'
 import {
   createSubject,
-  deleteSubject,
   getSubjects,
   getCourses,
   SubjectApiError,
@@ -122,7 +119,6 @@ export function SubjectsPage() {
 
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
-  const [subjectPendingDelete, setSubjectPendingDelete] = useState<Subject | null>(null)
   const [formValues, setFormValues] = useState<SubjectFormValues>(EMPTY_FORM)
 
   const loadSubjects = useCallback(async () => {
@@ -270,22 +266,6 @@ export function SubjectsPage() {
       const changes: SubjectUpdateRequest = { status: nextStatus }
       await updateSubject(subject.subject_id, changes)
       setSuccessMessage(`Subject ${action} successfully.`)
-      await loadSubjects()
-    } catch (error) {
-      setPageError(getDisplayError(error))
-    }
-  }
-
-  async function confirmDelete() {
-    if (!subjectPendingDelete) return
-
-    setPageError(null)
-    setSuccessMessage(null)
-
-    try {
-      await deleteSubject(subjectPendingDelete.subject_id)
-      setSuccessMessage('Subject deleted successfully.')
-      setSubjectPendingDelete(null)
       await loadSubjects()
     } catch (error) {
       setPageError(getDisplayError(error))
@@ -463,16 +443,6 @@ export function SubjectsPage() {
                               {subject.status === 'active' ? 'Disable' : 'Enable'}
                             </span>
                           </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => setSubjectPendingDelete(subject)}
-                            aria-label={`Delete ${subject.subject_name}`}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2Icon aria-hidden="true" />
-                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -593,20 +563,6 @@ export function SubjectsPage() {
         </SheetContent>
       </Sheet>
 
-      <ConfirmDialog
-        open={subjectPendingDelete !== null}
-        onOpenChange={(open) => {
-          if (!open) setSubjectPendingDelete(null)
-        }}
-        title="Delete subject?"
-        description={
-          subjectPendingDelete
-            ? `Delete "${subjectPendingDelete.subject_name}"? This action cannot be undone.`
-            : ''
-        }
-        confirmLabel="Delete"
-        onConfirm={() => void confirmDelete()}
-      />
     </main>
   )
 }

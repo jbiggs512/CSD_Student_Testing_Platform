@@ -5,7 +5,6 @@ import {
 } from '@shared/api'
 import {
   createSubject,
-  deleteSubject,
   getSubject,
   getSubjects,
   SubjectApiError,
@@ -120,14 +119,13 @@ describe('Subjects API clients', () => {
     )
   })
 
-  it('runs subject CRUD requests with JSON and authorization headers', async () => {
+  it('runs subject read and write requests with JSON and authorization headers', async () => {
     setAccessToken('test-token')
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(Response.json([subject]))
       .mockResolvedValueOnce(Response.json(subject))
       .mockResolvedValueOnce(Response.json(subject, { status: 201 }))
       .mockResolvedValueOnce(Response.json(subject))
-      .mockResolvedValueOnce(new Response(null, { status: 204 }))
 
     await expect(getSubjects()).resolves.toEqual([subject])
     await expect(getSubject(1)).resolves.toEqual(subject)
@@ -137,7 +135,6 @@ describe('Subjects API clients', () => {
     await expect(
       updateSubject(1, { status: 'disabled' }),
     ).resolves.toEqual(subject)
-    await expect(deleteSubject(1)).resolves.toBeUndefined()
 
     expect(fetchSpy).toHaveBeenNthCalledWith(
       3,
