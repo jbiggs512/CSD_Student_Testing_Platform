@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -78,6 +78,51 @@ describe('NavBar', () => {
     expect(screen.getByText('Test User')).toBeDefined()
     expect(screen.getByText('@WS123456')).toBeDefined()
     expect(screen.getByText('test@weston.ac.uk')).toBeDefined()
+  })
+
+  it('opens Change Password dialog from profile dropdown and submits POST /auth/change-password', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        Response.json({ message: 'Password updated successfully.' }),
+      )
+    seedRole('student')
+
+    renderNavBar()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Profile menu' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Change Password' }))
+
+    fireEvent.change(screen.getByLabelText('Current Password'), {
+      target: { value: 'OldPassword123!' },
+    })
+    fireEvent.change(screen.getByLabelText('New Password'), {
+      target: { value: 'NewPassword456!' },
+    })
+    fireEvent.change(screen.getByLabelText('Confirm New Password'), {
+      target: { value: 'Mismatch!' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Update Password' }))
+    expect(screen.getByText('New passwords do not match.')).toBeDefined()
+
+    fireEvent.change(screen.getByLabelText('Confirm New Password'), {
+      target: { value: 'NewPassword456!' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Update Password' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Password updated successfully.')).toBeDefined()
+    })
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/change-password'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          current_password: 'OldPassword123!',
+          new_password: 'NewPassword456!',
+        }),
+      }),
+    )
   })
 
   it('groups lecturer tools under Teaching for admins', async () => {

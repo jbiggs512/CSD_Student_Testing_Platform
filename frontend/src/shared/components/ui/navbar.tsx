@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
-import { ChevronDownIcon, LogOutIcon, MenuIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  KeyRoundIcon,
+  LogOutIcon,
+  MenuIcon,
+} from "lucide-react";
 import {
   getCurrentUser,
   getDashboardPathForRole,
@@ -24,6 +29,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/shared/components";
+import { ChangePasswordDialog } from "./change-password-dialog";
 import logo from "@shared/assets/altius-transparent.png";
 
 interface NavItem {
@@ -75,6 +81,7 @@ export function NavBar() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const currentUser = getCurrentUser();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -93,8 +100,17 @@ export function NavBar() {
         setProfileOpen(false);
       }
     }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setProfileOpen(false);
+      }
+    }
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, [profileOpen]);
 
   const handleLogout = async () => {
@@ -133,15 +149,29 @@ export function NavBar() {
           </Badge>
         </div>
 
-        <Button
-          variant="outline"
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-          className="w-full cursor-pointer justify-center gap-2 text-navy hover:bg-muted"
-        >
-          <LogOutIcon className="size-4" aria-hidden="true" />
-          Logout
-        </Button>
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setProfileOpen(false);
+              setOpen(false);
+              setChangePasswordOpen(true);
+            }}
+            className="w-full cursor-pointer justify-center gap-2 text-navy hover:bg-muted"
+          >
+            <KeyRoundIcon className="size-4" aria-hidden="true" />
+            Change Password
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="w-full cursor-pointer justify-center gap-2 text-navy hover:bg-muted"
+          >
+            <LogOutIcon className="size-4" aria-hidden="true" />
+            Logout
+          </Button>
+        </div>
       </div>
     );
   };
@@ -330,6 +360,11 @@ export function NavBar() {
           </>
         )}
       </header>
+
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
+      />
 
       <Outlet />
     </>
