@@ -53,6 +53,7 @@ describe('Lecturer API client', () => {
       last_name: lecturer.last_name,
       email: lecturer.email,
       password: 'Password123!',
+      role: 'lecturer',
     })).resolves.toEqual(lecturer)
     await expect(updateLecturer(lecturer.username, {
       first_name: 'Janet',
@@ -73,7 +74,7 @@ describe('Lecturer API client', () => {
 
     expect(fetchSpy).toHaveBeenNthCalledWith(
       2,
-      expect.stringMatching(/\/user\/lecturer$/),
+      expect.stringMatching(/\/user\/account$/),
       expect.objectContaining({
         method: 'POST',
         body: expect.any(String),

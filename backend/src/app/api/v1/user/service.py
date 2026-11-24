@@ -7,6 +7,8 @@ from typing import TypeAlias
 from app.db.models import Course, User, Role
 from app.enums import AccountStatus, UserRole
 from app.api.v1.user.schemas import (
+    AccountCreateRequest,
+    AccountUpdateRequest,
     LecturerCreateRequest,
     LecturerUpdateRequest,
     StudentUpdateRequest,
@@ -21,8 +23,28 @@ LECTURER_NOT_FOUND_DETAIL = "Lecturer not found."
 STUDENT_NOT_FOUND_DETAIL = "Student not found."
 
 UserCreateRequest: TypeAlias = (
-    LecturerCreateRequest | StudentCreateRequest
+    LecturerCreateRequest | AccountCreateRequest | StudentCreateRequest
 )
+
+MANAGED_ROLE_NAMES = (UserRole.LECTURER.value, UserRole.ADMIN.value)
+
+
+def _get_managed_account_or_404(db: Session, username: str) -> User:
+    account = db.scalar(
+        select(User)
+        .options(joinedload(User.role))
+        .join(User.role)
+        .where(
+            User.username == username,
+            Role.role_name.in_(MANAGED_ROLE_NAMES),
+        )
+    )
+    if account is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found.",
+        )
+    return account
 
 
 def _get_lecturer_or_404(db: Session, username: str) -> User:
@@ -144,6 +166,77 @@ def get_lecturers(db: Session) -> list[User]:
             .order_by(User.last_name, User.first_name, User.username)
         ).all()
     )
+
+
+def get_accounts(db: Session) -> list[User]:
+    return list(
+        db.scalars(
+            select(User)
+            .options(joinedload(User.role))
+            .join(User.role)
+            .where(Role.role_name.in_(MANAGED_ROLE_NAMES))
+            .order_by(User.last_name, User.first_name, User.username)
+        ).all()
+    )
+
+
+def update_account(
+    db: Session,
+    username: str,
+    changes: AccountUpdateRequest,
+) -> User:
+    account = _get_managed_account_or_404(db, username)
+
+    if changes.email is not None:
+        existing_email = db.scalar(
+            select(User).where(
+                User.email == changes.email,
+                User.user_id != account.user_id,
+            )
+        )
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=EMAIL_EXISTS_DETAIL,
+            )
+        account.email = changes.email
+
+    if changes.first_name is not None:
+        account.first_name = changes.first_name
+    if changes.last_name is not None:
+        account.last_name = changes.last_name
+    if changes.password is not None:
+        account.password_hash = hash_password(changes.password)
+        _reset_lockout_fields(account)
+    if changes.account_status is not None:
+        account.account_status = changes.account_status
+
+    db.commit()
+    db.refresh(account)
+    return account
+
+
+def unlock_account(db: Session, username: str) -> User:
+    account = _get_managed_account_or_404(db, username)
+    _reset_lockout_fields(account)
+    db.commit()
+    db.refresh(account)
+    return account
+
+
+def delete_account(
+    db: Session,
+    username: str,
+    current_user: User,
+) -> None:
+    account = _get_managed_account_or_404(db, username)
+    if current_user.username == account.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Users cannot delete their own account.",
+        )
+    db.delete(account)
+    db.commit()
 
 
 def update_lecturer(

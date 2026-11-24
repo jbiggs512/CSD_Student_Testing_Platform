@@ -11,6 +11,61 @@ from app.enums import UserRole
 router = APIRouter()
 
 @router.post(
+    "/account",
+    response_model=schemas.UserResponse,
+    status_code=201,
+)
+def request_create_account(
+    account: schemas.AccountCreateRequest,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
+):
+    return service.create_user(db, account)
+
+
+@router.get("/account", response_model=list[schemas.UserResponse])
+def request_get_accounts(
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
+):
+    return service.get_accounts(db)
+
+
+@router.patch(
+    "/account/{username}",
+    response_model=schemas.UserResponse,
+)
+def request_update_account(
+    username: str,
+    changes: schemas.AccountUpdateRequest,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
+):
+    return service.update_account(db, username, changes)
+
+
+@router.patch(
+    "/account/{username}/unlock",
+    response_model=schemas.UserResponse,
+)
+def request_unlock_account(
+    username: str,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
+):
+    return service.unlock_account(db, username)
+
+
+@router.delete("/account/{username}", status_code=204)
+def request_delete_account(
+    username: str,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
+) -> None:
+    service.delete_account(db, username, current_user)
+
+
+@router.post(
     "/lecturer",
     response_model=schemas.UserResponse,
     status_code=201,

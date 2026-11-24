@@ -7,7 +7,7 @@ import type {
   LecturerUpdateRequest,
 } from '../model'
 
-const LECTURERS_URL = `${API_BASE_URL}/user/lecturer`
+const ACCOUNTS_URL = `${API_BASE_URL}/user/account`
 
 export class LecturerApiError extends Error {
   readonly status: number
@@ -34,7 +34,7 @@ async function lecturerRequest<T>(
 
   let response: Response
   try {
-    response = await fetch(`${LECTURERS_URL}${endpoint}`, {
+    response = await fetch(`${ACCOUNTS_URL}${endpoint}`, {
       ...options,
       headers: {
         Authorization: `Bearer ${token}`,

@@ -36,7 +36,7 @@ import {
   getLockoutRemainingMinutes,
   isAccountLocked,
 } from '@shared/lib/utils'
-import type { Lecturer } from '../model'
+import type { AccountRole, Lecturer } from '../model'
 import {
   createLecturer,
   deleteLecturer,
@@ -53,6 +53,7 @@ interface LecturerFormValues {
   last_name: string
   email: string
   password: string
+  role: AccountRole
 }
 
 interface PasswordFormValues {
@@ -66,6 +67,7 @@ const EMPTY_LECTURER_FORM: LecturerFormValues = {
   last_name: '',
   email: '',
   password: '',
+  role: 'lecturer',
 }
 
 const EMPTY_PASSWORD_FORM: PasswordFormValues = {
@@ -117,6 +119,7 @@ export function LecturersPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled' | 'locked'>('all')
+  const [roleFilter, setRoleFilter] = useState<'all' | AccountRole>('all')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isPasswordOpen, setIsPasswordOpen] = useState(false)
   const [editingLecturer, setEditingLecturer] = useState<Lecturer | null>(null)
@@ -155,17 +158,18 @@ export function LecturersPage() {
           .join(' ')
           .toLocaleLowerCase()
           .includes(search)
-      return matchesStatus && matchesSearch
+      const matchesRole = roleFilter === 'all' || lecturer.role === roleFilter
+      return matchesStatus && matchesRole && matchesSearch
     })
-  }, [lecturers, searchTerm, statusFilter])
+  }, [lecturers, roleFilter, searchTerm, statusFilter])
 
   const emptyStateTitle =
-    lecturers.length === 0 ? 'No lecturers yet' : 'No matching lecturers'
+    lecturers.length === 0 ? 'No accounts yet' : 'No matching accounts'
   const emptyStateDescription =
     lecturers.length === 0
-      ? 'Create the first lecturer account to get started.'
+      ? 'Create the first account to get started.'
       : 'Try changing your search term.'
-  let submitLabel = editingLecturer ? 'Save changes' : 'Create lecturer'
+  let submitLabel = editingLecturer ? 'Save changes' : 'Create account'
   if (isSaving) submitLabel = 'Saving...'
 
   let lecturerContent: ReactNode
@@ -173,7 +177,7 @@ export function LecturersPage() {
     lecturerContent = (
       <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-muted-foreground">
         <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
-        Loading lecturers...
+        Loading accounts...
       </div>
     )
   } else if (filteredLecturers.length === 0) {
@@ -186,17 +190,18 @@ export function LecturersPage() {
         <p className="max-w-sm text-sm text-muted-foreground">
           {emptyStateDescription}
         </p>
-        {lecturers.length === 0 && <Button onClick={openCreateForm}>Add your first lecturer</Button>}
+        {lecturers.length === 0 && <Button onClick={openCreateForm}>Add your first account</Button>}
       </div>
     )
   } else {
     lecturerContent = (
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] text-left text-sm">
+        <table className="w-full min-w-[900px] text-left text-sm">
           <thead className="bg-navy text-xs uppercase tracking-wide text-white/80">
             <tr>
-              <th scope="col" className="px-6 py-3 font-medium">Lecturer</th>
+              <th scope="col" className="px-6 py-3 font-medium">Account</th>
               <th scope="col" className="px-6 py-3 font-medium">Email</th>
+              <th scope="col" className="px-6 py-3 font-medium">Role</th>
               <th scope="col" className="px-6 py-3 font-medium">Status</th>
               <th scope="col" className="px-6 py-3 text-right font-medium">Actions</th>
             </tr>
@@ -211,6 +216,7 @@ export function LecturersPage() {
                   <div className="mt-1 text-xs text-muted-foreground">{lecturer.username}</div>
                 </td>
                 <td className="px-6 py-4 text-muted-foreground">{lecturer.email}</td>
+                <td className="px-6 py-4 capitalize">{lecturer.role}</td>
                 <td className="px-6 py-4">
                   <StatusBadge
                     status={lecturer.account_status}
@@ -277,6 +283,7 @@ export function LecturersPage() {
       last_name: lecturer.last_name,
       email: lecturer.email,
       password: '',
+      role: lecturer.role,
     })
     setFormError(null)
     setIsFormOpen(true)
@@ -325,7 +332,7 @@ export function LecturersPage() {
           last_name: formValues.last_name.trim(),
           email: formValues.email.trim(),
         })
-        setSuccessMessage('Lecturer updated successfully.')
+        setSuccessMessage('Account updated successfully.')
       } else {
         await createLecturer({
           username: formValues.username.trim(),
@@ -333,8 +340,9 @@ export function LecturersPage() {
           last_name: formValues.last_name.trim(),
           email: formValues.email.trim(),
           password: formValues.password,
+          role: formValues.role,
         })
-        setSuccessMessage('Lecturer created successfully.')
+        setSuccessMessage('Account created successfully.')
       }
 
       closeForm(false)
@@ -366,7 +374,7 @@ export function LecturersPage() {
       await updateLecturerPassword(passwordLecturer.username, {
         password: passwordValues.password,
       })
-      setSuccessMessage('Lecturer password updated successfully.')
+      setSuccessMessage('Account password updated successfully.')
       closePasswordForm(false)
       await loadLecturers()
     } catch (error) {
@@ -383,7 +391,7 @@ export function LecturersPage() {
     setSuccessMessage(null)
     try {
       await deleteLecturer(lecturerPendingDelete.username)
-      setSuccessMessage('Lecturer deleted successfully.')
+      setSuccessMessage('Account deleted successfully.')
       setLecturerPendingDelete(null)
       await loadLecturers()
     } catch (error) {
@@ -396,7 +404,7 @@ export function LecturersPage() {
     setSuccessMessage(null)
     try {
       await unlockLecturer(lecturer.username)
-      setSuccessMessage('Lecturer unlocked successfully.')
+      setSuccessMessage('Account unlocked successfully.')
       await loadLecturers()
     } catch (error) {
       setPageError(getDisplayError(error))
@@ -410,7 +418,7 @@ export function LecturersPage() {
       const nextStatus = lecturer.account_status === 'active' ? 'disabled' : 'active'
       await updateLecturer(lecturer.username, { account_status: nextStatus })
       setSuccessMessage(
-        `Lecturer ${nextStatus === 'active' ? 'enabled' : 'disabled'} successfully.`,
+        `Account ${nextStatus === 'active' ? 'enabled' : 'disabled'} successfully.`,
       )
       await loadLecturers()
     } catch (error) {
@@ -426,16 +434,16 @@ export function LecturersPage() {
             Administration
           </p>
           <h1 className="font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Lecturer management
+            Account management
           </h1>
           <p className="text-sm leading-6 text-white/80 sm:text-base">
-            Create and maintain lecturer accounts, reset passwords, and disable
+            Create and maintain lecturer and admin accounts, reset passwords, and disable
             accounts without deleting their records.
           </p>
         </div>
         <Button onClick={openCreateForm} className="w-full bg-white text-navy hover:bg-white/90 sm:w-auto">
           <PlusIcon aria-hidden="true" />
-          Add lecturer
+          Add account
         </Button>
       </section>
 
@@ -451,19 +459,19 @@ export function LecturersPage() {
         </Alert>
       )}
 
-      <section aria-label="Lecturer statistics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <section aria-label="Account statistics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card className="gap-3 border-0 py-5 shadow-sm">
           <CardHeader className="gap-1 px-5">
-            <CardDescription className="font-medium uppercase tracking-wide">Total lecturers</CardDescription>
+            <CardDescription className="font-medium uppercase tracking-wide">Total accounts</CardDescription>
             <CardTitle className="font-heading text-4xl tabular-nums text-plum">{lecturers.length}</CardTitle>
           </CardHeader>
           <CardContent className="px-5">
-            <p className="text-xs text-muted-foreground">All lecturer accounts</p>
+            <p className="text-xs text-muted-foreground">All lecturer and admin accounts</p>
           </CardContent>
         </Card>
         <Card className="gap-3 border-0 py-5 shadow-sm">
           <CardHeader className="gap-1 px-5">
-            <CardDescription className="font-medium uppercase tracking-wide">Disabled lecturers</CardDescription>
+            <CardDescription className="font-medium uppercase tracking-wide">Disabled accounts</CardDescription>
             <CardTitle className="font-heading text-4xl tabular-nums text-plum">
               {lecturers.filter(({ account_status }) => account_status === 'disabled').length}
             </CardTitle>
@@ -474,7 +482,7 @@ export function LecturersPage() {
         </Card>
         <Card className="gap-3 border-0 py-5 shadow-sm">
           <CardHeader className="gap-1 px-5">
-            <CardDescription className="font-medium uppercase tracking-wide">Active lecturers</CardDescription>
+            <CardDescription className="font-medium uppercase tracking-wide">Active accounts</CardDescription>
             <CardTitle className="font-heading text-4xl tabular-nums text-plum">
               {lecturers.filter(({ account_status }) => account_status === 'active').length}
             </CardTitle>
@@ -485,7 +493,7 @@ export function LecturersPage() {
         </Card>
         <Card className="gap-3 border-0 py-5 shadow-sm">
           <CardHeader className="gap-1 px-5">
-            <CardDescription className="font-medium uppercase tracking-wide">Locked lecturers</CardDescription>
+            <CardDescription className="font-medium uppercase tracking-wide">Locked accounts</CardDescription>
             <CardTitle className="font-heading text-4xl tabular-nums text-plum">
               {lecturers.filter(({ locked_until }) => isAccountLocked(locked_until)).length}
             </CardTitle>
@@ -500,7 +508,7 @@ export function LecturersPage() {
             <CardTitle className="font-heading text-4xl tabular-nums text-plum">{filteredLecturers.length}</CardTitle>
           </CardHeader>
           <CardContent className="px-5">
-            <p className="text-xs text-muted-foreground">Lecturers matching your search</p>
+            <p className="text-xs text-muted-foreground">Accounts matching your search</p>
           </CardContent>
         </Card>
       </section>
@@ -508,20 +516,33 @@ export function LecturersPage() {
       <Card className="gap-0 border-0 py-0 shadow-md">
         <CardHeader className="gap-4 border-b py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <CardTitle className="font-heading text-2xl font-bold text-plum">Lecturers</CardTitle>
-            <CardDescription>Search, edit and manage lecturer accounts.</CardDescription>
+            <CardTitle className="font-heading text-2xl font-bold text-plum">Accounts</CardTitle>
+            <CardDescription>Search, edit and manage lecturer and admin accounts.</CardDescription>
           </div>
           <div className="relative min-w-0 sm:w-72">
             <SearchIcon aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              aria-label="Search lecturers"
-              placeholder="Search lecturers..."
+              aria-label="Search accounts"
+              placeholder="Search accounts..."
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               className="pl-9"
             />
           </div>
-          <div className="flex flex-wrap rounded-md border p-1" aria-label="Filter lecturers by status">
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+            Filter by role
+            <select
+              aria-label="Filter accounts by role"
+              value={roleFilter}
+              onChange={(event) => setRoleFilter(event.target.value as 'all' | AccountRole)}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm font-normal capitalize text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="all">All roles</option>
+              <option value="lecturer">Lecturer</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+          <div className="flex flex-wrap rounded-md border p-1" aria-label="Filter accounts by status">
             {(['all', 'active', 'disabled', 'locked'] as const).map((filter) => (
               <Button
                 key={filter}
@@ -545,9 +566,9 @@ export function LecturersPage() {
       <Sheet open={isFormOpen} onOpenChange={closeForm}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader className="border-b">
-            <SheetTitle>{editingLecturer ? 'Edit lecturer' : 'Create lecturer'}</SheetTitle>
+            <SheetTitle>{editingLecturer ? 'Edit account' : 'Create account'}</SheetTitle>
             <SheetDescription>
-              {editingLecturer ? 'Update lecturer account details.' : 'Create an active lecturer account.'}
+              {editingLecturer ? 'Update account details.' : 'Create an active lecturer or admin account.'}
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-5 px-4">
@@ -556,6 +577,23 @@ export function LecturersPage() {
               <div className="space-y-2">
                 <label htmlFor="lecturer-username" className="text-sm font-medium">Username</label>
                 <Input id="lecturer-username" required value={formValues.username} onChange={(event) => setFormValues((current) => ({ ...current, username: event.target.value }))} />
+              </div>
+            )}
+            {!editingLecturer && (
+              <div className="space-y-2">
+                <label htmlFor="account-role" className="text-sm font-medium">Role</label>
+                <select
+                  id="account-role"
+                  value={formValues.role}
+                  onChange={(event) => setFormValues((current) => ({
+                    ...current,
+                    role: event.target.value as AccountRole,
+                  }))}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm capitalize text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="lecturer">Lecturer</option>
+                  <option value="admin">Admin</option>
+                </select>
               </div>
             )}
             <div className="space-y-2">
@@ -590,7 +628,7 @@ export function LecturersPage() {
       <Sheet open={isPasswordOpen} onOpenChange={closePasswordForm}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader className="border-b">
-            <SheetTitle>Reset lecturer password</SheetTitle>
+            <SheetTitle>Reset account password</SheetTitle>
             <SheetDescription>Set a new password for {passwordLecturer?.username}.</SheetDescription>
           </SheetHeader>
           <form onSubmit={handlePasswordSubmit} className="flex flex-1 flex-col gap-5 px-4">
@@ -617,7 +655,7 @@ export function LecturersPage() {
       <ConfirmDialog
         open={lecturerPendingDelete !== null}
         onOpenChange={(open) => { if (!open) setLecturerPendingDelete(null) }}
-        title="Delete lecturer?"
+        title="Delete account?"
         description={lecturerPendingDelete ? `Delete "${lecturerPendingDelete.username}"? This action cannot be undone.` : ''}
         confirmLabel="Delete"
         onConfirm={() => void confirmDelete()}
