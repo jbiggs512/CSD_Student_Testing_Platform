@@ -159,6 +159,77 @@ def test_delete_question_as_lecturer(client, db_session, test_subject, auth_head
     assert stored is None
 
 
+def test_admin_can_manage_question_pool(
+    client, db_session, test_subject, auth_headers
+):
+    headers = auth_headers(UserRole.ADMIN)
+    create_response = client.post(
+        QUESTIONS_URL,
+        json=valid_question_payload(test_subject.subject_id),
+        headers=headers,
+    )
+    assert create_response.status_code == 201
+    question_id = create_response.json()["question_id"]
+
+    list_response = client.get(
+        f"{QUESTIONS_URL}?subject_id={test_subject.subject_id}",
+        headers=headers,
+    )
+    assert list_response.status_code == 200
+    assert any(question["question_id"] == question_id for question in list_response.json())
+
+    get_response = client.get(
+        f"{QUESTIONS_URL}/{question_id}",
+        headers=headers,
+    )
+    assert get_response.status_code == 200
+    assert get_response.json()["question_id"] == question_id
+
+    update_response = client.patch(
+        f"{QUESTIONS_URL}/{question_id}",
+        json={
+            "question_text": "Admin-updated question?",
+            "options": [
+                {"option_text": "A", "is_correct": True},
+                {"option_text": "B", "is_correct": False},
+                {"option_text": "C", "is_correct": False},
+                {"option_text": "D", "is_correct": False},
+            ],
+        },
+        headers=headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["question_text"] == "Admin-updated question?"
+
+    bulk_response = client.post(
+        f"{QUESTIONS_URL}/bulk",
+        json={
+            "subject_id": test_subject.subject_id,
+            "questions": [
+                {
+                    "question_text": "Admin bulk question?",
+                    "options": [
+                        {"option_text": "A", "is_correct": True},
+                        {"option_text": "B", "is_correct": False},
+                        {"option_text": "C", "is_correct": False},
+                        {"option_text": "D", "is_correct": False},
+                    ],
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert bulk_response.status_code == 201
+    assert bulk_response.json()["created_count"] == 1
+
+    delete_response = client.delete(
+        f"{QUESTIONS_URL}/{question_id}",
+        headers=headers,
+    )
+    assert delete_response.status_code == 204
+    assert db_session.get(Question, question_id) is None
+
+
 def test_question_codes_are_unique_across_subjects_with_same_prefix(
     client, db_session, test_subject, auth_headers
 ):
@@ -351,4 +422,3 @@ def test_duplicate_question_rejected_in_create_update_and_bulk(
         bulk_existing_res.json()["detail"]
         == "Question 1: Question already exists in this subject."
     )
-

@@ -3,7 +3,11 @@ export {
   getSubject,
   createSubject,
   updateSubject,
-  deleteSubject,
   SubjectApiError,
 } from './subjectApi'
-export { getCourses } from './courseApi'
+export {
+  getCourses,
+  createCourse,
+  updateCourse,
+  CourseApiError,
+} from './courseApi'

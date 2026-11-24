@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
 from pydantic import BaseModel, EmailStr, Field, AliasPath
 from datetime import date, datetime
+from typing import Literal
 
 from app.enums import UserRole, AccountStatus
 
@@ -34,12 +35,29 @@ class LecturerCreateRequest(BaseUserCreateRequest):
         return AccountStatus.ACTIVE.value
 
 
+class AccountCreateRequest(BaseModel):
+    username: str
+    first_name: str
+    last_name: str
+    email: EmailStr
+    password: str
+    role: Literal["lecturer", "admin"]
+    courses: list[int] | None = None
+
+    @property
+    def account_status(self) -> str:
+        return AccountStatus.ACTIVE.value
+
+
 class LecturerUpdateRequest(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     email: EmailStr | None = None
     password: str | None = None
     account_status: AccountStatus | None = None
+
+
+AccountUpdateRequest = LecturerUpdateRequest
 
 
 class StudentUpdateRequest(BaseModel):
@@ -63,7 +81,7 @@ class UserResponse(BaseModel):
     username: str
     first_name: str
     last_name: str
-    email: EmailStr
+    email: str
     role: UserRole = Field(validation_alias=AliasPath("role", "role_name"))
     account_status: AccountStatus
     registration_date: date

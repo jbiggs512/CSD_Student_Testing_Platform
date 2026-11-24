@@ -1,4 +1,5 @@
 export type LecturerStatus = 'active' | 'disabled' | 'pending'
+export type AccountRole = 'lecturer' | 'admin'
 
 export interface Lecturer {
   user_id: number
@@ -6,7 +7,7 @@ export interface Lecturer {
   first_name: string
   last_name: string
   email: string
-  role: 'lecturer'
+  role: AccountRole
   account_status: LecturerStatus
   registration_date: string
   last_login: string | null
@@ -20,6 +21,7 @@ export interface LecturerCreateRequest {
   last_name: string
   email: string
   password: string
+  role: AccountRole
 }
 
 export interface LecturerUpdateRequest {

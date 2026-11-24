@@ -1,4 +1,4 @@
-from sqlalchemy import select, func
+from sqlalchemy import Float, Integer, cast, func, select, or_
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.api.v1.student.schemas import ( 
@@ -11,8 +11,96 @@ LeaderboardResponse,
 StatisticsResponse, 
 ScoreResponse,
 GradePoint,
-GradesOverTimeResponse)
+GradesOverTimeResponse,
+CohortComparisonResponse,
+ScoreBand,
+ScoreDistributionResponse)
 from app.db.models import TestAttempt, Test, Subject, Course, User, Role
+
+BANDS = [
+    ("40–49", 40),
+    ("50–59", 50),
+    ("60–69", 60),
+    ("70–79", 70),
+    ("80–89", 80),
+    ("90–100", 90),
+]
+
+# Shared subqueries / functions
+
+def _get_subject(db: Session, subject_id: int):
+    """Return (course_id, subject_name) or raise 404."""
+    row = db.execute(
+        select(Subject.course_id, Subject.subject_name).where(
+            Subject.subject_id == subject_id
+        )
+    ).first()
+    if row is None:
+        raise HTTPException(
+            status=404,
+            detail="Subject not found")
+    return row.course_id, row.subject_name
+
+def _percentage_expr():
+    """
+    Users test score, expressed as a percentage
+    """
+    return (
+        cast(TestAttempt.correct_questions, Float)
+        / func.nullif(cast(TestAttempt.total_questions, Float), 0)
+    ) * 100.0
+
+def _format_name(first_name: str, last_name: str | None) -> str:
+    """'John Doe' -> 'John D.' (done in Python so it behaves the same on any database)."""
+    initial = f" {last_name[0]}." if last_name else ""
+    return f"{first_name}{initial}"
+
+
+def _to_entry(row) -> LeaderboardEntry:
+    return LeaderboardEntry(
+        user_id=row.user_id,
+        rank=row.rank,
+        name=_format_name(row.first_name, row.last_name),
+        avg_score=round(float(row.avg_score), 2),  # float(): some drivers return Decimal
+        points=row.points,
+    )
+
+def _student_scores(course_id: int, subject_id: int):
+    """
+    Build the subquery to get one row per enrolled, active student who has 
+    completed at least one test in this subject, with their average percentage 
+    score for the subject. 
+    """
+
+    return (
+        select(
+            User.user_id,
+            func.avg(_percentage_expr()).label("avg_score"),
+        )
+        .join(User.courses)
+        .join(Role, Role.role_id == User.role_id)
+        .join(TestAttempt, TestAttempt.user_id == User.user_id)
+        .join(Test, Test.test_id == TestAttempt.test_id)
+        .where(
+            Course.course_id == course_id,
+            Test.subject_id == subject_id,
+            User.account_status == "active",
+            Role.role_name == "student",
+            TestAttempt.completed_at.is_not(None),
+            TestAttempt.correct_questions.is_not(None),
+        )
+        .group_by(User.user_id)
+        .having(func.avg(_percentage_expr()).is_not(None))
+        .subquery()
+    )
+
+def _band_index(score: float) -> int:
+    return max(4, min(int(score // 10), 9))
+
+def _round(value: float | None) -> int | None:
+    return 0 if value is None else round(value)
+
+# Service functions
 
 def get_outstanding_tests(
     db: Session, 
@@ -68,6 +156,7 @@ def get_completed_tests(
                 id=attempt.attempt_id,
                 test_id=attempt.test.test_id,
                 test_name=attempt.test.test_name,
+                subject_name=attempt.test.subject.subject_name,
                 score_percentage=(attempt.correct_questions/attempt.total_questions)*100,
                 questions_correct=attempt.correct_questions,
                 questions_total=attempt.total_questions,
@@ -121,12 +210,9 @@ def get_cohort_rank(
         )
     ).first()
 
-    # If the current user couldn't be found in the data return 412
+    # If the current user couldn't be found in the data return no content
     if row is None:
-        raise HTTPException(
-            status_code=412,
-            detail="Could not locate your rank within the cohort.",
-        )
+        return None
 
     return CohortRankResponse(rank=row.rank, size=row.size)
 
@@ -162,35 +248,36 @@ def get_subjects(
 def get_leaderboard(
     db: Session,
     current_user: User,
-    subject_id: int
+    subject_id: int,
 ) -> LeaderboardResponse:
-    # Get the course id linked to the subject
-    course_id = db.scalar(
-        select(Subject.course_id)
-        .where(Subject.subject_id == subject_id)
-    )
-    
-    # Calculate average score per user for tests in this subject
-    percentage_expr = (TestAttempt.correct_questions / TestAttempt.total_questions) * 100.0
-    
-    user_averages = (
+    course_id, _ = _get_subject(db, subject_id)
+
+    # Completed attempts for the passed subject
+    subject_attempts = (
         select(
             TestAttempt.user_id,
-            func.coalesce(func.avg(percentage_expr), 0.0).label("avg_score")
+            TestAttempt.score,
+            _percentage_expr().label("percentage"),
         )
-        .group_by(TestAttempt.user_id)
+        .join(Test, Test.test_id == TestAttempt.test_id)
+        .where(
+            Test.subject_id == subject_id,
+            TestAttempt.completed_at.is_not(None),
+            TestAttempt.correct_questions.is_not(None),
+        )
         .subquery()
     )
-    
-    # Find and calculate the total score per enrolled active student (0 if no attempts)
-    cohort_totals = (
+
+    # One row per enrolled, active student: total points and average percentage
+    cohort = (
         select(
             User.user_id,
-            func.coalesce(func.sum(TestAttempt.score), 0).label("total_score"),
+            func.coalesce(func.sum(subject_attempts.c.score), 0).label("points"),
+            func.coalesce(func.avg(subject_attempts.c.percentage), 0.0).label("avg_score"),
         )
-        .join(User.courses) 
+        .join(User.courses)
         .join(Role, Role.role_id == User.role_id)
-        .outerjoin(TestAttempt, TestAttempt.user_id == User.user_id)
+        .outerjoin(subject_attempts, subject_attempts.c.user_id == User.user_id)
         .where(
             Course.course_id == course_id,
             User.account_status == "active",
@@ -200,74 +287,47 @@ def get_leaderboard(
         .subquery()
     )
 
-    # Rank the student results, and count the cohort size
-    ranked = (
+    # Rank by points (tied students share a rank)
+    ranked = select(
+        cohort.c.user_id,
+        cohort.c.points,
+        cohort.c.avg_score,
+        func.rank().over(order_by=cohort.c.points.desc()).label("rank"),
+    ).subquery()
+    
+    rows = db.execute(
         select(
-            cohort_totals.c.user_id,
-            func.rank().over(order_by=cohort_totals.c.total_score.desc()).label("rank"),
-            func.count().over().label("size"),
-        )
-        .subquery()
-    )
-
-    # Format name as: First Name + Last Initial (e.g., "John D.")
-    formatted_name = func.concat(
-        User.first_name, 
-        " ", 
-        func.substring(User.last_name, 1, 1), 
-        "."
-    ).label("formatted_name")
-
-    # Main query to fetch user details, rank, points, and average percentage score
-    main_query = (
-        select(
-            User.user_id,
+            ranked.c.user_id,
             ranked.c.rank,
-            formatted_name,
-            func.coalesce(user_averages.c.avg_score, 0).label("avg_score"),
-            cohort_totals.c.total_score.label("points"),
+            ranked.c.points,
+            ranked.c.avg_score,
+            User.first_name,
+            User.last_name,
         )
-        .join(ranked, ranked.c.user_id == User.user_id)
-        .join(cohort_totals, cohort_totals.c.user_id == User.user_id)
-        .outerjoin(user_averages, user_averages.c.user_id == User.user_id)
-    )
-
-    # Fetch top 5 students
-    top_5_query = main_query.order_by(ranked.c.rank.asc()).limit(5)
-    top_students_rows = db.execute(top_5_query).all()
-
-    top_students = [
-        LeaderboardEntry(
-            user_id=row.user_id,
-            rank=row.rank,
-            name=row.formatted_name,
-            avg_score=round(row.avg_score, 2),
-            points=row.points
+        .join(User, User.user_id == ranked.c.user_id)
+        .where(
+            or_(
+                ranked.c.rank <= 5,
+                ranked.c.user_id == current_user.user_id,
+            )
         )
-        for row in top_students_rows
-    ]
+        .order_by(ranked.c.rank, ranked.c.avg_score.desc(), ranked.c.user_id)
+    ).all()
 
-    # Check if current_user is in the top 5
-    is_in_top_5 = any(student.user_id == current_user.user_id for student in top_students)
+    top_rows = rows[:5]
+    top_ids = {row.user_id for row in top_rows}
+    is_in_top_5 = current_user.user_id in top_ids
 
-    # Fetch current user entry separately if they are outside top 5
     current_user_entry = None
     if not is_in_top_5:
-        user_query = main_query.where(User.user_id == current_user.user_id)
-        user_row = db.execute(user_query).first()
-        if user_row:
-            current_user_entry = LeaderboardEntry(
-                user_id=user_row.user_id,
-                rank=user_row.rank,
-                name=user_row.formatted_name,
-                avg_score=round(user_row.avg_score, 2),
-                points=user_row.points
-            )
+        my_row = next((r for r in rows if r.user_id == current_user.user_id), None)
+        if my_row is not None:
+            current_user_entry = _to_entry(my_row)
 
     return LeaderboardResponse(
-        top_students=top_students,
+        top_students=[_to_entry(row) for row in top_rows],
         current_user_entry=current_user_entry,
-        is_in_top_5=is_in_top_5
+        is_in_top_5=is_in_top_5,
     )
     
 def get_statistics(
@@ -362,4 +422,86 @@ def get_grades_over_time(
     return GradesOverTimeResponse(
         average=round(sum(percentages) / len(percentages)),
         points=points,
+    )
+    
+def get_cohort_comparison(
+    db: Session,
+    current_user: User,
+    subject_id: int,
+) -> CohortComparisonResponse:
+    course_id, subject_name = _get_subject(db, subject_id)
+    student_scores = _student_scores(course_id, subject_id)
+
+    # Whole cohort average
+    cohort_avg = db.scalar(select(func.avg(student_scores.c.avg_score)))
+
+    # Average of the five highest student scores
+    top_scores = (
+        select(student_scores.c.avg_score)
+        .order_by(student_scores.c.avg_score.desc())
+        .limit(5)
+        .subquery()
+    )
+    top_avg = db.scalar(select(func.avg(top_scores.c.avg_score)))
+
+    # Current user's own average (None if they haven't completed a test yet)
+    user_avg = db.scalar(
+        select(student_scores.c.avg_score).where(
+            student_scores.c.user_id == current_user.user_id
+        )
+    )
+
+    return CohortComparisonResponse(
+        subject=subject_name,
+        top5_average=_round(top_avg),
+        user_average=_round(user_avg),
+        cohort_average=_round(cohort_avg),
+    )
+
+
+def get_score_distribution(
+    db: Session,
+    current_user: User,
+    subject_id: int,
+) -> ScoreDistributionResponse:
+    course_id, subject_name = _get_subject(db, subject_id)
+    student_scores = _student_scores(course_id, subject_id)
+
+    # Split each student average into the bands
+    band_index = cast(
+        func.least(
+            func.greatest(func.floor(student_scores.c.avg_score / 10), 4),
+            9,
+        ),
+        Integer,
+    ).label("band_index")
+
+    rows = db.execute(
+        select(band_index, func.count().label("student_count")).group_by(band_index)
+    ).all()
+    counts = {row.band_index: row.student_count for row in rows}
+
+    # Always return every band, including empty ones
+    bands = [
+        ScoreBand(band=label, count=counts.get(4 + i, 0))
+        for i, (label, _) in enumerate(BANDS)
+    ]
+
+    # Current user's score and the band it falls into
+    user_avg = db.scalar(
+        select(student_scores.c.avg_score).where(
+            student_scores.c.user_id == current_user.user_id
+        )
+    )
+    your_band = (
+        None
+        if user_avg is None
+        else BANDS[_band_index(user_avg) - 4][0]
+    )
+
+    return ScoreDistributionResponse(
+        subject=subject_name,
+        bands=bands,
+        user_band=your_band,
+        user_score=_round(user_avg),
     )

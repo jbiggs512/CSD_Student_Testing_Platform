@@ -39,10 +39,20 @@ function renderProtectedRoutes(initialEntry: string) {
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
               <Route path="/dashboard" element={<div>Student Dashboard</div>} />
             </Route>
-            <Route element={<ProtectedRoute allowedRoles={['lecturer']} />}>
+            <Route
+              element={
+                <ProtectedRoute allowedRoles={['lecturer', 'admin']} />
+              }
+            >
               <Route
                 path="/lecturerDashboard"
                 element={<div>Lecturer Dashboard</div>}
+              />
+              <Route path="/students" element={<div>Student Management</div>} />
+              <Route path="/tests" element={<div>Test Management</div>} />
+              <Route
+                path="/questionPool"
+                element={<div>Question Pool Management</div>}
               />
             </Route>
             <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
@@ -99,6 +109,20 @@ describe('ProtectedRoute & restoreAuthSession', () => {
     renderProtectedRoutes('/profile')
 
     expect(screen.getByText('Shared Profile Page')).toBeDefined()
+  })
+
+  it.each([
+    ['/lecturerDashboard', 'Lecturer Dashboard'],
+    ['/students', 'Student Management'],
+    ['/tests', 'Test Management'],
+    ['/questionPool', 'Question Pool Management'],
+  ])('allows admins to access lecturer capability %s', (path, pageName) => {
+    setAccessToken('jwt-admin-token')
+    setCurrentUser(buildUser('admin'))
+
+    renderProtectedRoutes(path)
+
+    expect(screen.getByText(pageName)).toBeDefined()
   })
 
   it('restores session via /auth/refresh and /auth/me on reload before rendering', async () => {

@@ -14,6 +14,24 @@ from app.db.scripts.seed_users import DEFAULT_USERS, seed_users
 from app.enums import UserRole, AccountStatus
 
 
+def test_user_response_serializes_existing_local_email():
+    response = schemas.UserResponse.model_validate(
+        SimpleNamespace(
+            user_id=1,
+            username="local.admin",
+            first_name="Local",
+            last_name="Admin",
+            email="admin@altius.local",
+            role=SimpleNamespace(role_name=UserRole.ADMIN.value),
+            account_status=AccountStatus.ACTIVE,
+            registration_date=datetime.now().date(),
+            last_login=None,
+        )
+    )
+
+    assert response.email == "admin@altius.local"
+
+
 def _seed_user(
     db: Session,
     *,
@@ -323,6 +341,61 @@ def test_lecturer_can_delete_student(client, db_session):
     assert db_session.get(User, student.user_id) is None
 
 
+def test_admin_can_manage_student_accounts(client, db_session, auth_headers):
+    headers = auth_headers(UserRole.ADMIN)
+    student = _seed_user(
+        db_session,
+        username="WS_ADMIN_MANAGED",
+        role_name=UserRole.STUDENT,
+        account_status=AccountStatus.PENDING,
+    )
+    student.failed_login_attempts = 5
+    student.locked_until = datetime.now(timezone.utc) + timedelta(minutes=10)
+    db_session.commit()
+
+    list_response = client.get("/api/v1/user/student", headers=headers)
+    assert list_response.status_code == 200
+    assert any(
+        account["username"] == student.username
+        for account in list_response.json()
+    )
+
+    unlock_response = client.patch(
+        f"/api/v1/user/student/{student.username}/unlock",
+        headers=headers,
+    )
+    assert unlock_response.status_code == 200
+    assert unlock_response.json()["failed_login_attempts"] == 0
+    assert unlock_response.json()["locked_until"] is None
+
+    update_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={
+            "first_name": "AdminUpdated",
+            "account_status": AccountStatus.ACTIVE.value,
+        },
+        headers=headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["first_name"] == "AdminUpdated"
+    assert update_response.json()["account_status"] == AccountStatus.ACTIVE.value
+
+    disable_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={"account_status": AccountStatus.DISABLED.value},
+        headers=headers,
+    )
+    assert disable_response.status_code == 200
+    assert disable_response.json()["account_status"] == AccountStatus.DISABLED.value
+
+    delete_response = client.delete(
+        f"/api/v1/user/student/{student.username}",
+        headers=headers,
+    )
+    assert delete_response.status_code == 204
+    assert db_session.get(User, student.user_id) is None
+
+
 def test_create_duplicate_student_username_and_email_return_409(client, db_session):
     lecturer = _seed_user(
         db_session,
@@ -466,6 +539,83 @@ def test_admin_can_list_edit_and_delete_lecturers(client, db_session):
         user["username"] != lecturer.username
         for user in remaining_lecturers
     )
+
+
+def test_admin_can_create_list_edit_and_delete_admin_account(
+    client, auth_headers
+):
+    current_admin_username = "ADMIN_ACCOUNT_LIST"
+    headers = auth_headers(UserRole.ADMIN, username=current_admin_username)
+    auth_headers(UserRole.LECTURER)
+    account_data = {
+        "username": "managed.admin",
+        "first_name": "Managed",
+        "last_name": "Admin",
+        "email": "managed.admin@example.com",
+        "password": "SecurePassword123!",
+        "role": UserRole.ADMIN.value,
+    }
+
+    create_response = client.post(
+        "/api/v1/user/account",
+        json=account_data,
+        headers=headers,
+    )
+    assert create_response.status_code == 201
+    assert create_response.json()["role"] == UserRole.ADMIN.value
+    assert create_response.json()["account_status"] == AccountStatus.ACTIVE.value
+
+    list_response = client.get("/api/v1/user/account", headers=headers)
+    assert list_response.status_code == 200
+    assert {user["role"] for user in list_response.json()} >= {
+        UserRole.ADMIN.value,
+        UserRole.LECTURER.value,
+    }
+    assert any(
+        user["username"] == account_data["username"]
+        for user in list_response.json()
+    )
+    assert all(
+        user["username"] != current_admin_username
+        for user in list_response.json()
+    )
+
+    update_response = client.patch(
+        f"/api/v1/user/account/{account_data['username']}",
+        json={"first_name": "Updated"},
+        headers=headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["first_name"] == "Updated"
+
+    delete_response = client.delete(
+        f"/api/v1/user/account/{account_data['username']}",
+        headers=headers,
+    )
+    assert delete_response.status_code == 204
+
+
+def test_account_management_rejects_student_role_and_requires_admin(
+    client, auth_headers
+):
+    lecturer_headers = auth_headers(UserRole.LECTURER)
+    response = client.get("/api/v1/user/account", headers=lecturer_headers)
+    assert response.status_code == 403
+
+    admin_headers = auth_headers(UserRole.ADMIN)
+    response = client.post(
+        "/api/v1/user/account",
+        json={
+            "username": "invalid.role",
+            "first_name": "Invalid",
+            "last_name": "Role",
+            "email": "invalid.role@example.com",
+            "password": "SecurePassword123!",
+            "role": UserRole.STUDENT.value,
+        },
+        headers=admin_headers,
+    )
+    assert response.status_code == 422
 
 
 def test_lecturer_management_requires_admin(client, db_session):
