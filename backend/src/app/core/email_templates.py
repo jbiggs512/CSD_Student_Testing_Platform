@@ -64,8 +64,8 @@ def render_branded_email(
         else f"cid:{ALTIUS_LOGO_CID}"
     )
     logo_block = (
-        f'<img src="{logo_src}" alt="Altius" height="44" '
-        'style="display:inline-block;vertical-align:middle;border:0;height:44px;width:auto;" />'
+        f'<img src="{logo_src}" alt="Altius" height="48" '
+        'style="display:inline-block;vertical-align:middle;border:0;height:48px;width:auto;" />'
     )
 
     paragraphs_html = "".join(
@@ -123,10 +123,10 @@ def render_branded_email(
                 <tr>
                   <td style="vertical-align:middle;">
                     {logo_block}
-                    <span style="display:inline-block;vertical-align:middle;margin-left:14px;">
-                      <span style="display:block;font-family:Georgia,'Times New Roman',serif;font-size:21px;font-weight:700;color:#ffffff;line-height:1.1;">Altius</span>
-                      <span style="display:block;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#cbd5e1;margin-top:3px;">{safe_project}</span>
-                    </span>
+                  </td>
+                  <td align="right" style="vertical-align:middle;padding-left:16px;">
+                    <span style="display:block;font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:700;color:#ffffff;line-height:1.2;">Elevate Your Learning</span>
+                    <span style="display:block;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#f4b767;margin-top:3px;">Competitive Reinforcement Testing</span>
                   </td>
                 </tr>
               </table>

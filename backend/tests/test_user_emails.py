@@ -24,12 +24,13 @@ def test_send_registration_pending_email_when_configured() -> None:
     mock_send.assert_called_once()
     kwargs = mock_send.call_args.kwargs
     assert kwargs["to"] == "student@weston.ac.uk"
-    assert "Pending Approval" in kwargs["subject"]
+    assert "under review" in kwargs["subject"]
     assert "under review for approval" in kwargs["plain_text"]
     assert "WS100001" in kwargs["plain_text"]
     assert "Hi Alice &lt;script&gt;," in kwargs["html"]
     assert "#0a2262" in kwargs["html"]
     assert "Pending Approval" in kwargs["html"]
+    assert "Elevate Your Learning" in kwargs["html"]
     assert "cid:altius-logo" in kwargs["html"]
     assert "cid:trivium-logo" in kwargs["html"]
     assert "Trivium&trade;" in kwargs["html"]
@@ -54,11 +55,11 @@ def test_send_account_approved_email_when_configured() -> None:
     mock_send.assert_called_once()
     kwargs = mock_send.call_args.kwargs
     assert kwargs["to"] == "student@weston.ac.uk"
-    assert "Account Approved" in kwargs["subject"]
+    assert "approved" in kwargs["subject"].lower()
     assert "has been approved" in kwargs["plain_text"]
     assert "WS100001" in kwargs["html"]
     assert "https://myaltius.app/logo.png" in kwargs["html"]
-    assert "Sign In to Altius" in kwargs["html"]
+    assert "Sign In &amp; Get Started" in kwargs["html"]
 
 
 def test_notification_email_skips_when_unconfigured_and_swallows_delivery_error() -> None:
