@@ -23,6 +23,10 @@ function seedRole(role: UserRole) {
     account_status: 'active',
     registration_date: '2026-10-31',
     last_login: null,
+    courses:
+      role === 'student'
+        ? [{ course_id: 1, course_title: 'BSc Software Engineering' }]
+        : [],
   })
 }
 
@@ -78,6 +82,12 @@ describe('NavBar', () => {
     expect(screen.getByText('Test User')).toBeDefined()
     expect(screen.getByText('@WS123456')).toBeDefined()
     expect(screen.getByText('test@weston.ac.uk')).toBeDefined()
+    expect(screen.getByText('Member since')).toBeDefined()
+    expect(screen.getByText('31 Oct 2026')).toBeDefined()
+    expect(screen.getByText('Last login')).toBeDefined()
+    expect(screen.getByText('Never')).toBeDefined()
+    expect(screen.getByText('Enrolled course')).toBeDefined()
+    expect(screen.getByText('BSc Software Engineering')).toBeDefined()
   })
 
   it('opens Change Password dialog from profile dropdown and submits POST /auth/change-password', async () => {

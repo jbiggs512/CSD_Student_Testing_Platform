@@ -76,6 +76,17 @@ function getInitials(user: AuthUser): string {
   return `${first}${last}`.toUpperCase() || user.username.slice(0, 2).toUpperCase();
 }
 
+function formatProfileDate(value: string | null): string {
+  if (!value) return "Never";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export function NavBar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -148,6 +159,50 @@ export function NavBar() {
             {ROLE_LABELS[userType]}
           </Badge>
         </div>
+
+        <dl className="grid grid-cols-2 gap-2 rounded-lg border border-border/80 bg-muted/40 px-3 py-2 text-xs">
+          <div>
+            <dt className="text-[11px] text-muted-foreground">Member since</dt>
+            <dd className="font-medium text-navy">
+              {formatProfileDate(currentUser.registration_date)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[11px] text-muted-foreground">Last login</dt>
+            <dd className="font-medium text-navy">
+              {formatProfileDate(currentUser.last_login)}
+            </dd>
+          </div>
+          {(userType === "student" || (currentUser.courses?.length ?? 0) > 0) && (
+            <div className="col-span-2 border-t border-border/60 pt-2">
+              <dt className="text-[11px] text-muted-foreground">
+                Enrolled course
+              </dt>
+              <dd className="font-medium text-navy">
+                {currentUser.courses && currentUser.courses.length > 0
+                  ? currentUser.courses
+                      .map((course) => course.course_title)
+                      .join(", ")
+                  : "Unassigned"}
+              </dd>
+            </div>
+          )}
+        </dl>
+
+        <dl className="grid grid-cols-2 gap-2 rounded-lg border border-border/80 bg-muted/40 px-3 py-2 text-xs">
+          <div>
+            <dt className="text-[11px] text-muted-foreground">Member since</dt>
+            <dd className="font-medium text-navy">
+              {formatProfileDate(currentUser.registration_date)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[11px] text-muted-foreground">Last login</dt>
+            <dd className="font-medium text-navy">
+              {formatProfileDate(currentUser.last_login)}
+            </dd>
+          </div>
+        </dl>
 
         <div className="space-y-2">
           <Button

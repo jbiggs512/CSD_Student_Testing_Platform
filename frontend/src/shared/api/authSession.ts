@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '@shared/config'
+import type { Course } from './coursesApi'
 
 export type UserRole = 'student' | 'lecturer' | 'admin'
 
@@ -49,6 +50,7 @@ export interface AuthUser {
   last_login: string | null
   failed_login_attempts?: number
   locked_until?: string | null
+  courses?: Course[]
 }
 
 const ROLE_DASHBOARD_PATHS: Record<UserRole, string> = {
