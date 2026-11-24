@@ -6,7 +6,7 @@ import tempfile
 from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_BACKEND_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
+_ROOT_ENV_FILE = Path(__file__).resolve().parents[4] / ".env"
 
 
 def _default_secret_key() -> str:
@@ -62,8 +62,9 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         case_sensitive=True,
-        env_file=(str(_BACKEND_ENV_FILE), ".env"),
+        env_file=(str(_ROOT_ENV_FILE), ".env"),
         env_file_encoding="utf-8",
+        extra="ignore",
     )
 
 

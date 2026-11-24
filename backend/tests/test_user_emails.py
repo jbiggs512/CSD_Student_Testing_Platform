@@ -30,6 +30,11 @@ def test_send_registration_pending_email_when_configured() -> None:
     assert "Hi Alice &lt;script&gt;," in kwargs["html"]
     assert "#0a2262" in kwargs["html"]
     assert "Pending Approval" in kwargs["html"]
+    assert "cid:altius-logo" in kwargs["html"]
+    assert "cid:trivium-logo" in kwargs["html"]
+    assert "Trivium&trade;" in kwargs["html"]
+    attachment_cids = {att.content_id for att in kwargs["attachments"]}
+    assert attachment_cids == {"altius-logo", "trivium-logo"}
 
 
 def test_send_account_approved_email_when_configured() -> None:

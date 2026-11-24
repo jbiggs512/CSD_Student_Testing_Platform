@@ -3,7 +3,7 @@ import logging
 
 from app.core.config import settings
 from app.core.email import EmailServiceError, email_service
-from app.core.email_templates import render_branded_email
+from app.core.email_templates import get_branded_email_attachments, render_branded_email
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,7 @@ def _send_notification_email(
             subject=subject,
             plain_text=plain_text,
             html=html,
+            attachments=get_branded_email_attachments(),
         )
     except EmailServiceError:
         logger.exception("Failed to send email '%s' to %s.", subject, to_email)

@@ -31,13 +31,17 @@ class EmailAttachment:
     name: str
     content_type: str
     content_in_base64: str
+    content_id: str | None = None
 
     def to_acs_dict(self) -> dict[str, str]:
-        return {
+        payload: dict[str, str] = {
             "name": self.name,
             "contentType": self.content_type,
             "contentInBase64": self.content_in_base64,
         }
+        if self.content_id:
+            payload["contentId"] = self.content_id
+        return payload
 
 
 @dataclass(frozen=True, slots=True)

@@ -40,6 +40,7 @@ def test_email_service_sends_plain_and_html_with_options() -> None:
         name="report.txt",
         content_type="text/plain",
         content_in_base64="SGVsbG8=",
+        content_id="report-cid",
     )
     result = service.send_email(
         to=["student@weston.ac.uk", "  "],
@@ -72,6 +73,7 @@ def test_email_service_sends_plain_and_html_with_options() -> None:
                     "name": "report.txt",
                     "contentType": "text/plain",
                     "contentInBase64": "SGVsbG8=",
+                    "contentId": "report-cid",
                 }
             ],
         }

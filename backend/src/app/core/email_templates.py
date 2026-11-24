@@ -1,6 +1,43 @@
+import base64
+from functools import lru_cache
 from html import escape
+from pathlib import Path
 
 from app.core.config import settings
+from app.core.email import EmailAttachment
+
+_ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+ALTIUS_LOGO_CID = "altius-logo"
+TRIVIUM_LOGO_CID = "trivium-logo"
+
+
+@lru_cache(maxsize=4)
+def _load_asset_base64(filename: str) -> str:
+    return base64.b64encode((_ASSETS_DIR / filename).read_bytes()).decode("ascii")
+
+
+def get_branded_email_attachments() -> list[EmailAttachment]:
+    """Return inline CID image attachments for the Altius and Trivium logos."""
+    attachments: list[EmailAttachment] = []
+    if not settings.EMAIL_LOGO_URL and (_ASSETS_DIR / "altius-logo.png").is_file():
+        attachments.append(
+            EmailAttachment(
+                name="altius-logo.png",
+                content_type="image/png",
+                content_in_base64=_load_asset_base64("altius-logo.png"),
+                content_id=ALTIUS_LOGO_CID,
+            )
+        )
+    if (_ASSETS_DIR / "trivium-logo.png").is_file():
+        attachments.append(
+            EmailAttachment(
+                name="trivium-logo.png",
+                content_type="image/png",
+                content_in_base64=_load_asset_base64("trivium-logo.png"),
+                content_id=TRIVIUM_LOGO_CID,
+            )
+        )
+    return attachments
 
 
 def render_branded_email(
@@ -15,24 +52,21 @@ def render_branded_email(
     cta_label: str | None = None,
     cta_url: str | None = None,
 ) -> str:
-    """Render a responsive, inline-styled Altius HTML email."""
+    """Render a responsive, inline-styled Altius HTML email with logo and Trivium trademark."""
     safe_project = escape(settings.PROJECT_NAME)
     safe_badge = escape(badge_text)
     safe_heading = escape(heading)
     safe_greeting = escape(greeting)
 
-    logo_block = (
-        '<span style="display:inline-block;width:34px;height:34px;line-height:34px;'
-        "text-align:center;border-radius:10px;background-color:#ffffff;"
-        "color:#0a2262;font-family:Georgia,'Times New Roman',serif;"
-        'font-size:20px;font-weight:700;vertical-align:middle;">A</span>'
+    logo_src = (
+        escape(settings.EMAIL_LOGO_URL, quote=True)
+        if settings.EMAIL_LOGO_URL
+        else f"cid:{ALTIUS_LOGO_CID}"
     )
-    if settings.EMAIL_LOGO_URL:
-        safe_logo_url = escape(settings.EMAIL_LOGO_URL, quote=True)
-        logo_block = (
-            f'<img src="{safe_logo_url}" alt="Altius" width="36" height="36" '
-            'style="display:inline-block;vertical-align:middle;border:0;border-radius:8px;" />'
-        )
+    logo_block = (
+        f'<img src="{logo_src}" alt="Altius" height="44" '
+        'style="display:inline-block;vertical-align:middle;border:0;height:44px;width:auto;" />'
+    )
 
     paragraphs_html = "".join(
         f'<p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;color:#334155;">{p}</p>'
@@ -84,14 +118,14 @@ def render_branded_email(
             <td style="height:5px;background:linear-gradient(90deg,#6e3273 0%,#b44d70 45%,#e37c67 75%,#f4b767 100%);background-color:#b44d70;font-size:0;line-height:0;">&nbsp;</td>
           </tr>
           <tr>
-            <td style="background-color:#0a2262;padding:22px 28px;">
+            <td style="background-color:#0a2262;padding:20px 28px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="vertical-align:middle;">
                     {logo_block}
-                    <span style="display:inline-block;vertical-align:middle;margin-left:12px;">
-                      <span style="display:block;font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:700;color:#ffffff;line-height:1.1;">Altius</span>
-                      <span style="display:block;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#cbd5e1;margin-top:2px;">{safe_project}</span>
+                    <span style="display:inline-block;vertical-align:middle;margin-left:14px;">
+                      <span style="display:block;font-family:Georgia,'Times New Roman',serif;font-size:21px;font-weight:700;color:#ffffff;line-height:1.1;">Altius</span>
+                      <span style="display:block;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#cbd5e1;margin-top:3px;">{safe_project}</span>
                     </span>
                   </td>
                 </tr>
@@ -117,8 +151,14 @@ def render_branded_email(
             </td>
           </tr>
           <tr>
-            <td style="background-color:#f8f9fc;border-top:1px solid #e2e4ec;padding:16px 28px;text-align:center;font-size:12px;color:#64748b;">
-              Automated notification from {safe_project}. Please do not reply to this email.
+            <td style="background-color:#f8f9fc;border-top:1px solid #e2e4ec;padding:18px 28px;text-align:center;">
+              <div style="margin-bottom:8px;">
+                <img src="cid:{TRIVIUM_LOGO_CID}" alt="Trivium" width="92" style="display:inline-block;border:0;width:92px;height:auto;" />
+              </div>
+              <div style="font-size:12px;color:#64748b;line-height:1.5;">
+                Trivium&trade; &middot; {safe_project}<br />
+                Automated notification &mdash; please do not reply to this email.
+              </div>
             </td>
           </tr>
         </table>
