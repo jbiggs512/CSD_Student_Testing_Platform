@@ -16,7 +16,7 @@ export function LecturerDashboardPage() {
           Teaching and assessment
         </p>
         <h1 className="mt-2 font-heading text-4xl font-bold tracking-tight text-white sm:text-5xl">
-          Welcome to the lecturer dashboard
+          Welcome to the teaching dashboard
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-white/80">
           Manage student accounts and keep learners ready to take part in their

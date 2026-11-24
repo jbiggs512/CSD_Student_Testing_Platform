@@ -91,7 +91,11 @@ createRoot(document.getElementById('root')!).render(
                   element={<LecturersPage />}
                 />
               </Route>
-              <Route element={<ProtectedRoute allowedRoles={['lecturer']} />}>
+              <Route
+                element={
+                  <ProtectedRoute allowedRoles={['lecturer', 'admin']} />
+                }
+              >
                 <Route 
                   path="/lecturerDashboard"
                   element={<LecturerDashboardPage />} />

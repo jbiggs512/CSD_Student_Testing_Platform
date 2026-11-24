@@ -2,6 +2,8 @@ import { Link } from 'react-router'
 import {
   ArrowRightIcon,
   BookOpenIcon,
+  ClipboardListIcon,
+  HelpCircleIcon,
   LibraryBigIcon,
   UsersIcon,
 } from 'lucide-react'
@@ -92,6 +94,76 @@ export function AdminDashboardPage() {
             </Button>
           </CardContent>
         </Card>
+      </section>
+
+      <section
+        aria-label="Teaching tools"
+        className="mt-8"
+      >
+        <h2 className="mb-4 font-heading text-2xl font-bold text-plum">
+          Teaching tools
+        </h2>
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <UsersIcon className="size-8 text-pink" aria-hidden="true" />
+              <CardTitle className="font-heading text-2xl text-plum">
+                Student management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Review, approve, update, disable, and remove student accounts.
+              </p>
+              <Button asChild>
+                <Link to="/students">
+                  Manage students
+                  <ArrowRightIcon aria-hidden="true" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardHeader>
+              <ClipboardListIcon className="size-8 text-pink" aria-hidden="true" />
+              <CardTitle className="font-heading text-2xl text-plum">
+                Test management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Create, configure, and manage subject assessments.
+              </p>
+              <Button asChild>
+                <Link to="/tests">
+                  Manage tests
+                  <ArrowRightIcon aria-hidden="true" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardHeader>
+              <HelpCircleIcon className="size-8 text-pink" aria-hidden="true" />
+              <CardTitle className="font-heading text-2xl text-plum">
+                Question pool management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Organise questions by subject and keep question pools up to date.
+              </p>
+              <Button asChild>
+                <Link to="/questionPool">
+                  Manage question pool
+                  <ArrowRightIcon aria-hidden="true" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </section>
     </main>
   )

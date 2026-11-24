@@ -44,9 +44,11 @@ export { PasswordInput } from './ui/password-input'
 export { NavBar } from './ui/navbar'
 export {
   NavigationMenu,
+  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
+  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from './ui/navigation-menu'
 export {
