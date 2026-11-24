@@ -126,7 +126,7 @@ export function TestPage() {
     loadData().catch((error) => {
       console.error("Failed to load test data:", error);
     });;
-  }, []);
+  }, [id, navigate]);
 
   if (isLoading) {
     return <div className="flex min-h-screen items-center justify-center">Loading test...</div>;

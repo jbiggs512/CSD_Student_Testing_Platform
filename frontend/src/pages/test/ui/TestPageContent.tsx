@@ -23,14 +23,11 @@ export function TestPageContent(props: Readonly<TestPageContentProps>) {
   const navigate = useNavigate();
 
   // Only use a server timer if the test is timed
-  let secondsLeft = 0;
-  if (props.testDetails.timed) {
-    secondsLeft = useServerTimer({
-      startedAt: props.testAttempt?.started_at ?? null,
-      durationSeconds: props.testDetails.time_limit_minutes * 60,
-      onExpire: props.onSubmit,
-    });
-  }
+  const secondsLeft = useServerTimer({
+  startedAt: props.testDetails.timed ? props.testAttempt?.started_at : null,
+  durationSeconds: props.testDetails.time_limit_minutes * 60,
+  onExpire: props.testDetails.timed ? props.onSubmit : undefined,
+});
 
   const toMMSS = (secs: number) => {
     const secNum = Math.max(0, Math.floor(secs));
