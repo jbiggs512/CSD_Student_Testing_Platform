@@ -9,6 +9,7 @@ services:
       - DATABASE_URL=postgresql+psycopg://student_app:${POSTGRES_PASSWORD}@db:5432/student_testing
       - AZURE_COMMUNICATION_CONNECTION_STRING=${AZURE_COMMUNICATION_CONNECTION_STRING:-}
       - AZURE_COMMUNICATION_SENDER_EMAIL=${AZURE_COMMUNICATION_SENDER_EMAIL:-}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
     volumes:
       - ./backend/src:/app/src
     depends_on:
