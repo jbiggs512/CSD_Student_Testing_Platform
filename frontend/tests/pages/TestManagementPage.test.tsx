@@ -135,12 +135,14 @@ describe('LecturerDashboardPage & TestManagementPage', () => {
 
     render(<TestManagementPage />)
 
-    const subjectTrigger = screen.getByLabelText('Subject') as HTMLButtonElement
-    await waitFor(() => expect(subjectTrigger.disabled).toBe(false))
-
-    expect(screen.getByText('24')).toBeDefined()
+    await waitFor(() => expect(screen.getByText('24')).toBeDefined())
     expect(screen.getByText('78%')).toBeDefined()
     expect(screen.getByText('Midterm OOP Exam')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: /create new test/i }))
+
+    const subjectTrigger = screen.getByLabelText('Subject') as HTMLButtonElement
+    await waitFor(() => expect(subjectTrigger.disabled).toBe(false))
 
     fireEvent.change(screen.getByLabelText('Test Name'), {
       target: { value: 'Midterm OOP Exam' },
@@ -282,6 +284,8 @@ describe('LecturerDashboardPage & TestManagementPage', () => {
 
     render(<TestManagementPage />)
 
+    fireEvent.click(screen.getByRole('button', { name: /create new test/i }))
+
     const subjectTrigger = screen.getByLabelText('Subject') as HTMLButtonElement
     await waitFor(() => expect(subjectTrigger.disabled).toBe(false))
 
@@ -312,6 +316,114 @@ describe('LecturerDashboardPage & TestManagementPage', () => {
         ),
       ).toBeDefined()
     })
+  })
+
+  it('filters tests by course and subject and clears filters', async () => {
+    const oopTest = {
+      ...createdTest,
+      test_id: 21,
+      test_name: 'OOP Quiz',
+      subject_id: 1,
+      subject_name: 'Object Oriented Programming',
+      course_title: 'BSc Software Engineering',
+    }
+    const algoTest = {
+      ...createdTest,
+      test_id: 22,
+      test_name: 'Algorithms Quiz',
+      subject_id: 2,
+      subject_name: 'Data Structures & Algorithms',
+      course_title: 'BSc Software Engineering',
+    }
+    const cloudTest = {
+      ...createdTest,
+      test_id: 23,
+      test_name: 'Cloud Security Quiz',
+      subject_id: 3,
+      subject_name: 'Cloud Security',
+      course_title: 'BSc Cloud Computing',
+    }
+    mockDashboardFetch({ tests: [oopTest, algoTest, cloudTest] })
+
+    render(<TestManagementPage />)
+
+    expect(await screen.findByText('OOP Quiz')).toBeDefined()
+    expect(screen.getByText('Algorithms Quiz')).toBeDefined()
+    expect(screen.getByText('Cloud Security Quiz')).toBeDefined()
+
+    fireEvent.click(screen.getByLabelText('Filter by course'))
+    const courseOption = await screen.findByRole('option', {
+      name: 'BSc Software Engineering',
+    })
+    fireEvent.pointerDown(courseOption)
+    fireEvent.pointerUp(courseOption)
+    fireEvent.click(courseOption)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Cloud Security Quiz')).toBeNull()
+    })
+    expect(screen.getByText('OOP Quiz')).toBeDefined()
+    expect(screen.getByText('Algorithms Quiz')).toBeDefined()
+
+    fireEvent.click(screen.getByLabelText('Filter by subject'))
+    const subjectOption = await screen.findByRole('option', {
+      name: 'Data Structures & Algorithms',
+    })
+    fireEvent.pointerDown(subjectOption)
+    fireEvent.pointerUp(subjectOption)
+    fireEvent.click(subjectOption)
+
+    await waitFor(() => {
+      expect(screen.queryByText('OOP Quiz')).toBeNull()
+    })
+    expect(screen.getByText('Algorithms Quiz')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Cloud Security Quiz')).toBeDefined()
+    })
+    expect(screen.getByText('OOP Quiz')).toBeDefined()
+    expect(screen.getByText('Algorithms Quiz')).toBeDefined()
+  })
+
+  it('paginates tests and supports changing page size between 10, 20, and 50', async () => {
+    const manyTests = Array.from({ length: 12 }, (_, index) => ({
+      ...createdTest,
+      test_id: 100 + index,
+      test_name: `Paginated Test ${index + 1}`,
+    }))
+    mockDashboardFetch({ tests: manyTests })
+
+    render(<TestManagementPage />)
+
+    expect(await screen.findByText('Paginated Test 1')).toBeDefined()
+    expect(screen.getByText('Paginated Test 10')).toBeDefined()
+    expect(screen.queryByText('Paginated Test 11')).toBeNull()
+    expect(screen.getByText('Showing 1–10 of 12 tests')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+
+    expect(screen.getByText('Paginated Test 11')).toBeDefined()
+    expect(screen.getByText('Paginated Test 12')).toBeDefined()
+    expect(screen.queryByText('Paginated Test 1')).toBeNull()
+    expect(screen.getByText('Showing 11–12 of 12 tests')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous' }))
+
+    expect(screen.getByText('Paginated Test 1')).toBeDefined()
+    expect(screen.queryByText('Paginated Test 11')).toBeNull()
+
+    fireEvent.click(screen.getByLabelText('Tests per page'))
+    const sizeOption = await screen.findByRole('option', { name: '20' })
+    fireEvent.pointerDown(sizeOption)
+    fireEvent.pointerUp(sizeOption)
+    fireEvent.click(sizeOption)
+
+    await waitFor(() => {
+      expect(screen.getByText('Paginated Test 12')).toBeDefined()
+    })
+    expect(screen.getByText('Showing 1–12 of 12 tests')).toBeDefined()
   })
 
   it('testManagementApi handles unauthenticated and network errors', async () => {

@@ -1,5 +1,8 @@
 // Shared reusable UI and shadcn components
+export { AppProtection } from './app-protection'
 export { AuthHeroPanel } from './auth-hero-panel'
+export { ErrorBoundary } from './error-boundary'
+export { ErrorPage } from './error-page'
 export { AuthSplitLayout } from './auth-split-layout'
 export { Alert, AlertDescription } from './ui/alert'
 export { Badge, badgeVariants } from './ui/badge'

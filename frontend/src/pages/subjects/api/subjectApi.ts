@@ -1,4 +1,4 @@
-import { getAccessToken } from '@shared/api'
+import { getAccessToken, notifyIfAccountDisabled } from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type {
   Subject,
@@ -60,6 +60,8 @@ async function subjectRequest<T>(
     } catch {
       // Use the generic message when the server does not return JSON.
     }
+
+    notifyIfAccountDisabled(response.status, detailMessage)
 
     throw new SubjectApiError(
       detailMessage ?? 'Something went wrong. Please try again.',

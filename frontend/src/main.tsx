@@ -1,8 +1,15 @@
 import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Route, Routes } from 'react-router'
+import { BrowserRouter, Route, Routes, useNavigate } from 'react-router'
 import { App } from './App'
-import { NavBar, ProtectedRoute, Toaster } from './shared/components'
+import {
+  AppProtection,
+  ErrorPage,
+  NavBar,
+  ProtectedRoute,
+  Toaster,
+} from './shared/components'
+import { getCurrentUser, getDashboardPathForRole } from './shared/api'
 import './index.css'
 
 const LandingPage = lazy(() =>
@@ -52,22 +59,70 @@ const StatisticsPage = lazy(() =>
   import('./pages/statistics').then((m) => ({ default: m.StatisticsPage })),
 )
 
+function NotFoundPage() {
+  const navigate = useNavigate()
+  const user = getCurrentUser()
+  const targetPath = user ? getDashboardPathForRole(user.role) : '/login'
+  const actionLabel = user ? 'Return to Dashboard' : 'Return to Login'
+
+  return (
+    <ErrorPage
+      statusCode={404}
+      variant="default"
+      title="Page Not Found"
+      message="The page you are looking for does not exist or has been moved."
+      primaryActionLabel={actionLabel}
+      onPrimaryAction={() => navigate(targetPath, { replace: true })}
+    />
+  )
+}
+
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
     <StrictMode>
-      <Suspense
-        fallback={<div aria-busy="true" className="min-h-screen bg-background" />}
-      >
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route element={<ProtectedRoute />}>
-            <Route element={<NavBar />}>
-              <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/leaderboards" element={<LeaderboardPage />} />
-                <Route path="/statistics" element={<StatisticsPage />} />
+      <AppProtection>
+        <Suspense
+          fallback={<div aria-busy="true" className="min-h-screen bg-background" />}
+        >
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route element={<ProtectedRoute />}>
+              <Route element={<NavBar />}>
+                <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/leaderboards" element={<LeaderboardPage />} />
+                  <Route path="/statistics" element={<StatisticsPage />} />
+                </Route>
+                <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                  <Route
+                    path="/adminDashboard"
+                    element={<AdminDashboardPage />}
+                  />
+                  <Route
+                    path="/subjects"
+                    element={<SubjectsPage />}
+                  />
+                  <Route
+                    path="/lecturers"
+                    element={<LecturersPage />}
+                  />
+                </Route>
+                <Route element={<ProtectedRoute allowedRoles={['lecturer']} />}>
+                  <Route 
+                    path="/lecturerDashboard"
+                    element={<LecturerDashboardPage />} />
+                  <Route 
+                    path="/students"
+                    element={<StudentsPage />} />
+                  <Route 
+                    path="/tests"
+                    element={<TestManagementPage />} />
+                  <Route 
+                    path="/questionPool"
+                    element={<QuestionPoolPage />} />
+                </Route>
               </Route>
               <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
                 <Route
@@ -100,15 +155,14 @@ createRoot(document.getElementById('root')!).render(
                 <Route 
                   path="/questionPool"
                   element={<QuestionPoolPage />} />
+              <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+                <Route path="/test/:id" element={<TestPage />} />
               </Route>
+              <Route path="*" element={<NotFoundPage />} />
             </Route>
-            <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-              <Route path="/test/:id" element={<TestPage />} />
-            </Route>
-            <Route path="*" element={<ProtectedRoute allowedRoles={[]} />} />
-          </Route>
-        </Routes>
-      </Suspense>
+          </Routes>
+        </Suspense>
+      </AppProtection>
       <App />
       <Toaster />
     </StrictMode>

@@ -1,4 +1,4 @@
-import { getAccessToken } from '@shared/api'
+import { getAccessToken, notifyIfAccountDisabled } from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type {
   Lecturer,
@@ -59,6 +59,8 @@ async function lecturerRequest<T>(
     } catch {
       // Use the generic error when the server does not return JSON.
     }
+
+    notifyIfAccountDisabled(response.status, detail)
 
     throw new LecturerApiError(
       detail ?? 'Something went wrong. Please try again.',
