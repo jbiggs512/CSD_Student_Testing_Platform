@@ -4,6 +4,39 @@ export type UserRole = 'student' | 'lecturer' | 'admin'
 
 export type AccountStatus = 'active' | 'disabled' | 'pending'
 
+export const ACCOUNT_DISABLED_DETAIL = 'Account has been disabled.'
+
+type AccountDisabledListener = (message: string) => void
+const accountDisabledListeners = new Set<AccountDisabledListener>()
+
+export function subscribeAccountDisabled(
+  listener: AccountDisabledListener,
+): () => void {
+  accountDisabledListeners.add(listener)
+  return () => {
+    accountDisabledListeners.delete(listener)
+  }
+}
+
+export function notifyAccountDisabled(
+  message = 'Account has been disabled.',
+): void {
+  for (const listener of accountDisabledListeners) {
+    listener(message)
+  }
+}
+
+export function notifyIfAccountDisabled(
+  status: number,
+  detail?: string,
+): boolean {
+  if (status === 403 && detail === ACCOUNT_DISABLED_DETAIL) {
+    notifyAccountDisabled(detail)
+    return true
+  }
+  return false
+}
+
 export interface AuthUser {
   user_id: number
   username: string
@@ -76,6 +109,16 @@ async function performTokenRefresh(): Promise<string | null> {
     }
 
     if (!refreshResponse.ok) {
+      if (refreshResponse.status === 403) {
+        try {
+          const errorBody = (await refreshResponse.json()) as { detail?: unknown }
+          if (typeof errorBody.detail === 'string') {
+            notifyIfAccountDisabled(refreshResponse.status, errorBody.detail)
+          }
+        } catch {
+          // Ignore non-JSON 403 responses during refresh.
+        }
+      }
       clearAccessToken()
       return null
     }

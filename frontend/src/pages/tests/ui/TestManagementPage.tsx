@@ -19,8 +19,8 @@ import type {
   TestResultsDetail,
 } from '../model'
 import { AllTestsCard } from './AllTestsCard'
-import { CreateTestCard } from './CreateTestCard'
-import type { CreateTestFormValues } from './CreateTestCard'
+import { CreateTestDialog } from './CreateTestDialog'
+import type { CreateTestFormValues } from './CreateTestDialog'
 import { TestManagementHero } from './TestManagementHero'
 import { TestResultsDialog } from './TestResultsDialog'
 
@@ -52,11 +52,11 @@ export function TestManagementPage() {
   const [formValues, setFormValues] =
     useState<CreateTestFormValues>(INITIAL_FORM)
   const [isLoadingInitial, setIsLoadingInitial] = useState(true)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
   const [pageSuccess, setPageSuccess] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const [testPendingDelete, setTestPendingDelete] =
     useState<LecturerTest | null>(null)
@@ -94,8 +94,20 @@ export function TestManagementPage() {
     value: string,
   ) {
     setFormError(null)
-    setSuccessMessage(null)
     setFormValues((current) => ({ ...current, [field]: value }))
+  }
+
+  function handleOpenCreateDialog() {
+    setFormError(null)
+    setPageSuccess(null)
+    setIsCreateDialogOpen(true)
+  }
+
+  function handleCreateDialogOpenChange(open: boolean) {
+    setIsCreateDialogOpen(open)
+    if (!open) {
+      setFormError(null)
+    }
   }
 
   async function handleViewResults(test: LecturerTest) {
@@ -144,7 +156,7 @@ export function TestManagementPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormError(null)
-    setSuccessMessage(null)
+    setPageSuccess(null)
 
     const testName = sanitizeInputText(formValues.testName)
     if (!testName) {
@@ -186,7 +198,8 @@ export function TestManagementPage() {
         questions_per_attempt: questionsPerAttempt,
       })
       setFormValues(INITIAL_FORM)
-      setSuccessMessage(`Created test "${created.test_name}".`)
+      setIsCreateDialogOpen(false)
+      setPageSuccess(`Created test "${created.test_name}".`)
       const [updatedTests, updatedStats] = await Promise.all([
         getTests(),
         getTestManagementStats(),
@@ -218,24 +231,25 @@ export function TestManagementPage() {
         </Alert>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <AllTestsCard
-          tests={tests}
-          isLoading={isLoadingInitial}
-          onViewResults={(test) => void handleViewResults(test)}
-          onDeleteTest={setTestPendingDelete}
-        />
-        <CreateTestCard
-          subjects={subjects}
-          formValues={formValues}
-          isLoadingSubjects={isLoadingInitial}
-          isSaving={isSaving}
-          formError={formError}
-          successMessage={successMessage}
-          onFieldChange={handleFieldChange}
-          onSubmit={(event) => void handleSubmit(event)}
-        />
-      </div>
+      <AllTestsCard
+        tests={tests}
+        isLoading={isLoadingInitial}
+        onCreateTest={handleOpenCreateDialog}
+        onViewResults={(test) => void handleViewResults(test)}
+        onDeleteTest={setTestPendingDelete}
+      />
+
+      <CreateTestDialog
+        open={isCreateDialogOpen}
+        onOpenChange={handleCreateDialogOpenChange}
+        subjects={subjects}
+        formValues={formValues}
+        isLoadingSubjects={isLoadingInitial}
+        isSaving={isSaving}
+        formError={formError}
+        onFieldChange={handleFieldChange}
+        onSubmit={(event) => void handleSubmit(event)}
+      />
 
       <TestResultsDialog
         test={selectedTestForResults}

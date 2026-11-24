@@ -1,4 +1,4 @@
-import { getAccessToken } from '@shared/api'
+import { getAccessToken, notifyIfAccountDisabled } from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type {
   Subject,
@@ -61,6 +61,8 @@ async function subjectRequest<T>(
       // Use the generic message when the server does not return JSON.
     }
 
+    notifyIfAccountDisabled(response.status, detailMessage)
+
     throw new SubjectApiError(
       detailMessage ?? 'Something went wrong. Please try again.',
       response.status,
@@ -98,11 +100,5 @@ export function updateSubject(
   return subjectRequest<Subject>(`/${subjectId}`, {
     method: 'PATCH',
     body: JSON.stringify(request),
-  })
-}
-
-export function deleteSubject(subjectId: number): Promise<void> {
-  return subjectRequest<void>(`/${subjectId}`, {
-    method: 'DELETE',
   })
 }

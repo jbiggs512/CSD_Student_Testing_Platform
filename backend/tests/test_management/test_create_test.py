@@ -53,3 +53,10 @@ def test_create_test_as_admin_with_defaults(
     assert data["description"] is None
     assert data["time_limit_minutes"] is None
     assert data["questions_per_attempt"] == MIN_QUESTIONS_PER_ATTEMPT
+
+    list_response = client.get(TESTS_URL, headers=headers)
+    assert list_response.status_code == 200
+    assert any(item["test_id"] == data["test_id"] for item in list_response.json())
+
+    stats_response = client.get(f"{TESTS_URL}/stats", headers=headers)
+    assert stats_response.status_code == 200

@@ -1,7 +1,9 @@
 from abc import abstractmethod, ABC
 from pydantic import BaseModel, EmailStr, Field, AliasPath
 from datetime import date, datetime
+from typing import Literal
 
+from app.api.v1.course.schemas import CourseResponse
 from app.enums import UserRole, AccountStatus
 
 class BaseUserCreateRequest(BaseModel, ABC):
@@ -34,6 +36,20 @@ class LecturerCreateRequest(BaseUserCreateRequest):
         return AccountStatus.ACTIVE.value
 
 
+class AccountCreateRequest(BaseModel):
+    username: str
+    first_name: str
+    last_name: str
+    email: EmailStr
+    password: str
+    role: Literal["lecturer", "admin"]
+    courses: list[int] | None = None
+
+    @property
+    def account_status(self) -> str:
+        return AccountStatus.ACTIVE.value
+
+
 class LecturerUpdateRequest(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
@@ -42,12 +58,16 @@ class LecturerUpdateRequest(BaseModel):
     account_status: AccountStatus | None = None
 
 
+AccountUpdateRequest = LecturerUpdateRequest
+
+
 class StudentUpdateRequest(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     email: EmailStr | None = None
     password: str | None = None
     account_status: AccountStatus | None = None
+    courses: list[int] | None = None
 
 class StudentCreateRequest(BaseUserCreateRequest):
     @property
@@ -63,11 +83,12 @@ class UserResponse(BaseModel):
     username: str
     first_name: str
     last_name: str
-    email: EmailStr
+    email: str
     role: UserRole = Field(validation_alias=AliasPath("role", "role_name"))
     account_status: AccountStatus
     registration_date: date
     last_login: datetime | None
+    courses: list[CourseResponse] = Field(default_factory=list)
     failed_login_attempts: int = 0
     locked_until: datetime | None = None
 

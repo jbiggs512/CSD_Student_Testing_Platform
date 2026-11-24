@@ -1,6 +1,11 @@
-import { Link } from 'react-router'
-import { ArrowRightIcon } from 'lucide-react'
-import { Button } from '@shared/components/ui/button'
+import {
+  BookOpenIcon,
+  ClipboardListIcon,
+  HelpCircleIcon,
+  LibraryBigIcon,
+  UsersIcon,
+} from 'lucide-react'
+import { DashboardLinkCard } from '@shared/components/dashboard-link-card'
 
 export function AdminDashboardPage() {
   return (
@@ -13,19 +18,67 @@ export function AdminDashboardPage() {
           Welcome to the admin dashboard
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-white/80">
-          Manage the platform from one place. Start by viewing and maintaining
-          the subjects available to learners.
+          Manage the platform from one place. Maintain accounts, courses, and
+          subjects available to learners.
         </p>
-        <div className="mt-8">
-          <Button
-            asChild
-            className="bg-white text-navy hover:bg-white/90"
-          >
-            <Link to="/subjects">
-              Manage subjects
-              <ArrowRightIcon aria-hidden="true" />
-            </Link>
-          </Button>
+      </section>
+
+      <section
+        aria-label="Administration pages"
+        className="mt-8 grid gap-6 md:grid-cols-3"
+      >
+        <DashboardLinkCard
+          icon={UsersIcon}
+          title="Account management"
+          description="Create and manage lecturer and administrator accounts."
+          to="/accounts"
+          linkLabel="Manage accounts"
+        />
+        <DashboardLinkCard
+          icon={BookOpenIcon}
+          title="Course management"
+          description="Create and update the courses available across the platform."
+          to="/courses"
+          linkLabel="Manage courses"
+        />
+        <DashboardLinkCard
+          icon={LibraryBigIcon}
+          title="Subject management"
+          description="Manage the subjects available to learners and their courses."
+          to="/subjects"
+          linkLabel="Manage subjects"
+        />
+      </section>
+
+      <section
+        aria-label="Teaching tools"
+        className="mt-8"
+      >
+        <h2 className="mb-4 font-heading text-2xl font-bold text-plum">
+          Teaching tools
+        </h2>
+        <div className="grid gap-6 md:grid-cols-3">
+          <DashboardLinkCard
+            icon={UsersIcon}
+            title="Student management"
+            description="Review, approve, update, disable, and remove student accounts."
+            to="/students"
+            linkLabel="Manage students"
+          />
+          <DashboardLinkCard
+            icon={ClipboardListIcon}
+            title="Test management"
+            description="Create, configure, and manage subject assessments."
+            to="/tests"
+            linkLabel="Manage tests"
+          />
+          <DashboardLinkCard
+            icon={HelpCircleIcon}
+            title="Question pool management"
+            description="Organise questions by subject and keep question pools up to date."
+            to="/questionPool"
+            linkLabel="Manage question pool"
+          />
         </div>
       </section>
     </main>

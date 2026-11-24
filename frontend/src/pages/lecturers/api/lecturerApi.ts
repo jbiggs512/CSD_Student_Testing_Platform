@@ -1,4 +1,4 @@
-import { getAccessToken } from '@shared/api'
+import { getAccessToken, notifyIfAccountDisabled } from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type {
   Lecturer,
@@ -7,7 +7,7 @@ import type {
   LecturerUpdateRequest,
 } from '../model'
 
-const LECTURERS_URL = `${API_BASE_URL}/user/lecturer`
+const ACCOUNTS_URL = `${API_BASE_URL}/user/account`
 
 export class LecturerApiError extends Error {
   readonly status: number
@@ -34,7 +34,7 @@ async function lecturerRequest<T>(
 
   let response: Response
   try {
-    response = await fetch(`${LECTURERS_URL}${endpoint}`, {
+    response = await fetch(`${ACCOUNTS_URL}${endpoint}`, {
       ...options,
       headers: {
         Authorization: `Bearer ${token}`,
@@ -59,6 +59,8 @@ async function lecturerRequest<T>(
     } catch {
       // Use the generic error when the server does not return JSON.
     }
+
+    notifyIfAccountDisabled(response.status, detail)
 
     throw new LecturerApiError(
       detail ?? 'Something went wrong. Please try again.',
