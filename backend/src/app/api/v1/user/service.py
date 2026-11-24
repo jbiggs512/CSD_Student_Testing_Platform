@@ -168,13 +168,16 @@ def get_lecturers(db: Session) -> list[User]:
     )
 
 
-def get_accounts(db: Session) -> list[User]:
+def get_accounts(db: Session, current_user: User) -> list[User]:
     return list(
         db.scalars(
             select(User)
             .options(joinedload(User.role))
             .join(User.role)
-            .where(Role.role_name.in_(MANAGED_ROLE_NAMES))
+            .where(
+                Role.role_name.in_(MANAGED_ROLE_NAMES),
+                User.user_id != current_user.user_id,
+            )
             .order_by(User.last_name, User.first_name, User.username)
         ).all()
     )

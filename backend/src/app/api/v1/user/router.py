@@ -26,9 +26,9 @@ def request_create_account(
 @router.get("/account", response_model=list[schemas.UserResponse])
 def request_get_accounts(
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
+    current_user: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
 ):
-    return service.get_accounts(db)
+    return service.get_accounts(db, current_user)
 
 
 @router.patch(

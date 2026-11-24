@@ -489,7 +489,8 @@ def test_admin_can_list_edit_and_delete_lecturers(client, db_session):
 def test_admin_can_create_list_edit_and_delete_admin_account(
     client, auth_headers
 ):
-    headers = auth_headers(UserRole.ADMIN)
+    current_admin_username = "ADMIN_ACCOUNT_LIST"
+    headers = auth_headers(UserRole.ADMIN, username=current_admin_username)
     auth_headers(UserRole.LECTURER)
     account_data = {
         "username": "managed.admin",
@@ -517,6 +518,10 @@ def test_admin_can_create_list_edit_and_delete_admin_account(
     }
     assert any(
         user["username"] == account_data["username"]
+        for user in list_response.json()
+    )
+    assert all(
+        user["username"] != current_admin_username
         for user in list_response.json()
     )
 
