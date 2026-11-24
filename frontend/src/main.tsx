@@ -155,6 +155,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route 
                   path="/questionPool"
                   element={<QuestionPoolPage />} />
+              </Route>
               <Route element={<ProtectedRoute allowedRoles={['student']} />}>
                 <Route path="/test/:id" element={<TestPage />} />
               </Route>
