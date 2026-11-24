@@ -1,12 +1,10 @@
-import type { GradesOverTimeResponse } from ".";
+import type { GradePoint } from ".";
 import * as ExcelJS from "exceljs";
-
-type Point = GradesOverTimeResponse["points"][number];
 
 const BEST = "FFF4B767";
 const WORST = "FFB44D70";
 
-function getColour(point: Point) {
+function getColour(point: GradePoint) {
     if (point.is_best) {
         return BEST;
     }
@@ -16,7 +14,7 @@ function getColour(point: Point) {
     return null;
 }
 
-export async function exportResultsToExcel(points: Point[]) {
+export function buildResultsWorkbook(points: GradePoint[]) {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Results");
 
@@ -62,6 +60,12 @@ export async function exportResultsToExcel(points: Point[]) {
     const worstLegend = sheet.addRow(["Worst result"]);
     worstLegend.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: WORST } };
     worstLegend.font = { bold: true };
+
+    return workbook;
+}
+
+export async function exportResultsToExcel(points: GradePoint[]) {
+    const workbook = buildResultsWorkbook(points);
 
     // Trigger browser download
     const buffer = await workbook.xlsx.writeBuffer();

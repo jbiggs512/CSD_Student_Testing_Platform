@@ -7,5 +7,5 @@ export type {
     GradesOverTimeResponse
 } from './types'
 
-export { exportResultsToExcel } from './exportResultsToExcel'
+export { exportResultsToExcel, buildResultsWorkbook } from './exportResultsToExcel'
 
