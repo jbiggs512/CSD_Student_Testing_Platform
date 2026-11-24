@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, within, screen, waitFor } from '@testing-li
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { StatisticsPage, GradesChartCard } from '@/pages/statistics'
+import { ExportResultsCard } from '@/pages/statistics/ui/ExportResultsCard'
 import { cloneElement, type ReactElement } from 'react'
 import { type GradesOverTimeResponse, buildResultsWorkbook } from '@/pages/statistics/model'
 
@@ -250,7 +251,7 @@ describe('GradesChartCard', () => {
   })
 })
 
-describe('ExportResultsCard', () => {
+describe('Statistics workbook', () => {
   const fillOf = (cell: any) => cell.fill?.fgColor?.argb;
   const BEST = "FFF4B767";
   const WORST = "FFB44D70";
@@ -309,4 +310,67 @@ describe('ExportResultsCard', () => {
     expect(fillOf(sheet.getRow(3).getCell(3))).toBeUndefined();
     expect(fillOf(sheet.getRow(4).getCell(3))).toBe(WORST);
   });
+
+  it("does not highlight any result when all grades are equal", () => {
+    const wb = buildResultsWorkbook([
+      {
+        completed_at: "2026-11-03",
+        percentage: 75,
+        test_name: "One",
+        is_best: true,
+        is_worst: true,
+      },
+      {
+        completed_at: "2026-11-04",
+        percentage: 75,
+        test_name: "Two",
+        is_best: true,
+        is_worst: true,
+      },
+    ])
+    const sheet = wb.getWorksheet("Results")!
+
+    expect(fillOf(sheet.getRow(2).getCell(3))).toBeUndefined()
+    expect(fillOf(sheet.getRow(3).getCell(3))).toBeUndefined()
+  })
+})
+
+describe("ExportResultsCard", () => {
+  afterEach(() => {
+    cleanup()
+  })
+
+  it("renders the export controls and enables the button for grade data", () => {
+    render(
+      <ExportResultsCard
+        data={{ average: 75, points: mockGradesOverTime.points }}
+      />,
+    )
+
+    expect(screen.getByRole("button", { name: "Export Results" })).toBeDefined()
+    expect(screen.getByText("Excel (.xlsx)")).toBeDefined()
+    expect((screen.getByRole("button", { name: "Export Results" }) as HTMLButtonElement).disabled)
+      .toBe(false)
+  })
+
+  it("disables export when there are no results", () => {
+    render(<ExportResultsCard data={{ average: 0, points: [] }} />)
+
+    expect((screen.getByRole("button", { name: "Export Results" }) as HTMLButtonElement).disabled)
+      .toBe(true)
+  })
+
+  it("shows an export error returned by the export function", async () => {
+    exportResultsToExcel.mockRejectedValueOnce(new Error("File could not be created"))
+
+    render(
+      <ExportResultsCard
+        data={{ average: 75, points: mockGradesOverTime.points }}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "Export Results" }))
+
+    expect(await screen.findByText("Export failed: File could not be created")).toBeDefined()
+  })
 })
