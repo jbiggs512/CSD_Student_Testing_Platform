@@ -14,12 +14,22 @@ export function AdminDashboardPage() {
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-white/80">
           Manage the platform from one place. Start by viewing and maintaining
-          the subjects available to learners.
+          courses and subjects available to learners.
         </p>
-        <div className="mt-8">
+        <div className="mt-8 flex flex-wrap gap-3">
           <Button
             asChild
             className="bg-white text-navy hover:bg-white/90"
+          >
+            <Link to="/courses">
+              Manage courses
+              <ArrowRightIcon aria-hidden="true" />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
           >
             <Link to="/subjects">
               Manage subjects

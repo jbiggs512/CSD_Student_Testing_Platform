@@ -39,6 +39,7 @@ const navItems: Record<UserRole, NavItem[]> = {
   ],
   admin: [
     { to: "/adminDashboard", label: "Dashboard" },
+    { to: "/courses", label: "Courses" },
     { to: "/lecturers", label: "Lecturers" },
     { to: "/subjects", label: "Subjects" },
     { to: "/profile", label: "Profile" },
