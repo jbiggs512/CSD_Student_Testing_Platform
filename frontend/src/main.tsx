@@ -103,7 +103,6 @@ createRoot(document.getElementById('root')!).render(
                   <Route path="/subjects" element={<SubjectsPage />} />
                   <Route path="/courses" element={<CoursesPage />} />
                   <Route path="/accounts" element={<LecturersPage />} />
-                  <Route path="/lecturers" element={<LecturersPage />} />
                 </Route>
                 <Route
                   element={
