@@ -70,6 +70,12 @@ const ROLE_LABELS: Record<UserRole, string> = {
   admin: "Admin",
 };
 
+const ROLE_BADGE_CLASSES: Record<UserRole, string> = {
+  student: "border-navy/15 bg-navy/10 text-navy",
+  lecturer: "border-plum/20 bg-plum/12 text-plum",
+  admin: "border-pink/20 bg-pink/12 text-pink",
+};
+
 function getInitials(user: AuthUser): string {
   const first = user.first_name.trim().charAt(0);
   const last = user.last_name.trim().charAt(0);
@@ -155,7 +161,10 @@ export function NavBar() {
               {currentUser.email}
             </p>
           </div>
-          <Badge variant="secondary" className="shrink-0 capitalize">
+          <Badge
+            variant="outline"
+            className={`shrink-0 capitalize ${ROLE_BADGE_CLASSES[userType]}`}
+          >
             {ROLE_LABELS[userType]}
           </Badge>
         </div>
@@ -189,21 +198,6 @@ export function NavBar() {
           )}
         </dl>
 
-        <dl className="grid grid-cols-2 gap-2 rounded-lg border border-border/80 bg-muted/40 px-3 py-2 text-xs">
-          <div>
-            <dt className="text-[11px] text-muted-foreground">Member since</dt>
-            <dd className="font-medium text-navy">
-              {formatProfileDate(currentUser.registration_date)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[11px] text-muted-foreground">Last login</dt>
-            <dd className="font-medium text-navy">
-              {formatProfileDate(currentUser.last_login)}
-            </dd>
-          </div>
-        </dl>
-
         <div className="space-y-2">
           <Button
             variant="outline"
@@ -235,9 +229,14 @@ export function NavBar() {
     <>
       <header
         id="nav-bar"
-        className="sticky top-0 z-40 flex w-full items-center justify-between gap-4 border-b border-border/80 bg-white/90 px-4 py-2 backdrop-blur-md sm:px-6"
+        className="sticky top-0 z-40 w-full border-b border-border/80 bg-white/90 backdrop-blur-md"
       >
-        <Link to={dashboardPath} className="flex shrink-0 items-center">
+        <div
+          aria-hidden="true"
+          className="h-[3px] w-full bg-linear-to-r from-navy via-plum to-pink"
+        />
+        <div className="flex w-full items-center justify-between gap-4 px-4 py-2 sm:px-6">
+          <Link to={dashboardPath} className="flex shrink-0 items-center">
           <img src={logo} alt="Logo" className="h-12 w-auto sm:h-14" />
         </Link>
 
@@ -322,7 +321,10 @@ export function NavBar() {
                   <span className="max-w-32 truncate text-sm font-medium text-navy">
                     {currentUser.first_name}
                   </span>
-                  <Badge variant="secondary" className="text-[11px] capitalize">
+                  <Badge
+                    variant="outline"
+                    className={`text-[11px] capitalize ${ROLE_BADGE_CLASSES[userType]}`}
+                  >
                     {ROLE_LABELS[userType]}
                   </Badge>
                   <ChevronDownIcon
@@ -414,6 +416,7 @@ export function NavBar() {
             </Sheet>
           </>
         )}
+        </div>
       </header>
 
       <ChangePasswordDialog
