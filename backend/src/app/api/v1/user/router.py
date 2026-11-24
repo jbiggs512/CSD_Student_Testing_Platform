@@ -1,12 +1,11 @@
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from typing import Annotated
 
 from app.api.deps import get_current_user, get_db, require_roles
-from app.api.v1.user import schemas
-from app.api.v1.user import service
+from app.api.v1.user import emails, schemas, service
 from app.db.models import User
-from app.enums import UserRole
+from app.enums import AccountStatus, UserRole
 
 router = APIRouter()
 
@@ -68,9 +67,18 @@ def request_delete_lecturer(
 @router.post("/student", response_model=schemas.UserResponse, status_code=201)
 def request_create_student(
     student: schemas.StudentCreateRequest,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ):
-    return service.create_user(db, student)
+    created_user = service.create_user(db, student)
+    if created_user.account_status == AccountStatus.PENDING:
+        background_tasks.add_task(
+            emails.send_registration_pending_email,
+            to_email=created_user.email,
+            first_name=created_user.first_name,
+            username=created_user.username,
+        )
+    return created_user
 
 @router.get("/student", response_model=list[schemas.UserResponse])
 def request_get_students(
@@ -91,10 +99,18 @@ def request_update_student(
 @router.patch("/student/{username}/approve", response_model=schemas.UserResponse)
 def approve_student(
     username: str,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
-    return service.approve_student(db, username, current_user)
+    approved_user = service.approve_student(db, username, current_user)
+    background_tasks.add_task(
+        emails.send_account_approved_email,
+        to_email=approved_user.email,
+        first_name=approved_user.first_name,
+        username=approved_user.username,
+    )
+    return approved_user
 
 
 @router.patch("/student/{username}/unlock", response_model=schemas.UserResponse)
