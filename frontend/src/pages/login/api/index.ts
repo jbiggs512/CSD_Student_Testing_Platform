@@ -1,2 +1,7 @@
 // Login page API requests
-export { LoginApiError, loginWithCredentials } from './loginApi'
+export {
+  LoginApiError,
+  loginWithCredentials,
+  requestPasswordReset,
+  resetPassword,
+} from './loginApi'
