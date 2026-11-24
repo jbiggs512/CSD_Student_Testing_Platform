@@ -1,4 +1,4 @@
-import { useState, type SubmitEvent } from 'react'
+import { useState, type ReactNode, type SubmitEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { CheckCircle2Icon } from 'lucide-react'
 import {
@@ -57,6 +57,74 @@ export function ResetPasswordPage() {
     ? 'This password reset link is missing or invalid. Please request a new one.'
     : null
 
+  let content: ReactNode
+  if (successMessage) {
+    content = (
+      <div className="space-y-4">
+        <Alert>
+          <CheckCircle2Icon aria-hidden="true" />
+          <AlertDescription>{successMessage}</AlertDescription>
+        </Alert>
+        <Button
+          asChild
+          size="lg"
+          className="w-full bg-navy text-white hover:bg-navy/90"
+        >
+          <Link to="/login">Sign In</Link>
+        </Button>
+      </div>
+    )
+  } else if (!token) {
+    content = (
+      <Button
+        asChild
+        size="lg"
+        className="w-full bg-navy text-white hover:bg-navy/90"
+      >
+        <Link to="/forgot-password">Request New Reset Link</Link>
+      </Button>
+    )
+  } else {
+    content = (
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="new-password">New Password</Label>
+          <PasswordInput
+            id="new-password"
+            name="new_password"
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="confirm-password">Confirm Password</Label>
+          <PasswordInput
+            id="confirm-password"
+            name="confirm_password"
+            autoComplete="new-password"
+            placeholder="Re-enter your new password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isSubmitting}
+          className="mt-2 w-full bg-navy text-white hover:bg-navy/90"
+        >
+          {isSubmitting ? 'Resetting password...' : 'Reset Password'}
+        </Button>
+      </form>
+    )
+  }
+
   return (
     <AuthSplitLayout
       id="reset-password-page"
@@ -67,66 +135,7 @@ export function ResetPasswordPage() {
       headerActionTo="/login"
       errorMessage={errorMessage ?? missingTokenError}
     >
-      {successMessage ? (
-        <div className="space-y-4">
-          <Alert>
-            <CheckCircle2Icon aria-hidden="true" />
-            <AlertDescription>{successMessage}</AlertDescription>
-          </Alert>
-          <Button
-            asChild
-            size="lg"
-            className="w-full bg-navy text-white hover:bg-navy/90"
-          >
-            <Link to="/login">Sign In</Link>
-          </Button>
-        </div>
-      ) : !token ? (
-        <Button
-          asChild
-          size="lg"
-          className="w-full bg-navy text-white hover:bg-navy/90"
-        >
-          <Link to="/forgot-password">Request New Reset Link</Link>
-        </Button>
-      ) : (
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="new-password">New Password</Label>
-            <PasswordInput
-              id="new-password"
-              name="new_password"
-              autoComplete="new-password"
-              placeholder="At least 8 characters"
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="confirm-password">Confirm Password</Label>
-            <PasswordInput
-              id="confirm-password"
-              name="confirm_password"
-              autoComplete="new-password"
-              placeholder="Re-enter your new password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <Button
-            type="submit"
-            size="lg"
-            disabled={isSubmitting}
-            className="mt-2 w-full bg-navy text-white hover:bg-navy/90"
-          >
-            {isSubmitting ? 'Resetting password...' : 'Reset Password'}
-          </Button>
-        </form>
-      )}
+      {content}
     </AuthSplitLayout>
   )
 }

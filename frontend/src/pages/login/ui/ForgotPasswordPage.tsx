@@ -21,7 +21,7 @@ export function ForgotPasswordPage() {
     event.preventDefault()
 
     const trimmedEmail = email.trim()
-    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+    if (!trimmedEmail?.includes('@')) {
       setErrorMessage('Please enter a valid email address.')
       return
     }
