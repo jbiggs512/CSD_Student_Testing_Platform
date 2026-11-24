@@ -11,6 +11,12 @@ const LandingPage = lazy(() =>
 const LoginPage = lazy(() =>
   import('./pages/login').then((m) => ({ default: m.LoginPage })),
 )
+const ForgotPasswordPage = lazy(() =>
+  import('./pages/login').then((m) => ({ default: m.ForgotPasswordPage })),
+)
+const ResetPasswordPage = lazy(() =>
+  import('./pages/login').then((m) => ({ default: m.ResetPasswordPage })),
+)
 const RegisterPage = lazy(() =>
   import('./pages/register').then((m) => ({ default: m.RegisterPage })),
 )
@@ -58,6 +64,8 @@ createRoot(document.getElementById('root')!).render(
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<NavBar />}>
