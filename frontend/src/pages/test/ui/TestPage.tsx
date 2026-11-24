@@ -81,7 +81,7 @@ export function TestPage() {
           description: `You achieved ${result.score} points`,
         })
         // Navigate student back to dashboard
-        navigate('/dashboard');
+        void navigate('/dashboard');
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to submit the test. Please try again.';
@@ -108,7 +108,7 @@ export function TestPage() {
       }
       catch (error) {
         console.error("Error loading test data:", error);
-        navigate('/dashboard'); // Navigate to the dashboard if there's an error fetching test details
+        void navigate('/dashboard'); // Navigate to the dashboard if there's an error fetching test details
       }
       finally {
         setIsLoading(false);

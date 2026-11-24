@@ -11,6 +11,7 @@ class CompletedTestResponse(BaseModel):
     id: int
     test_id: int
     test_name: str
+    subject_name: str
     score_percentage: int
     questions_correct: int
     questions_total: int
