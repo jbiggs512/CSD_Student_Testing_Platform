@@ -51,12 +51,12 @@ describe('NavBar', () => {
   })
 
   it.each([
-    ['student', ['Dashboard', 'Leaderboards', 'Statistics', 'Profile']],
-    ['lecturer', ['Dashboard', 'Students', 'Tests', 'Question Pool', 'Profile']],
-    ['admin', ['Dashboard', 'Courses', 'Accounts', 'Subjects', 'Teaching', 'Profile']],
+    ['student', ['Dashboard', 'Leaderboards', 'Statistics'], 'Student'],
+    ['lecturer', ['Dashboard', 'Students', 'Tests', 'Question Pool'], 'Lecturer'],
+    ['admin', ['Dashboard', 'Courses', 'Accounts', 'Subjects', 'Teaching'], 'Admin'],
   ] as const)(
-    'renders %s navigation headings based on the authenticated user role',
-    (role, expectedHeadings) => {
+    'renders %s navigation headings and account type badge',
+    (role, expectedHeadings, roleLabel) => {
       seedRole(role)
 
       renderNavBar()
@@ -64,8 +64,21 @@ describe('NavBar', () => {
       for (const heading of expectedHeadings) {
         expect(screen.getByText(heading)).toBeDefined()
       }
+      expect(screen.getByText(roleLabel)).toBeDefined()
     },
   )
+
+  it('opens the profile dropdown and shows user details', () => {
+    seedRole('student')
+
+    renderNavBar()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Profile menu' }))
+
+    expect(screen.getByText('Test User')).toBeDefined()
+    expect(screen.getByText('@WS123456')).toBeDefined()
+    expect(screen.getByText('test@weston.ac.uk')).toBeDefined()
+  })
 
   it('groups lecturer tools under Teaching for admins', async () => {
     seedRole('admin')
@@ -84,6 +97,7 @@ describe('NavBar', () => {
 
     renderNavBar()
 
+    fireEvent.click(screen.getByRole('button', { name: 'Profile menu' }))
     fireEvent.click(screen.getByText('Logout'))
     expect(getAccessToken()).toBeNull()
     expect(getCurrentUser()).toBeNull()
@@ -95,6 +109,7 @@ describe('NavBar', () => {
 
     renderNavBar()
 
+    fireEvent.click(screen.getByRole('button', { name: 'Profile menu' }))
     fireEvent.click(screen.getByText('Logout'))
     expect(fetchSpy).toHaveBeenCalledWith(
       expect.stringContaining('/auth/logout'),
