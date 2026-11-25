@@ -31,7 +31,7 @@ For other installation methods, see the [official uv installation guide](https:/
 
 ## 2. Recommended Setup: Docker Compose
 
-The root `compose.yaml` starts the frontend, backend and PostgreSQL database together.
+The root `docker-compose.yml` starts the frontend, backend and PostgreSQL database together.
 
 From the repository root, create a `.env` file containing:
 
@@ -146,8 +146,8 @@ The application settings are defined in `src/app/core/config.py`.
 
 Keep the following distinction in mind:
 
-- **Repository root `.env`:** supplies variables used by Docker Compose, including `POSTGRES_PASSWORD`.
-- **`backend/.env`:** supplies application settings when running the backend directly on your machine.
+- **Repository root `.env`:** supplies variables used by Docker Compose, including `POSTGRES_PASSWORD` and optional Azure Communication Services email settings (`AZURE_COMMUNICATION_CONNECTION_STRING`, `AZURE_COMMUNICATION_SENDER_EMAIL`, `FRONTEND_URL`).
+- **`backend/.env`:** supplies application settings when running the backend directly on your machine (such as `DATABASE_URL`, `SECRET_KEY`, `COOKIE_SECURE`, and optional ACS email settings).
 - **Container environment:** Compose passes the backend's database URL and other configured variables into the container.
 
 The database URL depends on where the backend is running:
@@ -279,28 +279,30 @@ backend/
 ├── src/
 │   └── app/
 │       ├── main.py        # FastAPI application entry point
+│       ├── enums.py       # Shared domain enums
 │       ├── core/
-│       │   └── config.py  # Application configuration
+│       │   ├── assets/    # Email and static assets
+│       │   ├── config.py  # Application configuration
+│       │   ├── email.py   # Azure Communication Services email client
+│       │   ├── email_templates.py
+│       │   └── security.py
 │       ├── db/
 │       │   ├── base.py    # SQLAlchemy declarative base
 │       │   ├── session.py # Engine and session configuration
-│       │   └── models/    # Database models
+│       │   ├── models/    # Database models
+│       │   └── scripts/   # Seeding and maintenance scripts
 │       └── api/
 │           ├── deps.py    # Shared route dependencies
 │           └── v1/
 │               ├── router.py
 │               ├── auth/
-│               │   ├── router.py
-│               │   ├── schemas.py
-│               │   └── service.py
+│               ├── course/
+│               ├── question/
+│               ├── student/
+│               ├── subject/
 │               ├── test/
-│               │   ├── router.py
-│               │   ├── schemas.py
-│               │   └── service.py
 │               └── user/
-│                   ├── router.py
-│                   ├── schemas.py
-│                   └── service.py
+├── tests/                 # Pytest unit and integration tests
 ├── pyproject.toml
 └── uv.lock
 ```
@@ -334,4 +336,4 @@ When using Docker Compose:
 docker compose exec backend uv run pytest
 ```
 
-Ensure tests are configured for the intended database. Tests that use SQLite do not, by themselves, demonstrate that PostgreSQL migrations and database operations work correctly.
+Ensure tests are configured for the intended database. Tests that use SQLite do not, by themselves, demonstrate that PostgreSQL migrations and database operations work correctly. Note that `pyproject.toml` configures `pytest` with branch coverage and `--cov-fail-under=80`.
