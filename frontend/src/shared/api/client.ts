@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../config'
-import { getAccessToken } from '../api/authSession'
+import { getAccessToken, notifyIfAccountDisabled } from '../api/authSession'
 
 export class ApiError extends Error {
     readonly status: number
@@ -23,7 +23,7 @@ export function createApiClient({
     return async function request<T>(
         endpoint: string,
         options: RequestInit = {},
-    ): Promise<T> {
+    ): Promise<T | undefined> {
         const token = getAccessToken()
 
         if (!token) {
@@ -60,6 +60,7 @@ export function createApiClient({
             }
 
             if (response.status === 403) {
+                notifyIfAccountDisabled(response.status, detailMessage)
                 throw new ErrorClass(
                     detailMessage ?? 'Your account is not permitted to access this resource.',
                     403,
@@ -72,6 +73,9 @@ export function createApiClient({
                 response.status,
             )
         }
+
+        // Handle no content response
+        if (response.status === 204) return undefined
 
         return (await response.json()) as T
     }

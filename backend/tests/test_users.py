@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -8,9 +9,27 @@ from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password, verify_password
 from app.api.v1.user import schemas, service
-from app.db.models import Course, Role, User
+from app.db.models import Course, Role, Test, TestAttempt, User
 from app.db.scripts.seed_users import DEFAULT_USERS, seed_users
 from app.enums import UserRole, AccountStatus
+
+
+def test_user_response_serializes_existing_local_email():
+    response = schemas.UserResponse.model_validate(
+        SimpleNamespace(
+            user_id=1,
+            username="local.admin",
+            first_name="Local",
+            last_name="Admin",
+            email="admin@altius.local",
+            role=SimpleNamespace(role_name=UserRole.ADMIN.value),
+            account_status=AccountStatus.ACTIVE,
+            registration_date=datetime.now().date(),
+            last_login=None,
+        )
+    )
+
+    assert response.email == "admin@altius.local"
 
 
 def _seed_user(
@@ -309,6 +328,20 @@ def test_lecturer_can_delete_student(client, db_session):
         username="WS100005",
         role_name=UserRole.STUDENT,
     )
+    existing_test = db_session.scalar(select(Test))
+    assert existing_test is not None
+    attempt = TestAttempt(
+        user_id=student.user_id,
+        test_id=existing_test.test_id,
+        completed_at=datetime.now(timezone.utc),
+        score=1,
+        total_questions=1,
+        correct_questions=1,
+    )
+    db_session.add(attempt)
+    db_session.commit()
+    attempt_id = attempt.attempt_id
+
     headers = {
         "Authorization": f"Bearer {create_access_token(subject=lecturer.username)}"
     }
@@ -319,6 +352,62 @@ def test_lecturer_can_delete_student(client, db_session):
     )
 
     assert response.status_code == 204
+    assert db_session.get(User, student.user_id) is None
+    assert db_session.get(TestAttempt, attempt_id) is None
+
+
+def test_admin_can_manage_student_accounts(client, db_session, auth_headers):
+    headers = auth_headers(UserRole.ADMIN)
+    student = _seed_user(
+        db_session,
+        username="WS_ADMIN_MANAGED",
+        role_name=UserRole.STUDENT,
+        account_status=AccountStatus.PENDING,
+    )
+    student.failed_login_attempts = 5
+    student.locked_until = datetime.now(timezone.utc) + timedelta(minutes=10)
+    db_session.commit()
+
+    list_response = client.get("/api/v1/user/student", headers=headers)
+    assert list_response.status_code == 200
+    assert any(
+        account["username"] == student.username
+        for account in list_response.json()
+    )
+
+    unlock_response = client.patch(
+        f"/api/v1/user/student/{student.username}/unlock",
+        headers=headers,
+    )
+    assert unlock_response.status_code == 200
+    assert unlock_response.json()["failed_login_attempts"] == 0
+    assert unlock_response.json()["locked_until"] is None
+
+    update_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={
+            "first_name": "AdminUpdated",
+            "account_status": AccountStatus.ACTIVE.value,
+        },
+        headers=headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["first_name"] == "AdminUpdated"
+    assert update_response.json()["account_status"] == AccountStatus.ACTIVE.value
+
+    disable_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={"account_status": AccountStatus.DISABLED.value},
+        headers=headers,
+    )
+    assert disable_response.status_code == 200
+    assert disable_response.json()["account_status"] == AccountStatus.DISABLED.value
+
+    delete_response = client.delete(
+        f"/api/v1/user/student/{student.username}",
+        headers=headers,
+    )
+    assert delete_response.status_code == 204
     assert db_session.get(User, student.user_id) is None
 
 
@@ -465,6 +554,83 @@ def test_admin_can_list_edit_and_delete_lecturers(client, db_session):
         user["username"] != lecturer.username
         for user in remaining_lecturers
     )
+
+
+def test_admin_can_create_list_edit_and_delete_admin_account(
+    client, auth_headers
+):
+    current_admin_username = "ADMIN_ACCOUNT_LIST"
+    headers = auth_headers(UserRole.ADMIN, username=current_admin_username)
+    auth_headers(UserRole.LECTURER)
+    account_data = {
+        "username": "managed.admin",
+        "first_name": "Managed",
+        "last_name": "Admin",
+        "email": "managed.admin@example.com",
+        "password": "SecurePassword123!",
+        "role": UserRole.ADMIN.value,
+    }
+
+    create_response = client.post(
+        "/api/v1/user/account",
+        json=account_data,
+        headers=headers,
+    )
+    assert create_response.status_code == 201
+    assert create_response.json()["role"] == UserRole.ADMIN.value
+    assert create_response.json()["account_status"] == AccountStatus.ACTIVE.value
+
+    list_response = client.get("/api/v1/user/account", headers=headers)
+    assert list_response.status_code == 200
+    assert {user["role"] for user in list_response.json()} >= {
+        UserRole.ADMIN.value,
+        UserRole.LECTURER.value,
+    }
+    assert any(
+        user["username"] == account_data["username"]
+        for user in list_response.json()
+    )
+    assert all(
+        user["username"] != current_admin_username
+        for user in list_response.json()
+    )
+
+    update_response = client.patch(
+        f"/api/v1/user/account/{account_data['username']}",
+        json={"first_name": "Updated"},
+        headers=headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["first_name"] == "Updated"
+
+    delete_response = client.delete(
+        f"/api/v1/user/account/{account_data['username']}",
+        headers=headers,
+    )
+    assert delete_response.status_code == 204
+
+
+def test_account_management_rejects_student_role_and_requires_admin(
+    client, auth_headers
+):
+    lecturer_headers = auth_headers(UserRole.LECTURER)
+    response = client.get("/api/v1/user/account", headers=lecturer_headers)
+    assert response.status_code == 403
+
+    admin_headers = auth_headers(UserRole.ADMIN)
+    response = client.post(
+        "/api/v1/user/account",
+        json={
+            "username": "invalid.role",
+            "first_name": "Invalid",
+            "last_name": "Role",
+            "email": "invalid.role@example.com",
+            "password": "SecurePassword123!",
+            "role": UserRole.STUDENT.value,
+        },
+        headers=admin_headers,
+    )
+    assert response.status_code == 422
 
 
 def test_lecturer_management_requires_admin(client, db_session):
@@ -1013,3 +1179,288 @@ def test_seed_users_is_idempotent(db_session):
         assert user.email == spec.email
         assert user.role.role_name == spec.role.value
         assert user.account_status == spec.account_status
+
+
+def test_list_students_includes_and_filters_by_course(client, db_session):
+    se_course = db_session.scalar(
+        select(Course).where(Course.course_title == "BSc Software Engineering")
+    )
+    cs_course = db_session.scalar(
+        select(Course).where(Course.course_title == "BSc Computer Science")
+    )
+    assert se_course is not None
+    assert cs_course is not None
+
+    lecturer = _seed_user(
+        db_session,
+        username="LC500001",
+        role_name=UserRole.LECTURER,
+    )
+    se_student = _seed_user(
+        db_session,
+        username="WS500001",
+        role_name=UserRole.STUDENT,
+    )
+    cs_student = _seed_user(
+        db_session,
+        username="WS500002",
+        role_name=UserRole.STUDENT,
+    )
+    se_student.courses = [se_course]
+    cs_student.courses = [cs_course]
+    db_session.commit()
+
+    headers = {
+        "Authorization": f"Bearer {create_access_token(subject=lecturer.username)}"
+    }
+
+    all_response = client.get("/api/v1/user/student", headers=headers)
+    assert all_response.status_code == 200
+    all_by_username = {item["username"]: item for item in all_response.json()}
+    assert all_by_username[se_student.username]["courses"] == [
+        {"course_id": se_course.course_id, "course_title": se_course.course_title}
+    ]
+    assert all_by_username[cs_student.username]["courses"] == [
+        {"course_id": cs_course.course_id, "course_title": cs_course.course_title}
+    ]
+
+    filtered_response = client.get(
+        f"/api/v1/user/student?course_id={se_course.course_id}",
+        headers=headers,
+    )
+    assert filtered_response.status_code == 200
+    filtered_usernames = {item["username"] for item in filtered_response.json()}
+    assert se_student.username in filtered_usernames
+    assert cs_student.username not in filtered_usernames
+
+
+def test_lecturer_can_update_and_clear_student_course(client, db_session):
+    se_course = db_session.scalar(
+        select(Course).where(Course.course_title == "BSc Software Engineering")
+    )
+    cs_course = db_session.scalar(
+        select(Course).where(Course.course_title == "BSc Computer Science")
+    )
+    assert se_course is not None
+    assert cs_course is not None
+
+    lecturer = _seed_user(
+        db_session,
+        username="LC500002",
+        role_name=UserRole.LECTURER,
+    )
+    student = _seed_user(
+        db_session,
+        username="WS500003",
+        role_name=UserRole.STUDENT,
+    )
+    student.courses = [se_course]
+    db_session.commit()
+
+    headers = {
+        "Authorization": f"Bearer {create_access_token(subject=lecturer.username)}"
+    }
+
+    reassign_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={"courses": [cs_course.course_id]},
+        headers=headers,
+    )
+    assert reassign_response.status_code == 200
+    assert reassign_response.json()["courses"] == [
+        {"course_id": cs_course.course_id, "course_title": cs_course.course_title}
+    ]
+
+    # Updating unrelated fields when omitting 'courses' must preserve assignment.
+    status_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={"first_name": "Preserved"},
+        headers=headers,
+    )
+    assert status_response.status_code == 200
+    assert status_response.json()["courses"] == [
+        {"course_id": cs_course.course_id, "course_title": cs_course.course_title}
+    ]
+
+    # Explicit empty list clears assigned courses.
+    clear_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={"courses": []},
+        headers=headers,
+    )
+    assert clear_response.status_code == 200
+    assert clear_response.json()["courses"] == []
+
+
+def test_student_course_validation_rejects_missing_course(client, db_session):
+    lecturer = _seed_user(
+        db_session,
+        username="LC500003",
+        role_name=UserRole.LECTURER,
+    )
+    student = _seed_user(
+        db_session,
+        username="WS500004",
+        role_name=UserRole.STUDENT,
+    )
+    headers = {
+        "Authorization": f"Bearer {create_access_token(subject=lecturer.username)}"
+    }
+
+    update_response = client.patch(
+        f"/api/v1/user/student/{student.username}",
+        json={"courses": [999999]},
+        headers=headers,
+    )
+    assert update_response.status_code == 400
+    assert update_response.json()["detail"] == service.COURSE_NOT_FOUND_DETAIL
+
+    create_response = client.post(
+        "/api/v1/user/student",
+        json={
+            "username": "WS500005",
+            "first_name": "Invalid",
+            "last_name": "Course",
+            "email": "invalid.course@example.com",
+            "password": "SecurePassword123!",
+            "courses": [999999],
+        },
+    )
+    assert create_response.status_code == 400
+    assert create_response.json()["detail"] == service.COURSE_NOT_FOUND_DETAIL
+
+
+def test_unlock_student_clears_lockout_and_allows_login(client, db_session):
+    lecturer = _seed_user(db_session, username="LC900001", role_name=UserRole.LECTURER)
+    student = _seed_user(
+        db_session,
+        username="WS900001",
+        role_name=UserRole.STUDENT,
+        password="StudentPass123!",
+    )
+    other_student = _seed_user(
+        db_session, username="WS900002", role_name=UserRole.STUDENT
+    )
+
+    lecturer_headers = {
+        "Authorization": f"Bearer {create_access_token(subject=lecturer.username)}"
+    }
+    student_headers = {
+        "Authorization": f"Bearer {create_access_token(subject=other_student.username)}"
+    }
+
+    for _ in range(5):
+        client.post(
+            "/api/v1/auth/login",
+            json={"username": student.username, "password": "WrongPassword!"},
+        )
+
+    listed = client.get("/api/v1/user/student", headers=lecturer_headers)
+    assert listed.status_code == 200
+    matched = next(item for item in listed.json() if item["username"] == student.username)
+    assert matched["failed_login_attempts"] == 5
+    assert matched["locked_until"] is not None
+
+    forbidden = client.patch(
+        f"/api/v1/user/student/{student.username}/unlock",
+        headers=student_headers,
+    )
+    assert forbidden.status_code == 403
+
+    not_found = client.patch(
+        "/api/v1/user/student/UNKNOWN99/unlock",
+        headers=lecturer_headers,
+    )
+    assert not_found.status_code == 404
+
+    unlocked = client.patch(
+        f"/api/v1/user/student/{student.username}/unlock",
+        headers=lecturer_headers,
+    )
+    assert unlocked.status_code == 200
+    body = unlocked.json()
+    assert body["failed_login_attempts"] == 0
+    assert body["locked_until"] is None
+
+    login_res = client.post(
+        "/api/v1/auth/login",
+        json={"username": student.username, "password": "StudentPass123!"},
+    )
+    assert login_res.status_code == 200
+
+
+def test_unlock_lecturer_and_password_reset_clear_lockout(client, db_session):
+    admin = _seed_user(db_session, username="AD900001", role_name=UserRole.ADMIN)
+    lecturer = _seed_user(
+        db_session,
+        username="LC900002",
+        role_name=UserRole.LECTURER,
+        password="LecturerPass123!",
+    )
+    student = _seed_user(db_session, username="WS900003", role_name=UserRole.STUDENT)
+
+    admin_headers = {
+        "Authorization": f"Bearer {create_access_token(subject=admin.username)}"
+    }
+    lecturer_headers = {
+        "Authorization": f"Bearer {create_access_token(subject=lecturer.username)}"
+    }
+    student_headers = {
+        "Authorization": f"Bearer {create_access_token(subject=student.username)}"
+    }
+
+    lecturer.failed_login_attempts = 5
+    lecturer.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+    db_session.commit()
+
+    assert (
+        client.patch(
+            f"/api/v1/user/lecturer/{lecturer.username}/unlock",
+            headers=lecturer_headers,
+        ).status_code
+        == 403
+    )
+    assert (
+        client.patch(
+            f"/api/v1/user/lecturer/{lecturer.username}/unlock",
+            headers=student_headers,
+        ).status_code
+        == 403
+    )
+    assert (
+        client.patch(
+            "/api/v1/user/lecturer/UNKNOWN99/unlock",
+            headers=admin_headers,
+        ).status_code
+        == 404
+    )
+
+    unlocked = client.patch(
+        f"/api/v1/user/lecturer/{lecturer.username}/unlock",
+        headers=admin_headers,
+    )
+    assert unlocked.status_code == 200
+    assert unlocked.json()["failed_login_attempts"] == 0
+    assert unlocked.json()["locked_until"] is None
+
+    # Password reset should also unlock a locked account
+    lecturer.failed_login_attempts = 5
+    lecturer.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+    db_session.commit()
+
+    reset_res = client.patch(
+        f"/api/v1/user/lecturer/{lecturer.username}",
+        json={"password": "NewLecturerPass123!"},
+        headers=admin_headers,
+    )
+    assert reset_res.status_code == 200
+    assert reset_res.json()["failed_login_attempts"] == 0
+    assert reset_res.json()["locked_until"] is None
+
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            json={"username": lecturer.username, "password": "NewLecturerPass123!"},
+        ).status_code
+        == 200
+    )

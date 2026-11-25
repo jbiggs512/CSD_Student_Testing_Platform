@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { AlertCircleIcon } from 'lucide-react'
-import { Alert, AlertDescription } from '@shared/components'
+import { AlertCircleIcon, CheckCircle2Icon } from 'lucide-react'
+import { Alert, AlertDescription, ConfirmDialog } from '@shared/components'
 import { getErrorMessage, sanitizeInputText } from '@shared/lib/utils'
 import {
   createTest,
+  deleteTest,
   getSubjects,
   getTestManagementStats,
   getTestResults,
@@ -18,8 +19,8 @@ import type {
   TestResultsDetail,
 } from '../model'
 import { AllTestsCard } from './AllTestsCard'
-import { CreateTestCard } from './CreateTestCard'
-import type { CreateTestFormValues } from './CreateTestCard'
+import { CreateTestDialog } from './CreateTestDialog'
+import type { CreateTestFormValues } from './CreateTestDialog'
 import { TestManagementHero } from './TestManagementHero'
 import { TestResultsDialog } from './TestResultsDialog'
 
@@ -31,6 +32,19 @@ const INITIAL_FORM: CreateTestFormValues = {
   subjectId: '',
 }
 
+function formatDeleteTestDescription(test: LecturerTest): string {
+  const studentCount = test.attempted_student_count ?? test.attempt_count ?? 0
+  const studentPhrase =
+    studentCount === 1
+      ? '1 student has attempted this test.'
+      : `${studentCount} students have attempted this test.`
+  const consequence =
+    studentCount > 0
+      ? 'Deleting it will permanently remove all attempt records for this test and cannot be undone.'
+      : 'This action cannot be undone.'
+  return `Delete "${test.test_name}"? ${studentPhrase} ${consequence}`
+}
+
 export function TestManagementPage() {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [tests, setTests] = useState<LecturerTest[]>([])
@@ -38,11 +52,14 @@ export function TestManagementPage() {
   const [formValues, setFormValues] =
     useState<CreateTestFormValues>(INITIAL_FORM)
   const [isLoadingInitial, setIsLoadingInitial] = useState(true)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
+  const [pageSuccess, setPageSuccess] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
+  const [testPendingDelete, setTestPendingDelete] =
+    useState<LecturerTest | null>(null)
   const [selectedTestForResults, setSelectedTestForResults] =
     useState<LecturerTest | null>(null)
   const [testResults, setTestResults] = useState<TestResultsDetail | null>(null)
@@ -77,8 +94,20 @@ export function TestManagementPage() {
     value: string,
   ) {
     setFormError(null)
-    setSuccessMessage(null)
     setFormValues((current) => ({ ...current, [field]: value }))
+  }
+
+  function handleOpenCreateDialog() {
+    setFormError(null)
+    setPageSuccess(null)
+    setIsCreateDialogOpen(true)
+  }
+
+  function handleCreateDialogOpenChange(open: boolean) {
+    setIsCreateDialogOpen(open)
+    if (!open) {
+      setFormError(null)
+    }
   }
 
   async function handleViewResults(test: LecturerTest) {
@@ -104,10 +133,30 @@ export function TestManagementPage() {
     }
   }
 
+  async function handleConfirmDelete() {
+    if (!testPendingDelete) return
+    const target = testPendingDelete
+    setTestPendingDelete(null)
+    setPageError(null)
+    setPageSuccess(null)
+    try {
+      await deleteTest(target.test_id)
+      setPageSuccess(`Deleted test "${target.test_name}".`)
+      const [updatedTests, updatedStats] = await Promise.all([
+        getTests(),
+        getTestManagementStats(),
+      ])
+      setTests(updatedTests)
+      setStats(updatedStats)
+    } catch (error) {
+      setPageError(getErrorMessage(error))
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormError(null)
-    setSuccessMessage(null)
+    setPageSuccess(null)
 
     const testName = sanitizeInputText(formValues.testName)
     if (!testName) {
@@ -149,7 +198,8 @@ export function TestManagementPage() {
         questions_per_attempt: questionsPerAttempt,
       })
       setFormValues(INITIAL_FORM)
-      setSuccessMessage(`Created test "${created.test_name}".`)
+      setIsCreateDialogOpen(false)
+      setPageSuccess(`Created test "${created.test_name}".`)
       const [updatedTests, updatedStats] = await Promise.all([
         getTests(),
         getTestManagementStats(),
@@ -174,23 +224,32 @@ export function TestManagementPage() {
         </Alert>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <AllTestsCard
-          tests={tests}
-          isLoading={isLoadingInitial}
-          onViewResults={(test) => void handleViewResults(test)}
-        />
-        <CreateTestCard
-          subjects={subjects}
-          formValues={formValues}
-          isLoadingSubjects={isLoadingInitial}
-          isSaving={isSaving}
-          formError={formError}
-          successMessage={successMessage}
-          onFieldChange={handleFieldChange}
-          onSubmit={(event) => void handleSubmit(event)}
-        />
-      </div>
+      {pageSuccess && (
+        <Alert>
+          <CheckCircle2Icon aria-hidden="true" />
+          <AlertDescription>{pageSuccess}</AlertDescription>
+        </Alert>
+      )}
+
+      <AllTestsCard
+        tests={tests}
+        isLoading={isLoadingInitial}
+        onCreateTest={handleOpenCreateDialog}
+        onViewResults={(test) => void handleViewResults(test)}
+        onDeleteTest={setTestPendingDelete}
+      />
+
+      <CreateTestDialog
+        open={isCreateDialogOpen}
+        onOpenChange={handleCreateDialogOpenChange}
+        subjects={subjects}
+        formValues={formValues}
+        isLoadingSubjects={isLoadingInitial}
+        isSaving={isSaving}
+        formError={formError}
+        onFieldChange={handleFieldChange}
+        onSubmit={(event) => void handleSubmit(event)}
+      />
 
       <TestResultsDialog
         test={selectedTestForResults}
@@ -198,6 +257,21 @@ export function TestManagementPage() {
         isLoading={isLoadingResults}
         error={resultsError}
         onOpenChange={handleResultsDialogOpenChange}
+      />
+
+      <ConfirmDialog
+        open={testPendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setTestPendingDelete(null)
+        }}
+        title="Are you sure you want to delete this test?"
+        description={
+          testPendingDelete
+            ? formatDeleteTestDescription(testPendingDelete)
+            : ''
+        }
+        confirmLabel="Delete"
+        onConfirm={() => void handleConfirmDelete()}
       />
     </main>
   )

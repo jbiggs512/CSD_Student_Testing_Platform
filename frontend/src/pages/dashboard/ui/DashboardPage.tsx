@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DashboardContent } from './DashboardContent';
+import { DashboardContent, LoadingDashboardContent } from './DashboardContent';
 import { getCompletedTests, getOutstandingTests, getCohortRank, getCourseTitle } from '../api';
 import type { OutstandingTest, CompletedTest, CohortRank } from "../model"
 
@@ -16,16 +16,16 @@ export function DashboardPage() {
       try {
         // Fetch all data needed for the dashboard with awaits
         const completed = await getCompletedTests();
-        setCompletedTests(completed);
+        if (completed != undefined) setCompletedTests(completed);
 
         const outstanding = await getOutstandingTests();
-        setOutstandingTests(outstanding);
+        if (outstanding != undefined)setOutstandingTests(outstanding);
 
         const rank = await getCohortRank();
-        setCohortRank(rank);
+        if (rank != undefined)setCohortRank(rank);
 
         const course = await getCourseTitle();
-        setCourseTitle(course);
+        if (course != undefined)setCourseTitle(course);
       } catch (error) {
         console.error("Error loading dashboard data:", error);
       } finally {
@@ -38,14 +38,12 @@ export function DashboardPage() {
     });
   }, []);
 
-  if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading dashboard...</div>;
-  }
+  if (isLoading) return <LoadingDashboardContent />
 
   return (
     <DashboardContent
-      completedTests={completedTests}
-      outstandingTests={outstandingTests}
+      outstandingTests={outstandingTests} 
+      completedTests={completedTests} 
       cohortRank={cohortRank}
       courseTitle={courseTitle}
     />

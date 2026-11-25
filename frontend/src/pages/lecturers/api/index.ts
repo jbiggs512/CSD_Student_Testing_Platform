@@ -3,6 +3,7 @@ export {
   deleteLecturer,
   getLecturers,
   LecturerApiError,
+  unlockLecturer,
   updateLecturer,
   updateLecturerPassword,
 } from './lecturerApi'

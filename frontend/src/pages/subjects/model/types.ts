@@ -1,3 +1,5 @@
+export type { Course } from '@shared/api'
+
 export type SubjectStatus = 'active' | 'disabled'
 
 export interface Subject {
@@ -8,11 +10,10 @@ export interface Subject {
   status: SubjectStatus
 }
 
-export interface Course {
-  course_id: number
-  course_title: string
-}
-
+export type {
+  CourseCreateRequest,
+  CourseUpdateRequest,
+} from '@shared/api'
 export interface SubjectCreateRequest {
   subject_name: string
   course_id: number

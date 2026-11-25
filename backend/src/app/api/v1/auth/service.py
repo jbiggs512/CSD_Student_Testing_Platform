@@ -1,7 +1,10 @@
 # Business logic for auth. Keep routes thin, put the real work here.
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import math
+import secrets
+from typing import NoReturn
 
 import jwt
 from fastapi import HTTPException, status
@@ -10,12 +13,17 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.v1.auth.schemas import TokenResponse
 from app.api.v1.user.schemas import UserResponse
+from app.core.config import settings
 from app.core.security import (
     DUMMY_PASSWORD_HASH,
+    TOKEN_TYPE_PASSWORD_RESET,
     TOKEN_TYPE_REFRESH,
     create_access_token,
+    create_password_reset_token,
     create_refresh_token,
     decode_token,
+    hash_password,
+    password_fingerprint,
     verify_password,
 )
 from app.db.models import User
@@ -61,8 +69,28 @@ def _issue_session_tokens(user: User) -> AuthSessionResult:
     )
 
 
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _raise_account_locked(locked_until: datetime, now: datetime) -> NoReturn:
+    remaining_seconds = max(1, math.ceil((locked_until - now).total_seconds()))
+    remaining_minutes = max(1, math.ceil(remaining_seconds / 60))
+    unit = "minute" if remaining_minutes == 1 else "minutes"
+    raise HTTPException(
+        status_code=status.HTTP_423_LOCKED,
+        detail=(
+            "Account is temporarily locked due to too many failed login attempts. "
+            f"Please try again in {remaining_minutes} {unit}."
+        ),
+        headers={"Retry-After": str(remaining_seconds)},
+    )
+
+
 def authenticate_user(db: Session, username: str, password: str) -> User:
-    """Verify username and password, check account status, and update last_login."""
+    """Verify username and password, enforce brute-force lockout, and update last_login."""
     invalid_credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid username or password.",
@@ -79,12 +107,31 @@ def authenticate_user(db: Session, username: str, password: str) -> User:
         verify_password(password, DUMMY_PASSWORD_HASH)
         raise invalid_credentials_exception
 
+    now = datetime.now(timezone.utc)
+    if user.locked_until is not None:
+        locked_until_utc = _as_utc(user.locked_until)
+        if locked_until_utc > now:
+            verify_password(password, DUMMY_PASSWORD_HASH)
+            _raise_account_locked(locked_until_utc, now)
+        user.failed_login_attempts = 0
+        user.locked_until = None
+
     if not verify_password(password, user.password_hash):
+        user.failed_login_attempts += 1
+        if user.failed_login_attempts >= settings.MAX_FAILED_LOGIN_ATTEMPTS:
+            user.locked_until = now + timedelta(
+                minutes=settings.ACCOUNT_LOCKOUT_MINUTES
+            )
+            db.commit()
+            _raise_account_locked(_as_utc(user.locked_until), now)
+        db.commit()
         raise invalid_credentials_exception
 
     _ensure_user_is_active(user)
 
-    user.last_login = datetime.now(timezone.utc).replace(tzinfo=None)
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    user.last_login = now.replace(tzinfo=None)
     db.commit()
     db.refresh(user)
 
@@ -135,3 +182,69 @@ def refresh_user_session(db: Session, refresh_token: str | None) -> AuthSessionR
     _ensure_user_is_active(user)
 
     return _issue_session_tokens(user)
+
+
+def request_password_reset(db: Session, email: str) -> tuple[User, str] | None:
+    """Look up an active user by email and issue a short-lived password reset token."""
+    cleaned_email = email.strip().lower()
+    user = db.scalar(select(User).where(func.lower(User.email) == cleaned_email))
+    if user is None or user.account_status != AccountStatus.ACTIVE:
+        return None
+    token = create_password_reset_token(user.username, user.password_hash)
+    return user, token
+
+
+def reset_password(db: Session, token: str, new_password: str) -> None:
+    """Validate a password reset token, update the password, and clear any lockout."""
+    invalid_token_exc = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Invalid or expired password reset token.",
+    )
+
+    try:
+        payload = decode_token(token)
+    except jwt.InvalidTokenError as exc:
+        raise invalid_token_exc from exc
+
+    if payload.get("type") != TOKEN_TYPE_PASSWORD_RESET:
+        raise invalid_token_exc
+
+    username = payload.get("sub")
+    if not isinstance(username, str) or not username:
+        raise invalid_token_exc
+
+    user = db.scalar(select(User).where(func.lower(User.username) == username.lower()))
+    if user is None or user.account_status != AccountStatus.ACTIVE:
+        raise invalid_token_exc
+
+    expected_fp = password_fingerprint(user.password_hash)
+    if not secrets.compare_digest(str(payload.get("pwd_fp", "")), expected_fp):
+        raise invalid_token_exc
+
+    user.password_hash = hash_password(new_password)
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    db.commit()
+
+
+def change_user_password(
+    db: Session,
+    user: User,
+    current_password: str,
+    new_password: str,
+) -> None:
+    """Verify the user's current password and update it to a new password."""
+    if not verify_password(current_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+
+    if new_password == current_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from your current password.",
+        )
+
+    user.password_hash = hash_password(new_password)
+    db.commit()

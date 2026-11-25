@@ -4,5 +4,6 @@ export {
   deleteStudent,
   getStudents,
   StudentApiError,
+  unlockStudent,
   updateStudent,
 } from './studentApi'

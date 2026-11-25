@@ -1,3 +1,5 @@
+from datetime import datetime, timezone 
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -41,3 +43,7 @@ def database_health(
 ):
     db.execute(text("SELECT 1"))
     return {"database": "connected"}
+
+@app.get("/time")
+def server_time(): 
+    return {"server_time": datetime.now(timezone.utc).isoformat()}

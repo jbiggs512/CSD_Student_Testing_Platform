@@ -108,6 +108,8 @@ jobs:
                 - DATABASE_URL=${DATABASE_URL}
                 - SECRET_KEY=${SECRET_KEY}
                 - COOKIE_SECURE=${COOKIE_SECURE}
+                - AZURE_COMMUNICATION_CONNECTION_STRING=${AZURE_COMMUNICATION_CONNECTION_STRING}
+                - AZURE_COMMUNICATION_SENDER_EMAIL=${AZURE_COMMUNICATION_SENDER_EMAIL}
               restart: always
           EOF
 

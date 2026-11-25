@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import hashlib
 import secrets
 from typing import Any
 
@@ -10,6 +11,7 @@ from app.core.config import settings
 
 TOKEN_TYPE_ACCESS = "access"
 TOKEN_TYPE_REFRESH = "refresh"
+TOKEN_TYPE_PASSWORD_RESET = "password_reset"
 
 password_hasher = PasswordHash.recommended()
 
@@ -92,6 +94,30 @@ def create_refresh_token(
         subject=subject,
         token_type=TOKEN_TYPE_REFRESH,
         expires_delta=delta,
+    )
+
+
+def password_fingerprint(password_hash: str) -> str:
+    """Short fixed-length fingerprint of a password hash to invalidate reset tokens on reuse."""
+    return hashlib.sha256(password_hash.encode("utf-8")).hexdigest()[:16]
+
+
+def create_password_reset_token(
+    subject: str,
+    password_hash: str,
+    expires_delta: timedelta | None = None,
+) -> str:
+    """Create a short-lived signed JWT for resetting the user's password."""
+    delta = (
+        expires_delta
+        if expires_delta is not None
+        else timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
+    )
+    return _create_token(
+        subject=subject,
+        token_type=TOKEN_TYPE_PASSWORD_RESET,
+        expires_delta=delta,
+        extra_claims={"pwd_fp": password_fingerprint(password_hash)},
     )
 
 

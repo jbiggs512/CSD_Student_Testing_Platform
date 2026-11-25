@@ -4,22 +4,25 @@ import {
   CardHeader,
   CardTitle,
 } from '@shared/components'
+import { cn } from '@shared/lib/utils'
 import type { TestManagementStats } from '../model'
 
 interface HeroStatCardProps {
   title: string
   subtitle?: string
   value: string
+  isTextValue?: boolean
 }
 
 function HeroStatCard({
   title,
   subtitle,
   value,
+  isTextValue = false,
 }: Readonly<HeroStatCardProps>) {
   return (
-    <Card className="min-w-44 justify-between border-0 bg-white/10 py-5 text-white shadow-none backdrop-blur-xs">
-      <CardHeader className="gap-0.5 px-5">
+    <Card className="min-w-0 justify-between overflow-hidden border-0 bg-white/10 py-5 text-white shadow-none backdrop-blur-xs sm:min-w-44">
+      <CardHeader className="min-w-0 gap-0.5 px-5">
         <CardDescription className="text-xs font-semibold uppercase tracking-wider text-white/80">
           {title}
         </CardDescription>
@@ -28,7 +31,15 @@ function HeroStatCard({
             {subtitle}
           </CardDescription>
         )}
-        <CardTitle className="pt-2 font-heading text-3xl font-bold text-white sm:text-4xl">
+        <CardTitle
+          title={value}
+          className={cn(
+            'min-w-0 pt-2 font-heading font-bold text-white wrap-break-word',
+            isTextValue
+              ? 'line-clamp-3 text-lg leading-snug sm:text-xl'
+              : 'text-3xl sm:text-4xl',
+          )}
+        >
           {value}
         </CardTitle>
       </CardHeader>
@@ -75,6 +86,7 @@ export function TestManagementHero({
           title="Weakest Test"
           subtitle="(Last 7 Days)"
           value={weakestTest}
+          isTextValue={Boolean(stats?.weakest_test_last_7_days)}
         />
       </div>
     </section>

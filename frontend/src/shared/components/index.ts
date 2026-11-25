@@ -1,5 +1,8 @@
 // Shared reusable UI and shadcn components
+export { AppProtection } from './app-protection'
 export { AuthHeroPanel } from './auth-hero-panel'
+export { ErrorBoundary } from './error-boundary'
+export { ErrorPage } from './error-page'
 export { AuthSplitLayout } from './auth-split-layout'
 export { Alert, AlertDescription } from './ui/alert'
 export { Badge, badgeVariants } from './ui/badge'
@@ -44,9 +47,11 @@ export { PasswordInput } from './ui/password-input'
 export { NavBar } from './ui/navbar'
 export {
   NavigationMenu,
+  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
+  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from './ui/navigation-menu'
 export {
@@ -91,3 +96,5 @@ export {
   useToastManager,
 } from './ui/toast'
 export { RadioIndicator } from './ui/radio-indicator'
+export { PageHero } from './ui/hero'
+export { NoContentCard } from './ui/no-content'

@@ -1,4 +1,8 @@
-import { fetchWithAuthRetry, getAccessToken } from '@shared/api'
+import {
+  fetchWithAuthRetry,
+  getAccessToken,
+  notifyIfAccountDisabled,
+} from '@shared/api'
 import { API_BASE_URL } from '@shared/config'
 import type { Student, StudentCreateRequest, StudentUpdateRequest } from '../model'
 
@@ -50,6 +54,7 @@ async function studentRequest<T>(
     } catch {
       // Use the generic error when the server does not return JSON.
     }
+    notifyIfAccountDisabled(response.status, detail)
     throw new StudentApiError(
       detail ?? 'Something went wrong. Please try again.',
       response.status,
@@ -60,8 +65,10 @@ async function studentRequest<T>(
   return (await response.json()) as T
 }
 
-export function getStudents(): Promise<Student[]> {
-  return studentRequest<Student[]>('')
+export function getStudents(courseId?: number): Promise<Student[]> {
+  const query =
+    courseId !== undefined ? `?course_id=${encodeURIComponent(String(courseId))}` : ''
+  return studentRequest<Student[]>(query)
 }
 
 export function createStudent(request: StudentCreateRequest): Promise<Student> {
@@ -84,6 +91,13 @@ export function updateStudent(
 export function approveStudent(username: string): Promise<Student> {
   return studentRequest<Student>(
     `/${encodeURIComponent(username)}/approve`,
+    { method: 'PATCH' },
+  )
+}
+
+export function unlockStudent(username: string): Promise<Student> {
+  return studentRequest<Student>(
+    `/${encodeURIComponent(username)}/unlock`,
     { method: 'PATCH' },
   )
 }
