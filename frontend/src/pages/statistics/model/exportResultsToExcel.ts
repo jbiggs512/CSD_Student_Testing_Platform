@@ -1,15 +1,15 @@
 import type { GradePoint } from ".";
 import * as ExcelJS from "exceljs";
 
-const BEST = "FFF4B767";
-const WORST = "FFB44D70";
+const BEST_COLOUR = "FFF4B767";
+const WORST_COLOUR = "FFB44D70";
 
 function getColour(point: GradePoint) {
     if (point.is_best) {
-        return BEST;
+        return BEST_COLOUR;
     }
     else if (point.is_worst) {
-        return WORST;
+        return WORST_COLOUR;
     }
     return null;
 }
@@ -55,10 +55,10 @@ export function buildResultsWorkbook(points: GradePoint[]) {
     // Small legend underneath
     sheet.addRow([]);
     const bestLegend = sheet.addRow(["Best result"]);
-    bestLegend.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: BEST } };
+    bestLegend.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: BEST_COLOUR } };
     bestLegend.font = { bold: true };
     const worstLegend = sheet.addRow(["Worst result"]);
-    worstLegend.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: WORST } };
+    worstLegend.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: WORST_COLOUR } };
     worstLegend.font = { bold: true };
 
     return workbook;
