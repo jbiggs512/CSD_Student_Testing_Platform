@@ -1,4 +1,4 @@
-# CSD Student Testing Platform
+# Altius
 
 UFCFCR-30-3 Collaborative Software Development project (**Altius**), created by **Jack Biggs**, **Emily Shiel**, and **Charlie Eldergill**.
 
