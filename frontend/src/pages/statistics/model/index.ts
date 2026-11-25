@@ -5,5 +5,7 @@ export type {
     StatisticsProps,
     GradePoint,
     GradesOverTimeResponse
-} from "./types"
+} from './types'
+
+export { exportResultsToExcel, buildResultsWorkbook } from './exportResultsToExcel'
 

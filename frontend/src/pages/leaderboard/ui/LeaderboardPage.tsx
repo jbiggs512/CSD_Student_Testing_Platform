@@ -102,7 +102,7 @@ export function LeaderboardPage() {
         return <NoEnrollmentContent pageError={pageError} />
     }
 
-    if (leaderboard === undefined || !leaderboard.top_students.some((data) => data.avg_score > 0)){
+    if (!leaderboard?.top_students.some((data) => data.avg_score > 0)){
         return <EmptyLeaderboardContent 
             pageError={pageError}
             courseTitle={courseTitle}
