@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react';
 import { TestPageContent } from "./TestPageContent";
 import { useNavigate, useParams } from 'react-router';
-import {
-  type TestAnswerSubmission,
-  type TestDetails,
-  type TestAttemptRequest,
+import type {
+  TestAnswerSubmission,
+  TestDetails,
+  TestCompletedRequest,
+  TestAttempt
 } from '../model';
 import { getTestDetails, createTestAttempt } from '../api';
 import { toast } from '@/shared/components';
+import { completeTestAttempt } from '../api/testApi';
 
 export function TestPage() {
   const navigate = useNavigate();
   // Extract the test ID from the URL parameters using useParams
   const { id } = useParams();
   const [testDetails, setTestDetails] = useState<TestDetails | null>(null);
+  const [testAttempt, setTestAttempt] = useState<TestAttempt | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [startedAt] = useState(() => new Date().toISOString());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -58,10 +60,9 @@ export function TestPage() {
       };
     });
 
-    const request: TestAttemptRequest = {
+    const request: TestCompletedRequest = {
+      attempt_id: testAttempt?.attempt_id ?? 0,
       test_id: testDetails.test_id ?? Number.parseInt(id ?? '0'),
-      started_at: startedAt,
-      completed_at: new Date().toISOString(),
       answers,
     };
 
@@ -69,7 +70,7 @@ export function TestPage() {
     setSubmitError(null);
 
     try {
-      const result = await createTestAttempt(request);
+      const result = await completeTestAttempt(request);
       if (result == undefined) {
         throw new Error("Test attempt was not submitted. Please try again.");
       }
@@ -104,6 +105,13 @@ export function TestPage() {
           // Set the current question id to the first in the list
           const firstQ = testDetails.questions[0].question_id
           setTestDetails({ ...testDetails, current_question: firstQ })
+
+          // Create users initial test attempt record 
+          const testAttempt = await createTestAttempt(id ? Number.parseInt(id) : 0);
+          if (testAttempt === undefined) {
+            throw new Error("Test attempt could not be created");
+          }
+          setTestAttempt(testAttempt);
         }
       }
       catch (error) {
@@ -118,7 +126,7 @@ export function TestPage() {
     loadData().catch((error) => {
       console.error("Failed to load test data:", error);
     });;
-  }, []);
+  }, [id, navigate]);
 
   if (isLoading) {
     return <div className="flex min-h-screen items-center justify-center">Loading test...</div>;
@@ -130,6 +138,7 @@ export function TestPage() {
 
   return (
     <TestPageContent testDetails={testDetails!}
+      testAttempt={testAttempt!}
       onSelectOption={handleSelectOption}
       onNavigateQuestion={handleNavigateQuestion}
       isAnswered={isAnswered}

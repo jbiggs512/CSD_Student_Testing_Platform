@@ -92,6 +92,22 @@ def read_current_user(
     return current_user
 
 
+@router.post("/change-password")
+def change_password(
+    payload: schemas.ChangePasswordRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> schemas.MessageResponse:
+    """Update the authenticated user's password after verifying their current password."""
+    service.change_user_password(
+        db,
+        current_user,
+        payload.current_password,
+        payload.new_password,
+    )
+    return schemas.MessageResponse(message="Password updated successfully.")
+
+
 @router.post("/forgot-password")
 def forgot_password(
     payload: schemas.ForgotPasswordRequest,

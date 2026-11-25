@@ -25,6 +25,7 @@ export interface TestDetails {
 
 export interface TestPageContentProps {
   readonly testDetails: TestDetails;
+  readonly testAttempt: TestAttempt;
   readonly onSelectOption: (question_id: number, option_id: number) => void;
   readonly onNavigateQuestion: (question_id: number) => void;
   readonly isAnswered: (question_id: number) => boolean;
@@ -38,10 +39,13 @@ export interface TestAnswerSubmission {
   selected_option_id: number | null;
 }
 
-export interface TestAttemptRequest {
+export interface TestAttemptCreateRequest {
   test_id: number;
-  started_at: string;
-  completed_at: string;
+}
+
+export interface TestCompletedRequest {
+  attempt_id: number;
+  test_id: number;  
   answers: TestAnswerSubmission[];
 }
 
@@ -49,8 +53,8 @@ export interface TestAttempt {
   attempt_id: number;
   test_id: number;
   started_at: string;
-  completed_at: string;
-  score: number;
-  total_questions: number;
-  correct_questions: number;
+  completed_at: string | null;
+  score: number | null;
+  total_questions: number | null;
+  correct_questions: number | null;
 }
