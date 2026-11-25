@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password, verify_password
 from app.api.v1.user import schemas, service
-from app.db.models import Course, Role, User
+from app.db.models import Course, Role, Test, TestAttempt, User
 from app.db.scripts.seed_users import DEFAULT_USERS, seed_users
 from app.enums import UserRole, AccountStatus
 
@@ -328,6 +328,20 @@ def test_lecturer_can_delete_student(client, db_session):
         username="WS100005",
         role_name=UserRole.STUDENT,
     )
+    existing_test = db_session.scalar(select(Test))
+    assert existing_test is not None
+    attempt = TestAttempt(
+        user_id=student.user_id,
+        test_id=existing_test.test_id,
+        completed_at=datetime.now(timezone.utc),
+        score=1,
+        total_questions=1,
+        correct_questions=1,
+    )
+    db_session.add(attempt)
+    db_session.commit()
+    attempt_id = attempt.attempt_id
+
     headers = {
         "Authorization": f"Bearer {create_access_token(subject=lecturer.username)}"
     }
@@ -339,6 +353,7 @@ def test_lecturer_can_delete_student(client, db_session):
 
     assert response.status_code == 204
     assert db_session.get(User, student.user_id) is None
+    assert db_session.get(TestAttempt, attempt_id) is None
 
 
 def test_admin_can_manage_student_accounts(client, db_session, auth_headers):

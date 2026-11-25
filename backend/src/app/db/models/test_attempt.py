@@ -37,7 +37,7 @@ class TestAttempt(Base):
     attempt_id: Mapped[int] = mapped_column(primary_key=True)
 
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        ForeignKey("users.user_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
