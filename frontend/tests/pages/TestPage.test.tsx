@@ -367,7 +367,6 @@ describe('Test Page Content', () => {
     await screen.findByRole('heading', { name: 'Beginner Software Quiz' })
 
     fireEvent.click(screen.getByTestId('submit-test'))
-    fireEvent.click(screen.getByTestId('continue-submit-test'))
 
     await waitFor(() => {
       expect(screen.getByText('Student Dashboard')).toBeDefined()
