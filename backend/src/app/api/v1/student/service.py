@@ -61,7 +61,7 @@ def _to_entry(row) -> LeaderboardEntry:
         user_id=row.user_id,
         rank=row.rank,
         name=_format_name(row.first_name, row.last_name),
-        avg_score=round(float(row.avg_score), 2),  # float(): some drivers return Decimal
+        avg_score=round(float(row.avg_score), 2),  
         points=row.points,
     )
 

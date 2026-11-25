@@ -2,7 +2,7 @@ export interface OutstandingTest {
     id: number
     test_name: string
     subject_name: string
-    description: string
+    description: string | null
     questions_per_attempt: number
 }
 
