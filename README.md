@@ -115,8 +115,8 @@ The platform is hosted on **Microsoft Azure** using infrastructure-as-code defin
 
 Deployments are automated via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) using Azure OIDC authentication:
 
-- Pushing to `development` builds and pushes container images to GHCR and deploys to the **dev** environment (`rg-altius-dev`).
-- Pushing to `master` builds and pushes container images to GHCR and deploys to the **production** environment (`rg-altius-prod`).
+- Pushing to `development` builds and pushes container images to GHCR and deploys to the **dev** environment (`rg-altius-dev`): https://altius-dev-app-eilj5iusmg46y.azurewebsites.net
+- Pushing to `master` builds and pushes container images to GHCR and deploys to the **production** environment (`rg-altius-prod`): https://myaltius.app/ (https://altius-prod-app-yrlaqlt6b6bmc.azurewebsites.net)
 
 ## Project Structure
 
