@@ -4,7 +4,7 @@ class OutstandingTestResponse(BaseModel):
     id: int
     test_name: str
     subject_name: str
-    description: str
+    description: str | None
     questions_per_attempt: int
     
 class CompletedTestResponse(BaseModel):
