@@ -32,18 +32,28 @@ The project uses a lightweight version of Feature-Sliced Design. Layers are adde
 frontend/
 ├── src/
 │   ├── pages/            # Route-level pages
-│   │   └── dashboard/
+│   │   ├── adminDashboard/
+│   │   ├── courses/
+│   │   ├── dashboard/
 │   │   ├── landing/
+│   │   ├── leaderboard/
+│   │   ├── lecturerDashboard/
+│   │   ├── lecturers/
 │   │   ├── login/
-│   │   └── register/
-│   │   └── test/
+│   │   ├── questionPool/
+│   │   ├── register/
+│   │   ├── statistics/
+│   │   ├── students/
+│   │   ├── subjects/
+│   │   ├── test/
+│   │   └── tests/
 │   ├── shared/           # Reusable, domain-agnostic code
 │   │   ├── api/          # Shared API client and requests
 │   │   ├── components/   # Shared UI and shadcn components
 │   │   └── config/       # Environment variables and configuration
 │   ├── App.tsx           # Root application component
+│   ├── index.css         # Global CSS styles for application
 │   └── main.tsx          # Application entry point
-│   └── style.css         # CSS styles for application
 └── tests/                # Unit tests mirroring src/ structure
 ```
 
