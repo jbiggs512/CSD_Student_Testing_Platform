@@ -2,7 +2,7 @@
 
 UFCFCR-30-3 Collaborative Software Development project (**Altius**), created by **Jack Biggs**, **Emily Shiel**, and **Charlie Eldergill**.
 
-A role-based student testing and assessment platform with a React/TypeScript frontend, FastAPI backend, and PostgreSQL database.
+A role-based student testing and assessment platform with a React/TypeScript frontend with ShadCN components, FastAPI backend, and PostgreSQL database.
 
 ## Features
 
@@ -122,6 +122,5 @@ Deployments are automated via [`.github/workflows/deploy.yml`](.github/workflows
 
 - [`backend/`](backend/README.md) — FastAPI Python backend managed with `uv`, SQLAlchemy, and Alembic.
 - [`frontend/`](frontend/README.md) — React 19, TypeScript, and Vite frontend.
-- `infra/` — Azure deployment scripts, Bicep templates (`main.bicep`), and production Compose configuration (`docker-compose.azure.yml`).
 - `docker-compose.yml` — Local Docker Compose configuration for the frontend, backend, and PostgreSQL.
 - `.env.example` — Template for local environment variables (copy to `.env`; do not commit secrets).
